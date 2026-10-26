@@ -277,3 +277,10 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
 .lb-stage { flex: 1; overflow: hidden; position: relative; touch-action: none; cursor: grab; }
 .lb-stage img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 0 0; user-select: none; -webkit-user-select: none; }
 .lb-hint { margin: 0; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); text-align: center; font-size: 12px; color: #9aa79f; }
+
+/* Icon board = hình PCB thu nhỏ + nhãn viết tắt */
+.bc-icon { position: relative; width: 48px; height: 48px; background: var(--surface2) !important; border: 1px solid var(--line); box-shadow: none; padding: 3px 3px 12px; }
+.bc-icon svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.bc-icon b { position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); font: 700 10px var(--mono); padding: 1px 5px; border-radius: 5px; color: #fff; white-space: nowrap; }
+.bc-icon.esp b { background: #d23a2f; } .bc-icon.rp b { background: #b81a4c; } .bc-icon.avr b { background: #0f8a93; }
+.board-card[aria-pressed="true"] .bc-icon { box-shadow: 0 0 0 2px var(--accent); }

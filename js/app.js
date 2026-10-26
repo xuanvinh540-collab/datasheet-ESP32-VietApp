@@ -23,12 +23,22 @@
     p.status = p.cat === "ban" || p.cat === "nc" ? "ban" : p.warn && ["gpio", "adc", "comm", "strap", "usb"].includes(p.cat) ? "warn" : ["power", "gnd", "ctl"].includes(p.cat) ? "info" : "ok";
   })));
 
+  /* Icon board: thu nhỏ chính dữ liệu PCB (viền, linh kiện, chân) thành SVG */
+  function boardIcon(b) {
+    const [fill, edge] = PCB[b.pcb] || PCB.green, m = 2, vb = `${-m} ${-m} ${b.w + 2 * m} ${b.h + 2 * m}`;
+    const r = Math.max(b.w, b.h) / 40;
+    const parts = b.parts.filter(p => p.t !== "hole" && p.t !== "ant" && p.t !== "led").map(p =>
+      `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${r}" fill="${["usb", "btn", "shield"].includes(p.t) ? "#c9cfd2" : p.t === "jack" ? "#111" : "#16191a"}"/>`).join("");
+    const pads = b.headers.flatMap(hd => hd.pins).map(p => `<circle cx="${p.x}" cy="${p.y}" r="${Math.max(.7, r * 1.1)}" fill="#e2c063"/>`).join("");
+    return `<svg viewBox="${vb}" aria-hidden="true"><rect width="${b.w}" height="${b.h}" rx="${r * 2}" fill="${fill}" stroke="${edge}" stroke-width="${r}"/>${parts}${pads}</svg>`;
+  }
+
   /* ---------- Chọn board ---------- */
   function renderBoardList() {
     const box = $("#boards"); box.innerHTML = "";
     BOARDS.forEach(b => {
       const fam = { ESP32: "esp", RP2: "rp", "Raspberry Pi": "rp", AVR: "avr" }[b.family] || "esp";
-      const btn = h("button", "board-card", `<span class="bc-icon ${fam}">${esc(b.tag)}</span><span class="bc-txt"><span class="bc-name">${esc(b.name)}</span><span class="bc-chip">${esc(b.chip)} · ${esc(b.logic)}</span></span>`);
+      const btn = h("button", "board-card", `<span class="bc-icon ${fam}">${boardIcon(b)}<b>${esc(b.tag)}</b></span><span class="bc-txt"><span class="bc-name">${esc(b.name)}</span><span class="bc-chip">${esc(b.chip)} · ${esc(b.logic)}</span></span>`);
       btn.title = b.name;
       btn.setAttribute("aria-pressed", b === state.b);
       btn.onclick = () => selectBoard(b.id);
