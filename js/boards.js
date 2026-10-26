@@ -72,7 +72,8 @@
   const S3R = ["G", 43, 44, 1, 2, 42, 41, 40, 39, 38, 37, 36, 35, 0, 45, 48, 47, 21, 20, 19, "G", "G"];
 
   const ESP32_S3 = {
-    id: "esp32-s3-devkitc-1", name: "ESP32-S3-DevKitC-1", vendor: "Espressif", chip: "ESP32-S3 (WROOM-1)", family: "ESP32",
+    id: "esp32-s3-devkitc-1",
+    oem: { by: "Espressif Systems", file: "SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", url: "https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", pages: [["sch/esp32-s3-devkitc-1-1.png", "Sơ đồ khối"], ["sch/esp32-s3-devkitc-1-2.png", "Mạch chi tiết"]] }, name: "ESP32-S3-DevKitC-1", vendor: "Espressif", chip: "ESP32-S3 (WROOM-1)", family: "ESP32",
     summary: "Xtensa LX7 2 nhân 240 MHz, Wi-Fi 4 + BLE 5, USB OTG native.",
     w: 25.9, h: 63, pcb: "green", logic: "3.3 V",
     facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định, tối đa 40 mA"], ["ADC", "2 × SAR 12-bit, 20 kênh (ADC1: IO1–IO10)"], ["Nguồn vào", "5V qua USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102/CH343) hoặc USB native"]],
@@ -211,7 +212,8 @@
     ctl("SWDIO", "Debug SWD data", "Cổng debug SWD.")
   ];
   const PICO2W = {
-    id: "pico-2-w", name: "Raspberry Pi Pico 2 W", vendor: "Raspberry Pi", chip: "RP2350 + CYW43439", family: "RP2",
+    id: "pico-2-w",
+    oem: { by: "Raspberry Pi Ltd", file: "pico-2-w-schematic.pdf", url: "https://datasheets.raspberrypi.com/picow/pico-2-w-schematic.pdf", pages: [["sch/pico-2-w-1.png", "Schematic trang 1"], ["sch/pico-2-w-2.png", "Schematic trang 2"], ["sch/pico-2-w-layout-21.png", "Vị trí linh kiện (Datasheet, Phụ lục B)"]] }, name: "Raspberry Pi Pico 2 W", vendor: "Raspberry Pi", chip: "RP2350 + CYW43439", family: "RP2",
     summary: "2 × Cortex-M33 / Hazard3 RISC-V 150 MHz, 520 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5.2.",
     w: 21, h: 51, pcb: "green2", logic: "3.3 V",
     facts: [["Logic", "3.3 V (GPIO thường chịu 5 V khi có IOVDD)"], ["Kích thước", "51 × 21 mm, 40 chân bước 2.54 mm"], ["ADC", "12-bit, 3 kênh ra ngoài (GP26–28)"], ["Nguồn", "VSYS 1.8–5.5 V, 3V3 OUT ≤ 300 mA"], ["Dùng nội bộ", "GP23/24/25/29 cho chip Wi-Fi; LED nối WL_GPIO0"], ["PIO", "3 khối PIO × 4 state machine"]],
@@ -277,7 +279,8 @@
   ];
   const UPy = [27.94, 30.48, 33.02, 35.56, 38.1, 40.64, 43.18, 45.72, 50.8, 53.34, 55.88, 58.42, 60.96, 63.5];
   const UNO = {
-    id: "arduino-uno-r3", name: "Arduino Uno R3", vendor: "Arduino", chip: "ATmega328P", family: "AVR",
+    id: "arduino-uno-r3",
+    oem: { by: "Arduino", file: "A000066-schematics.pdf", url: "https://docs.arduino.cc/resources/schematics/A000066-schematics.pdf", license: "CC BY-SA 4.0", pages: [["sch/arduino-uno-r3-1.png", "Schematic Uno R3"]] }, name: "Arduino Uno R3", vendor: "Arduino", chip: "ATmega328P", family: "AVR",
     summary: "AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V.",
     w: 53.34, h: 68.58, pcb: "blue", logic: "5 V",
     facts: [["Logic", "5 V"], ["Dòng mỗi chân", "≤ 20 mA khuyến nghị, 40 mA tối đa"], ["ADC", "10-bit, 6 kênh A0–A5"], ["PWM", "D3, D5, D6, D9, D10, D11"], ["Nguồn", "USB 5 V hoặc jack/VIN 7–12 V"]],
@@ -333,7 +336,8 @@
   const odd = [], even = [];
   for (let c = 0; c < 20; c++) { odd.push({ ...PI[2 * c + 1], x: 51.23, y: 8.37 + c * PITCH }); even.push({ ...PI[2 * c + 2], x: 53.77, y: 8.37 + c * PITCH }); }
   const RPI = {
-    id: "raspberry-pi-40pin", name: "Raspberry Pi 4 / 5 (GPIO 40 chân)", vendor: "Raspberry Pi", chip: "BCM2711 / BCM2712 + RP1", family: "Raspberry Pi",
+    id: "raspberry-pi-40pin",
+    oem: { by: "Raspberry Pi Ltd", file: "raspberry-pi-4-reduced-schematics.pdf", url: "https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-reduced-schematics.pdf", note: "Pi 5 chưa có schematic công khai; đây là bản rút gọn của Pi 4.", pages: [["sch/raspberry-pi-40pin-1.png", "Pi 4 Reduced Schematics"]] }, name: "Raspberry Pi 4 / 5 (GPIO 40 chân)", vendor: "Raspberry Pi", chip: "BCM2711 / BCM2712 + RP1", family: "Raspberry Pi",
     summary: "Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero.",
     w: 56, h: 85, pcb: "green2", logic: "3.3 V",
     facts: [["Logic", "3.3 V, không chịu 5 V"], ["Header", "2 × 20, bước 2.54 mm, chân 1 có pad vuông"], ["ADC", "Không có ADC – cần chip ngoài (ADS1115, MCP3008)"], ["PWM phần cứng", "GPIO12, 13, 18, 19"], ["Đánh số", "Code dùng số BCM (GPIOxx), không phải số chân vật lý"]],

@@ -33,7 +33,7 @@
         <div class="stage-head">
           <div><h1 id="bTitle"></h1><p id="bSub" class="muted small"></p></div>
           <div class="seg" role="group" aria-label="Kiểu hình">
-            <button id="viewPcb">PCB</button><button id="viewSch">Schematic</button>
+            <button id="viewPcb">PCB</button><button id="viewSch">Schematic</button><button id="viewOem">Schematic hãng</button>
           </div>
         </div>
         <div class="toolbar">
@@ -41,7 +41,8 @@
           <div class="zoom"><button class="icon-btn" id="zout" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="zin" aria-label="Phóng to">+</button></div>
         </div>
         <div class="chips" id="filters"></div>
-        <div class="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ chân board"></svg></div>
+        <div class="oem" id="oem" hidden></div>
+        <div class="canvas" id="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ chân board"></svg></div>
         <div class="stage-foot"><div class="legend" id="legend"></div><span id="count" class="muted small"></span></div>
         <p id="bNote" class="note small"></p>
       </div>

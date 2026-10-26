@@ -206,3 +206,11 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
   .board-card { min-width: 0; }
   .board-card { padding: 8px 12px; }
 }
+
+/* Schematic hãng: ảnh trang PDF, cuộn/zoom trong khung */
+.oem { margin-top: 10px; display: grid; gap: 12px; }
+.oem figure { margin: 0; }
+.oem figcaption { font: 600 12px var(--mono); color: var(--muted); margin-bottom: 6px; }
+.oem-img { overflow: auto; max-height: 76vh; border-radius: 10px; border: 1px solid var(--line); background: #fff; -webkit-overflow-scrolling: touch; }
+.oem-img img { display: block; max-width: none; height: auto; }
+.credit { font-size: 13px; color: var(--muted); margin: 0; border-left: 3px solid var(--accent); padding-left: 8px; }

@@ -224,6 +224,16 @@
   }
 
   function draw() {
+    const oem = state.b.oem, isOem = state.view === "oem" && oem;
+    if (state.view === "oem" && !oem) state.view = "pcb";
+    $("#viewOem").hidden = !oem;
+    $("#viewOem").setAttribute("aria-pressed", !!isOem);
+    ["#canvas", "#filters", ".stage-foot", ".search"].forEach(s => $(s).hidden = !!isOem);
+    $("#oem").hidden = !isOem;
+    if (isOem) {
+      $("#oem").innerHTML = oem.pages.map(([src, t]) => `<figure><figcaption>${esc(t)}</figcaption><div class="oem-img"><img src="${src}" alt="${esc(t)}" loading="lazy" style="width:${state.zoom * 100}%"></div></figure>`).join("") +
+        `<p class="credit">Nguồn: <b>${esc(oem.by)}</b> – <a href="${esc(oem.url)}" target="_blank" rel="noopener">${esc(oem.file)} ↗</a>${oem.license ? ` · Giấy phép ${esc(oem.license)}` : ""}. Ảnh chuyển từ PDF gốc, giữ nguyên nội dung; bản quyền thuộc ${esc(oem.by)}.${oem.note ? " " + esc(oem.note) : ""}</p>`;
+    }
     const svg = $("#svg"); svg.innerHTML = "";
     svg.classList.toggle("sch", state.view === "sch");
     if (state.view === "pcb") drawPCB(svg); else drawSch(svg);
@@ -326,7 +336,8 @@
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
   $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); };
   $("#viewSch").onclick = () => { state.view = "sch"; draw(); };
-  $("#zin").onclick = () => { state.zoom = Math.min(3, state.zoom + .5); draw(); };
+  $("#viewOem").onclick = () => { state.view = "oem"; draw(); };
+  $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });
   $("#q").oninput = e => { state.q = e.target.value; applyDim(); };
