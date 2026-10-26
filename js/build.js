@@ -13,13 +13,11 @@
     if (!d.svg && !d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
     if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { d.svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); if (B.boardId) draw(); }).catch(() => {});
   }
-  const B = { boardId: null, bus: {}, mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, dropOpen: true, q: "" };
-  const CATS = [
-    ["Màn hình & Hiển thị", ["ssd1306", "st7789", "sevseg", "ws2812"]],
-    ["Cảm biến", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]],
-    ["Âm thanh & Còi", ["buzzer", "max98357a", "inmp441"]],
-    ["Điều khiển & Cơ bản", ["button", "led"]]
-  ];
+  const B = { boardId: null, bus: {}, mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "" };
+  const CATS = (window.MOD_CATS || []).map(([n, , keys]) => [n, keys]);
+  // tên hiển thị góc phải dưới khung vẽ
+  const ARR_NAMES = ["Gần chân nhất", "Vòng cung cân bằng", "Tách Bus / GPIO"];
+  const STYLE_NAMES = ["Vuông góc gọn", "Vuông góc tách nhóm", "Cong mềm (Node)", "Vát 45° kiểu PCB"];
   const pinByName = n => A.pins.find(p => p.name === n);
   const board = () => A.state.b;
   const supported = b => ["ESP32", "RP2", "AVR"].includes(b.family);
@@ -105,7 +103,7 @@
   const busNo = (n, kind) => { const p = pinByName(n || ""); const m = p && p.fn.join(" ").match(new RegExp(kind + "(\\d)")); return m ? +m[1] : 0; };
   const PFX = { button: "BTN", led: "LED1", buzzer: "BUZ", sevseg: "SEG", ssd1306: "OLED", ldr: "LDR", dht22: "DHT", st7789: "TFT", ws2812: "LED", hcsr04: "US", vl53l0x: "TOF", mpu6050: "MPU", max98357a: "I2S", inmp441: "MIC" };
   function code() {
-    const b = board(), f = b.family, L = [`// ${b.name} – Pindex Build (pindex.pages.dev)`];
+    const b = board(), f = b.family, L = [`// ${b.name} – Pindex Connect (pindex.pages.dev)`];
     const has = r => B.mods.some(m => M[m.type].pins.some(x => x[1] === r));
     if (has("spi.sck")) {
       L.push("", "// SPI (dùng chung)", `#define SPI_SCK   ${val(B.bus["spi.sck"])}`, `#define SPI_MOSI  ${val(B.bus["spi.mosi"])}`);
@@ -172,7 +170,7 @@
     if (!B.mods.length) return;
     B.mods.forEach(autoAssign);
     const b = board(), mode = B.arrMode % 3;
-    B.arrMode = (B.arrMode + 1) % 3;
+    B.arrMode = (B.arrMode + 1) % 3; B.arrLast = mode;
     const L = [], R = [];
     for (const [idx, m] of B.mods.entries()) {
       const d = M[m.type];
@@ -362,20 +360,23 @@
       d.pins.forEach(([label, role]) => { const p = pinByName(getPin(m, label) || ""); if (!p) return;
         const c = COLOR[role] || d.color, info = routeMap[`${mi}:${label}`]; if (!info) return;
         const { pts, w: wObj } = info;
+        const isSel = B.selW && B.selW.m === mi && B.selW.label === label, wcls = "bwire" + (isSel ? " sel" : "");
         if (B.style === 2) {
           const bp = blenderPath(wObj);
-          el("path", { d: bp.d, stroke: c, class: "bwire" }, wires);
+          el("path", { d: bp.d, stroke: c, class: wcls }, wires);
           el("text", { x: bp.mx, y: bp.my - .55, "text-anchor": "middle", "font-size": 1.1, class: "wlabel", fill: c }, wires, label);
+          const hit = el("path", { d: bp.d, class: "whit", "data-wm": mi, "data-wl": label }, wires);
+          hit.addEventListener("pointerdown", e => { e.stopPropagation(); selectWire(mi, label); });
         } else {
           const pd = pathOf(pts);
-          el("path", { d: pd, stroke: c, class: "bwire" }, wires);
+          el("path", { d: pd, stroke: c, class: wcls }, wires);
           let li = 1, ll = 0; for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (l > ll && i < pts.length - 1) { ll = l; li = i; } }
           const [x0, y0] = pts[li - 1], [x1, y1] = pts[li], vert = Math.abs(x0 - x1) < .01, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
           if (ll > 6) el("text", { x: mx, y: my - (vert ? 0 : .55), "text-anchor": "middle", "font-size": 1.1, class: "wlabel", fill: c, transform: vert ? `rotate(-90 ${mx} ${my}) translate(0 -.55)` : "" }, wires, label);
-          const hit = el("path", { d: pd, class: "whit" }, wires);
-          hit.addEventListener("pointerdown", e => dragSeg(e, mi, label, pts));
+          const hit = el("path", { d: pd, class: "whit", "data-wm": mi, "data-wl": label }, wires);
+          hit.addEventListener("pointerdown", e => { if (e.button === 2) return; selectWire(mi, label); dragSeg(e, mi, label, pts); });
         }
-        const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: c, "fill-opacity": .35, stroke: c, "stroke-width": .5, class: "wend" }, wires);
+        const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: c, "fill-opacity": .35, stroke: c, "stroke-width": .5, class: "wend", "data-wm": mi, "data-wl": label }, wires);
         end.addEventListener("pointerdown", e => startWire(e, mi, label, true)); });
       const g = el("g", { class: "bnode", "data-m": mi }, nodes);
       const head = el("g", { class: "bhead", "data-m": mi }, g);
@@ -403,8 +404,11 @@
           so.addEventListener("pointerdown", e => startWire(e, mi, label));
         });
       }
-      head.addEventListener("pointerdown", e => startNode(e, mi));
+      head.addEventListener("pointerdown", e => { if (e.button !== 2) startNode(e, mi); });
+      if (B.selM === mi) el("rect", { x: m.pos.x - 1, y: m.pos.y - 1, width: w + 2, height: h + 2, rx: 1, class: "bsel" }, g);
     }
+    const nm = $("#bname");
+    if (nm) nm.innerHTML = `<div><span>Bố cục:</span> ${esc(B.arrLast == null ? "Tự do" : ARR_NAMES[B.arrLast])}</div><div><span>Dây:</span> ${esc(STYLE_NAMES[B.style])}</div>`;
     if (B.arm) showGlow(B.mods[B.arm.m], B.arm.label);
     // khung nhìn: board + toàn bộ node cả bên Trái lẫn bên Phải, có thể pan/zoom
     const minX = B.mods.map(m => m.pos.x - 8), maxX = B.mods.map(m => m.pos.x + modW(M[m.type]) + 8);
@@ -465,9 +469,26 @@
   function startNode(e, mi) {
     e.stopPropagation(); e.preventDefault();
     const m = B.mods[mi], s = svg(), p0 = toSvg(e), o = { ...m.pos };
-    const mv = ev => { const pt = toSvg(ev); m.pos = { x: o.x + pt.x - p0.x, y: o.y + pt.y - p0.y }; draw(); };
+    B.selM = mi; B.selW = null; draw();                       // chọn linh kiện (Delete để xoá)
+    const mv = ev => { const pt = toSvg(ev); m.pos = { x: o.x + pt.x - p0.x, y: o.y + pt.y - p0.y }; B.arrLast = null; draw(); };
     const up = () => { s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up); save(); };
     s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
+  }
+
+  /* ---------- Chọn & xoá: Delete/Backspace hoặc chuột phải ---------- */
+  function selectWire(mi, label, quiet) { B.selW = { m: mi, label }; B.selM = null; if (!quiet) draw(); }
+  function removeMod(i) {
+    const d = M[B.mods[i].type]; B.mods.splice(i, 1);
+    B.selM = B.selW = null; B.arm = null; cleanBus(); save(); refresh(); A.toast("Đã xoá " + d.short);
+  }
+  function removeWire(mi, label) {
+    const m = B.mods[mi]; if (!m) return;
+    setPin(m, label, null); if (m.route) delete m.route[label];
+    B.selW = null; save(); refresh(); A.toast("Đã xoá dây " + label);
+  }
+  function deleteSel() {
+    if (B.selW) removeWire(B.selW.m, B.selW.label);
+    else if (B.selM != null && B.mods[B.selM]) removeMod(B.selM);
   }
   function initCanvas() {
     const s = svg();
@@ -477,8 +498,8 @@
       if (!$("#btools")) {
         const tools = document.createElement("div");
         tools.id = "btools"; tools.className = "btools";
-        tools.innerHTML = `<button type="button" class="bbtn" id="barr">🧲 Sắp xếp</button>`
-          + `<button type="button" class="bbtn" id="bstyle">🔀 Đi dây</button>`
+        tools.innerHTML = `<button type="button" class="bbtn" id="barr" title="Đổi cách sắp xếp linh kiện">🧲 Sắp xếp</button>`
+          + `<button type="button" class="bbtn" id="bstyle" title="Đổi kiểu đi dây">🔀 Đi dây</button>`
           + `<label class="bslider"><span>↔ Dãn dây</span><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}"></label>`;
         bar.insertBefore(tools, zoomBox);
         $("#barr").onclick = () => arrangeModules();
@@ -491,9 +512,21 @@
         $("#bspread").onchange = () => save();
       }
     }
+    if (!$("#bname")) { const nm = document.createElement("div"); nm.id = "bname"; nm.className = "bname"; s.after(nm); }
+    // chuột phải lên linh kiện / dây = xoá
+    s.addEventListener("contextmenu", e => {
+      const node = e.target.closest(".bnode"), w = e.target.closest("[data-wm]");
+      if (node) { e.preventDefault(); removeMod(+node.dataset.m); }
+      else if (w) { e.preventDefault(); removeWire(+w.dataset.wm, w.dataset.wl); }
+    });
+    addEventListener("keydown", e => {
+      if (A.state.tab !== "build" || !["Delete", "Backspace"].includes(e.key) || e.target.closest("input, textarea, select, [contenteditable]")) return;
+      if (B.selW || B.selM != null) { e.preventDefault(); deleteSel(); }
+    });
     // kéo nền = di chuyển khung nhìn; cuộn = zoom; chạm pad khi đang chọn socket = nối
     s.addEventListener("pointerdown", e => {
-      if (e.target.closest(".bnode")) return;
+      if (e.target.closest(".bnode") || e.button === 2) return;
+      if (B.selM != null || B.selW) { B.selM = B.selW = null; draw(); }
       const pt = toSvg(e), pad = nearestPad(pt);
       if (B.arm && pad) { connect(B.mods[B.arm.m], B.arm.label, pad); B.arm = null; return refresh(); }
       const c0 = { ...B.cam }, x0 = e.clientX, y0 = e.clientY, r = s.getBoundingClientRect(), k = c0.w / r.width;
@@ -545,6 +578,7 @@
             <div id="mcats">${renderCatList(b)}</div>
           </div>
         </div>
+        <p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để xoá.</p>
         <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Tự nối chân</button>` : ""}
         ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
       : `<pre class="code bcode">${esc(code())}</pre><button class="btn-share" data-copy>Copy #define</button>`}
@@ -581,18 +615,18 @@
   async function exportAs(kind) {
     const b = board();
     if (kind === "json") return dl(`pindex-${b.id}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
-    if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Build"); } catch (e) { A.toast(u); } return; }
+    if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Connect"); } catch (e) { A.toast(u); } return; }
     const keep = { ...B.cam }; B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
     const img = new Image(); img.src = A.svgDataUrl(svg()); await img.decode(); B.cam = keep; draw();
     const lines = code().split("\n"), W = 1600, ih = Math.round(img.height * W / img.width), lh = 28, c = document.createElement("canvas");
     c.width = W; c.height = ih + 80 + lines.length * lh + 40;
     const g = c.getContext("2d");
     g.fillStyle = getComputedStyle(document.body).backgroundColor; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, W, ih);
-    g.fillStyle = getComputedStyle(document.body).color; g.font = "bold 34px sans-serif"; g.fillText(`${b.name} · Pindex Build`, 40, ih + 50);
+    g.fillStyle = getComputedStyle(document.body).color; g.font = "bold 34px sans-serif"; g.fillText(`${b.name} · Pindex Connect`, 40, ih + 50);
     g.font = "22px Consolas, monospace"; lines.forEach((l, i) => g.fillText(l, 40, ih + 90 + i * lh));
     dl(`pindex-${b.id}.png`, c.toDataURL("image/png"));
   }
-  function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Build không hợp lệ."); } }
+  function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Connect không hợp lệ."); } }
 
   let inited = false;
   window.BUILD = {

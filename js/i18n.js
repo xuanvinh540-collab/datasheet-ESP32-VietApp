@@ -39,7 +39,7 @@
   };
   const RX = [
     [/^(\d+)\/(\d+) chân khớp$/, "$1/$2 pins match"], [/^(\d+) chân$/, "$1 pins"], [/^Chân trên (.+) \((\d+)\)$/, "Pins on $1 ($2)"],
-    [/^Kiến thức · (.+)$/, "Learn · $1"], [/^📄 Nguồn: /, "📄 Source: "], [/^Nguồn: /, "Source: "], [/^Ảnh board: /, "Board photo: "]
+    [/^Kiến thức · (.+)$/, "Learn · $1"], [/^Xem tất cả (\d+) linh kiện$/, "Show all $1 components"], [/^Đã xoá dây (.+)$/, "Removed wire $1"], [/^Đã xoá (.+)$/, "Removed $1"], [/^Linh kiện · (.+) · nguồn (.+)$/, "Component · $1 · power $2"], [/^📄 Nguồn: /, "📄 Source: "], [/^Nguồn: /, "Source: "], [/^Ảnh board: /, "Board photo: "]
   ];
   let lang = "vi";
   try { lang = localStorage.getItem("lang") || "vi"; } catch (e) { }

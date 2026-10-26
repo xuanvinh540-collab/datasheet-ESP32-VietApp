@@ -23,11 +23,43 @@
     p.status = p.cat === "ban" || p.cat === "nc" ? "ban" : p.warn && ["gpio", "adc", "comm", "strap", "usb"].includes(p.cat) ? "warn" : ["power", "gnd", "ctl"].includes(p.cat) ? "info" : "ok";
   })));
 
+  /* Linh kiện (module) xem như một board: hình là file SVG, chân lấy từ toạ độ pad trong modules.js */
+  const MS = 1.6;   // phóng hình module để nhãn chân không chồng nhau
+  const ROLE = {
+    "pwr.3v3": ["power", "Nguồn 3.3 V"], "pwr.5v": ["power", "Nguồn 5 V"], gnd: ["gnd", "GND"],
+    "i2c.sda": ["comm", "I2C SDA"], "i2c.scl": ["comm", "I2C SCL"], "spi.sck": ["comm", "SPI SCK (clock)"], "spi.mosi": ["comm", "SPI MOSI (dữ liệu vào module)"],
+    "spi.miso": ["comm", "SPI MISO"], "spi.cs": ["comm", "SPI CS"], "i2s.bclk": ["comm", "I2S BCLK"], "i2s.ws": ["comm", "I2S WS / LRCLK"],
+    "i2s.dout": ["comm", "I2S data vào module (MCU xuất)"], "i2s.din": ["comm", "I2S data ra từ module (MCU nhận)"],
+    out: ["gpio", "Ngõ vào: nối GPIO output"], in: ["gpio", "Ngõ ra: nối GPIO input"], pwm: ["gpio", "Nhận PWM từ GPIO"], adc: ["adc", "Analog ra: nối chân ADC"]
+  };
+  function modBoard(k) {
+    const d = MODULES[k], [vx, vy, vw, vh] = d.vb.length === 4 ? d.vb : [0, 0, d.vb[0], d.vb[1]];
+    const w = d.w * MS, h = d.h * MS, sides = {};
+    d.pins.forEach(([name, role, v5, sx, sy, dir], i) => {
+      const [cat, fn] = ROLE[role] || ["gpio", role], side = dir || d.pinDir || "T";
+      const p = { name, gpio: null, cat, fn: [fn], flags: [], notes: [], parts: [], hdr: "Pin", pn: i + 1, x: (sx - vx) / vw * w, y: (sy - vy) / vh * h,
+        warn: v5 ? "Chân này ra mức 5 V: board 3.3 V cần cầu chia áp (1 kΩ + 2 kΩ) trước khi vào GPIO." : "" };
+      p.status = cat === "power" || cat === "gnd" ? "info" : v5 ? "warn" : "ok";
+      (sides[side] = sides[side] || []).push(p);
+    });
+    const headers = Object.entries(sides).map(([side, ps]) => {
+      const xs = ps.map(p => p.x), ys = ps.map(p => p.y), m = 2.5;
+      const at = side === "T" ? Math.min(...ys) - m : side === "B" ? Math.max(...ys) + m : side === "L" ? Math.min(...xs) - m : Math.max(...xs) + m;
+      return { id: side, side, at, pins: ps };
+    });
+    return { id: "mod-" + k, mod: k, tag: d.short, name: d.name, vendor: "Module", chip: d.iface, family: "Module", logic: d.vcc, summary: d.note,
+      w, h, pcb: "black", photo: { src: d.svg, box: [0, 0, w, h] }, parts: [], headers, elec: null, docs: [],
+      facts: [["Giao tiếp", d.iface], ["Nguồn", d.vcc], ["Thư viện", d.lib]],
+      src: "Bảng chân module (Pindex)", note: "Module bán phổ biến; thứ tự chân có thể khác giữa các nhà sản xuất, hãy đối chiếu nhãn in trên module." };
+  }
+  const MODB = window.MODULES ? Object.keys(MODULES).map(modBoard) : [];
+  const findB = id => BOARDS.find(b => b.id === id) || MODB.find(b => b.id === id);
+
   /* Icon board: thu nhỏ chính dữ liệu PCB (viền, linh kiện, chân) thành SVG */
   function boardIcon(b) {
     const [fill, edge] = PCB[b.pcb] || PCB.green, m = 2, vb = `${-m} ${-m} ${b.w + 2 * m} ${b.h + 2 * m}`;
     const r = Math.max(b.w, b.h) / 40;
-    const parts = b.parts.filter(p => p.t !== "hole" && p.t !== "ant" && p.t !== "led").map(p =>
+    const parts = b.parts.filter(p => p.w && p.t !== "hole" && p.t !== "ant" && p.t !== "led").map(p =>
       `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${r}" fill="${["usb", "btn", "shield"].includes(p.t) ? "#c9cfd2" : p.t === "jack" ? "#111" : "#16191a"}"/>`).join("");
     const pads = b.headers.flatMap(hd => hd.pins).map(p => `<circle cx="${p.x}" cy="${p.y}" r="${Math.max(.7, r * 1.1)}" fill="#e2c063"/>`).join("");
     return `<svg viewBox="${vb}" aria-hidden="true"><rect width="${b.w}" height="${b.h}" rx="${r * 2}" fill="${fill}" stroke="${edge}" stroke-width="${r}"/>${parts}${pads}</svg>`;
@@ -44,14 +76,35 @@
       btn.onclick = () => selectBoard(b.id);
       box.appendChild(btn);
     });
+    if (MODB.length) box.appendChild(modList());
+  }
+  // Danh sách linh kiện dưới các board: thu gọn chỉ hiện 3 hàng, mở rộng hiện đủ theo nhóm
+  let modsOpen = false; try { modsOpen = localStorage.getItem("modsOpen") === "1"; } catch (e) { }
+  function modList() {
+    const sec = h("div", "mods" + (modsOpen ? " open" : "")); let n = 0;
+    const cats = (window.MOD_CATS || [["Linh kiện", "🧩", Object.keys(MODULES)]]).map(([name, icon, keys]) => {
+      const rows = keys.filter(k => MODULES[k]).map(k => {
+        const mb = MODB.find(x => x.mod === k), d = MODULES[k], on = mb === state.b, hide = !modsOpen && n++ >= 3 && !on;
+        return `<button class="mod-row" data-id="${mb.id}" aria-pressed="${on}"${hide ? " hidden" : ""} title="${esc(d.name)}"><img src="${esc(d.svg)}" alt="" loading="lazy"><span class="mr-name">${esc(d.short)}</span><span class="mr-if">${esc(d.iface.split(" ")[0])}</span></button>`;
+      });
+      const all = rows.every(r => r.includes(" hidden "));
+      return `<div class="mods-cat"${all ? " hidden" : ""}><div class="mods-ch" title="${esc(name)}"><span aria-hidden="true">${icon}</span> <span class="mc-t">${esc(name)}</span></div>${rows.join("")}</div>`;
+    }).join("");
+    sec.innerHTML = `<button class="mods-h" aria-expanded="${modsOpen}"><span>🧩 Linh kiện</span><span class="mods-n">${MODB.length}</span><span aria-hidden="true">${modsOpen ? "▴" : "▾"}</span></button><div class="mods-list">${cats}</div>
+      <button class="mods-more">${modsOpen ? "Thu gọn" : `Xem tất cả ${MODB.length} linh kiện`}</button>`;
+    const tog = () => { modsOpen = !modsOpen; try { localStorage.setItem("modsOpen", modsOpen ? "1" : "0"); } catch (e) { } renderBoardList(); };
+    sec.querySelector(".mods-h").onclick = tog; sec.querySelector(".mods-more").onclick = tog;
+    sec.querySelectorAll(".mod-row").forEach(b => b.onclick = () => selectBoard(b.dataset.id));
+    return sec;
   }
   function selectBoard(id, pinName) {
-    state.b = BOARDS.find(b => b.id === id) || BOARDS[0];
+    state.b = findB(id) || BOARDS[0];
+    if (!state.b.mod) state.lastBoard = state.b.id;
     pins = state.b.headers.flatMap(hd => hd.pins);
     state.sel = pinName ? pins.find(p => p.name === pinName) || null : null;
     state.flag = null; state.q = ""; $("#q").value = "";
     renderBoardList(); renderFilters(); draw(); renderDetail(); renderDocs(); renderSpec(); syncHash();
-    const active = $("#boards [aria-pressed=true]"); if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
+    const active = $("#boards .board-card[aria-pressed=true]"); if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
   }
   // URL dạng <gốc app>/[en/]<board>/#<chân> – mỗi board là một trang thật (xem tools/build-seo.js)
   const appRoot = new URL(".", document.baseURI).href;
@@ -62,8 +115,9 @@
       if (location.hash !== h) history.replaceState(null, "", h);
       return;
     }
-    const en = document.documentElement.lang === "en";
-    const url = appRoot + (en ? "en/" : "") + state.b.id + "/" + (state.sel ? "#" + encodeURIComponent(state.sel.name) : "");
+    const en = document.documentElement.lang === "en", sel = state.sel ? encodeURIComponent(state.sel.name) : "";
+    // linh kiện không có trang tĩnh riêng: dùng trang gốc + #mod-xxx/chân
+    const url = appRoot + (en ? "en/" : "") + (state.b.mod ? "#" + state.b.id + (sel ? "/" + sel : "") : state.b.id + "/" + (sel ? "#" + sel : ""));
     if (location.href !== url) history.replaceState(null, "", url);
   }
   window.onLangChange = () => { if (state.b) { draw(); syncHash(); } };
@@ -240,7 +294,8 @@
   function draw() {
     const oem = state.b.oem, isOem = state.view === "oem" && oem;
     if (state.view === "oem" && !oem) state.view = "pcb";
-    $("#viewOem").hidden = !oem;
+    if (state.view === "sch" && !state.b.arch) state.view = "pcb";
+    $("#viewOem").hidden = !oem; $("#viewSch").hidden = !state.b.arch;
     $("#viewOem").setAttribute("aria-pressed", !!isOem);
     ["#canvas", "#filters", ".stage-foot", ".search"].forEach(s => $(s).hidden = !!isOem);
     ["#filters", ".stage-foot", ".search"].forEach(s => { if (state.view === "sch") $(s).hidden = true; });
@@ -262,7 +317,7 @@
     $("#bTitle").textContent = state.b.name;
     renderSeoTable();
     document.title = document.documentElement.lang === "en" ? `${state.b.name} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${state.b.name} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
-    $("#bSub").textContent = `${state.b.vendor} · ${state.b.chip} · logic ${state.b.logic}`;
+    $("#bSub").textContent = state.b.mod ? `Linh kiện · ${state.b.chip} · nguồn ${state.b.logic}` : `${state.b.vendor} · ${state.b.chip} · logic ${state.b.logic}`;
     const note = [state.b.note, state.view === "pcb" && state.b.photo ? state.b.photo.credit : ""].filter(Boolean).join(" · ");
     $("#bNote").textContent = note; $("#bNote").hidden = !note;
     applyDim();
@@ -297,7 +352,7 @@
       return;
     }
     if (!p) {
-      box.innerHTML = `<div class="d-head"><div><div class="d-kicker">Board</div><h2>${esc(b.name)}</h2></div></div>
+      box.innerHTML = `<div class="d-head"><div><div class="d-kicker">${b.mod ? "Linh kiện" : "Board"}</div><h2>${esc(b.name)}</h2></div></div>
         <p class="muted">${esc(b.summary)}</p>
         <dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
         <button class="btn-share share">⤴ Chia sẻ board này</button>
@@ -315,7 +370,7 @@
       ${p.fn.length ? `<div class="fns">${p.fn.map(f => `<span>${esc(f)}</span>`).join("")}</div>` : ""}
       ${elec.length ? `<dl class="elec">${elec.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
       ${p.parts.length ? `<div class="d-sec">Linh kiện đi kèm</div><div class="pparts">${p.parts.map(([k, v, s]) => `<div class="pp"><b>${esc(k)}</b><div>${esc(v)}</div><span class="tag ${s}">${SRC[s] || s}</span></div>`).join("")}</div>` : ""}
-      <p class="srcline">📄 Nguồn: ${esc(b.src)} · <a href="${esc(b.docs[0][2])}" target="_blank" rel="noopener">datasheet ↗</a></p>`;
+      <p class="srcline">📄 Nguồn: ${esc(b.src)}${b.docs.length ? ` · <a href="${esc(b.docs[0][2])}" target="_blank" rel="noopener">datasheet ↗</a>` : ""}</p>`;
     $("#dClose").onclick = () => { state.sel = null; $("#detail").classList.remove("open"); applyDim(); renderDetail(); syncHash(); };
   }
   // Chia sẻ: Web Share API trên điện thoại (Zalo, Messenger…), máy tính thì copy link
@@ -347,8 +402,8 @@
     }).join("");
     box.innerHTML = `<h2>${en ? "Pinout reference for microcontroller boards" : "Tra cứu sơ đồ chân vi điều khiển"}</h2>
       <p class="muted">${en ? "Pin functions, warnings, electrical specs and companion parts taken from the manufacturers' datasheets, for ESP32, Raspberry Pi Pico, Raspberry Pi and Arduino boards." : "Chức năng từng chân, cảnh báo, thông số điện và linh kiện đi kèm, lấy từ datasheet của hãng, cho các board ESP32, Raspberry Pi Pico, Raspberry Pi và Arduino."}</p>
-      <h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3>
-      <ul class="seo-links">${docs}</ul>
+      ${docs ? `<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3>
+      <ul class="seo-links">${docs}</ul>` : ""}
       <h3>${en ? "All boards" : "Tất cả board"}</h3>
       <ul class="seo-links">${links}</ul>`;
   }
@@ -452,7 +507,9 @@
   const loadJs = src => new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
-    if (!window.BUILD) { await loadJs("js/modules.js?v=50"); await loadJs("js/build.js?v=50"); }
+    if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
+    if (!window.MODULES) await loadJs("js/modules.js?v=56");
+    if (!window.BUILD) await loadJs("js/build.js?v=56");
     setTab("build"); BUILD.open(h);
   }
   window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
@@ -484,7 +541,7 @@
   const fromHash = () => {
     if (location.hash.startsWith("#build=")) { selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id); openBuild(location.hash.slice(7)); return; }
     const h = decodeURIComponent(location.hash.slice(1)), [a, b] = h.split("/");
-    if (BOARDS.some(x => x.id === a)) return selectBoard(a, b);
+    if (findB(a)) return selectBoard(a, b);
     selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id, h || undefined);
   };
   addEventListener("hashchange", fromHash);

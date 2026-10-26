@@ -30,7 +30,8 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
 3. **Thông số chip** (8 tab) + bảng **linh kiện khi tự làm mạch** cho ESP32-S3 và ESP32-C3 (`js/specs.js`).
 4. **Tab Tính toán**: điện trở LED, phân áp ADC, pull-up I2C, mạch RC.
 5. **Tab Tài liệu**: link datasheet/schematic gốc của hãng.
-6. **⚡ Tab Build** (`js/build.js`, `js/modules.js`, tải khi bấm lần đầu): ghép 7 module (ST7789, WS2812, HC-SR04, VL53L0X, MPU6050, MAX98357A, INMP441) vào board; kéo node, kéo dây từ socket tới pad (pad xanh = an toàn, cam = có lưu ý), dây đi vòng ngoài board, màu theo tín hiệu, kéo thân dây theo trục, nắm đầu dây đổi/thả ra để gỡ; tab Code sinh **chỉ `#define` chân + dòng khởi tạo bus** (không viết cả chương trình); export PNG / JSON / link `#build=`. Hỗ trợ ESP32, Pico, Uno; Raspberry Pi chưa.
+6. **⚡ Tab Connect** (trước gọi là Build; mã vẫn dùng id `build`, `js/build.js` tải khi bấm lần đầu): ghép 14 module (vẽ bằng `svg/*.svg`) vào board; kéo node, kéo dây từ socket tới pad (pad xanh = an toàn, cam = có lưu ý), dây đi vòng ngoài board, màu theo tín hiệu, kéo thân dây theo trục, nắm đầu dây đổi/thả ra để gỡ; tab Code sinh **chỉ `#define` chân + dòng khởi tạo bus** (không viết cả chương trình); export PNG / JSON / link `#build=`. Hỗ trợ ESP32, Pico, Uno; Raspberry Pi chưa. Nút 🧲 Sắp xếp (3 bố cục) và 🔀 Đi dây (4 kiểu), tên đang dùng hiện ở góc phải dưới khung vẽ; chọn linh kiện/dây rồi Delete, hoặc chuột phải để xoá.
+7b. **Sơ đồ chân linh kiện**: dưới danh sách board có mục 🧩 Linh kiện (thu gọn 3 hàng / mở rộng theo nhóm `MOD_CATS`), mỗi module thành "board" giả `mod-<mã>` (`modBoard()` trong `app.js`), URL `/#mod-<mã>/<chân>`, không có trang SEO riêng. `js/modules.js` giờ tải sẵn trong `index.html`.
 7. **Song ngữ**: nút cờ VN/EN. **4 giao diện** (ô chọn góc phải): *Pindex* (mặc định, lá ô liu + dark), *8-bit* (tông đại dương retro), *Hổ phách*, *Simple*; nút ☀/☾ sáng/tối.
 8. **Chia sẻ** board/chân (Web Share API hoặc copy link).
 

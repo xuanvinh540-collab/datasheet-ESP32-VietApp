@@ -176,3 +176,10 @@ window.MODULES = {
     note: "Chân L/R nối GND = kênh trái. Chỉ chạy 3.3 V."
   }
 };
+/* Nhóm linh kiện dùng chung cho danh sách ở tab Sơ đồ chân và tab Connect: [tên, biểu tượng, các mã module] */
+window.MOD_CATS = [
+  ["Màn hình & Hiển thị", "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]],
+  ["Cảm biến", "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]],
+  ["Âm thanh & Còi", "🔊", ["buzzer", "max98357a", "inmp441"]],
+  ["Điều khiển & Cơ bản", "🎛️", ["button", "led"]]
+];
