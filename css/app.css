@@ -391,3 +391,7 @@ main { padding-top: 12px; }
 .blegend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0 10px; font-size: 12px; color: var(--muted); }
 .blegend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
 #bsvg .wend { cursor: grab; }
+
+#bsvg .whit { fill: none; stroke: transparent; stroke-width: 1.8; cursor: move; }
+#bsvg .whit:hover + * , #bsvg .whit:hover { stroke: rgba(255,255,255,.08); }
+#bsvg .wlabel { font-weight: 800; paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: .08; pointer-events: none; }

@@ -441,7 +441,7 @@
   const loadJs = src => new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
-    if (!window.BUILD) { await loadJs("js/modules.js?v=40"); await loadJs("js/build.js?v=40"); }
+    if (!window.BUILD) { await loadJs("js/modules.js?v=42"); await loadJs("js/build.js?v=42"); }
     setTab("build"); BUILD.open(h);
   }
   window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };

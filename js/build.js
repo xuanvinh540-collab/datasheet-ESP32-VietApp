@@ -132,19 +132,21 @@
   let boardBox = null;
   const sideOf = p => (board().headers.find(h => h.pins.includes(p)) || {}).side || "R";
   // đường gấp khúc bo góc, các dây tách làn theo thứ tự lane để không chồng lên nhau
-  function route(a, p, lane) {
-    const b = board(), gap = 2.2 + lane * 1.1, right = b.w + gap, left = -gap, top = -gap - 1, bot = b.h + gap + 1, sd = sideOf(p);
-    let pts;
-    if (sd === "R") pts = [[a.x, a.y], [right, a.y], [right, p.y], [p.x, p.y]];
-    else if (sd === "L") { const yv = p.y < b.h / 2 ? top : bot; pts = [[a.x, a.y], [right, a.y], [right, yv], [left, yv], [left, p.y], [p.x, p.y]]; }
-    else { const yv = sd === "T" ? top : bot; pts = [[a.x, a.y], [right, a.y], [right, yv], [p.x, yv], [p.x, p.y]]; }
+  function routePts(a, p, lane, ov = {}) {
+    const b = board(), gap = 2.2 + lane * 1.1, sd = sideOf(p);
+    const rx = ov.rx ?? b.w + gap, lx = ov.lx ?? -gap, yDef = (sd === "L" ? p.y < b.h / 2 : sd === "T") ? -gap - 1 : b.h + gap + 1, yv = ov.yv ?? yDef;
+    if (sd === "R") return [[a.x, a.y], [rx, a.y], [rx, p.y], [p.x, p.y]];
+    if (sd === "L") return [[a.x, a.y], [rx, a.y], [rx, yv], [lx, yv], [lx, p.y], [p.x, p.y]];
+    return [[a.x, a.y], [rx, a.y], [rx, yv], [p.x, yv], [p.x, p.y]];
+  }
+  function pathOf(pts) {
     let d = `M${pts[0][0]} ${pts[0][1]}`;
     for (let i = 1; i < pts.length - 1; i++) {                  // bo góc r = 0.8
       const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], [x2, y2] = pts[i + 1], r = .8;
       const l1 = Math.hypot(x1 - x0, y1 - y0) || 1, l2 = Math.hypot(x2 - x1, y2 - y1) || 1, k1 = Math.min(r, l1 / 2) / l1, k2 = Math.min(r, l2 / 2) / l2;
       d += ` L${x1 - (x1 - x0) * k1} ${y1 - (y1 - y0) * k1} Q${x1} ${y1} ${x1 + (x2 - x1) * k2} ${y1 + (y2 - y1) * k2}`;
     }
-    return d + ` L${p.x} ${p.y}`;
+    const z = pts[pts.length - 1]; return d + ` L${z[0]} ${z[1]}`;
   }
   function draw() {
     const s = svg(); s.innerHTML = "";
@@ -158,7 +160,15 @@
       const d = M[m.type], h = HH + d.pins.length * RH;
       d.pins.forEach(([label, role], k) => { const p = pinByName(getPin(m, label) || ""); if (!p) return;
         const c = COLOR[role] || d.color;
-        el("path", { d: route(sockPos(m, k), p, lane++), stroke: c, class: "bwire" }, wires);
+        const ov = (m.route || {})[label] || {}, pts = routePts(sockPos(m, k), p, lane++, ov);
+        el("path", { d: pathOf(pts), stroke: c, class: "bwire" }, wires);
+        // chữ nhỏ trên đoạn dài nhất của dây
+        let li = 1, ll = 0; for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (l > ll && i < pts.length - 1) { ll = l; li = i; } }
+        const [x0, y0] = pts[li - 1], [x1, y1] = pts[li], vert = Math.abs(x0 - x1) < .01, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+        if (ll > 6) el("text", { x: mx, y: my - (vert ? 0 : .55), "text-anchor": "middle", "font-size": 1.1, class: "wlabel", fill: c, transform: vert ? `rotate(-90 ${mx} ${my}) translate(0 -.55)` : "" }, wires, label);
+        // vùng nắm thân dây (rộng hơn nét vẽ) để kéo đoạn đứng/ngang
+        const hit = el("path", { d: pathOf(pts), class: "whit" }, wires);
+        hit.addEventListener("pointerdown", e => dragSeg(e, mi, label, pts));
         const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: c, "fill-opacity": .35, stroke: c, "stroke-width": .5, class: "wend" }, wires);
         end.addEventListener("pointerdown", e => startWire(e, mi, label, true)); });
       const g = el("g", { class: "bnode", "data-m": mi }, nodes);
@@ -197,7 +207,7 @@
   function nearestPad(pt) { let best = null, bd = 2.6; for (const p of A.pins) { const d = Math.hypot(p.x - pt.x, p.y - pt.y); if (d < bd) { bd = d; best = p; } } return best; }
   function connect(m, label, p) {
     if (score(p, roleOf(m, label), board()) <= -1e8) { A.toast(`${p.name} không dùng được cho ${label}.`); return false; }
-    setPin(m, label, p.name); save(); return true;
+    setPin(m, label, p.name); if (m.route) delete m.route[label]; save(); return true;
   }
   function startWire(e, mi, label, fromEnd) {
     e.stopPropagation(); e.preventDefault();
@@ -211,9 +221,26 @@
       s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up);
       if (!moved) { B.arm = B.arm && B.arm.m === mi && B.arm.label === label ? null : { m: mi, label }; return refresh(); }   // chạm (không kéo) = chọn rồi chạm pad
       const p = nearestPad(toSvg(ev));
-      if (p) connect(m, label, p); else if (getPin(m, label)) { setPin(m, label, null); save(); A.toast("Đã gỡ dây " + label); }
+      if (p) connect(m, label, p); else if (getPin(m, label)) { setPin(m, label, null); if (m.route) delete m.route[label]; save(); A.toast("Đã gỡ dây " + label); }
       B.arm = null; refresh();
     };
+    s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
+  }
+  function dragSeg(e, mi, label, pts) {
+    e.stopPropagation(); e.preventDefault();
+    const m = B.mods[mi], b = board(), s = svg(), pt = toSvg(e);
+    let seg = -1, bd = 1e9;                                   // đoạn gần con trỏ nhất (bỏ đoạn đầu & cuối vì gắn vào socket/pad)
+    for (let i = 2; i < pts.length - 1; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      const d = Math.abs(x0 - x1) < .01 ? Math.abs(pt.x - x0) + Math.max(0, Math.min(y0, y1) - pt.y, pt.y - Math.max(y0, y1)) : Math.abs(pt.y - y0) + Math.max(0, Math.min(x0, x1) - pt.x, pt.x - Math.max(x0, x1));
+      if (d < bd) { bd = d; seg = i; } }
+    if (seg < 0) return;
+    const [x0, y0] = pts[seg - 1], [x1] = pts[seg], vert = Math.abs(x0 - x1) < .01;
+    const key = vert ? (x0 > b.w ? "rx" : "lx") : "yv", top = y0 < b.h / 2;
+    const nodeX = m.pos.x - 1.2;
+    const clamp = v => key === "rx" ? Math.min(Math.max(v, b.w + 1.2), nodeX) : key === "lx" ? Math.min(Math.max(v, -60), -1.2) : top ? Math.min(Math.max(v, -60), -1.2) : Math.max(Math.min(v, b.h + 60), b.h + 1.2);
+    m.route = m.route || {}; m.route[label] = { ...(m.route[label] || {}) };
+    const mv = ev => { const q = toSvg(ev); m.route[label][key] = clamp(vert ? q.x : q.y); draw(); };
+    const up = () => { s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up); save(); };
     s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
   }
   function startNode(e, mi) {
@@ -252,7 +279,7 @@
       <table class="btbl">${d.pins.map(([label]) => { const n = getPin(m, label); return `<tr><th>${esc(label)}</th><td>${n ? `<b>${esc(n)}</b>` : '<span class="muted">chưa nối</span>'}</td><td>${n ? `<button class="tap" data-un="${i}" data-l="${esc(label)}" title="Gỡ dây">✕</button>` : ""}</td></tr>`; }).join("")}</table>
       <p class="small muted">${esc(d.note)}</p></div>`; }).join("");
     box.innerHTML = `<div class="seg btabs"><button data-tab="mods" aria-pressed="${B.tab === "mods"}">Module</button><button data-tab="code" aria-pressed="${B.tab === "code"}">Code</button></div>
-      ${B.tab === "mods" ? `<p class="hint">Thêm module, rồi nhấn giữ chấm ● ở chân module và kéo tới pad trên board: pad xanh = an toàn, cam = có lưu ý. Nắm đầu dây ở pad kéo sang pad khác để đổi, thả ra ngoài để gỡ. Trên điện thoại có thể chạm ● rồi chạm pad.</p>
+      ${B.tab === "mods" ? `<p class="hint">Thêm module, rồi nhấn giữ chấm ● ở chân module và kéo tới pad trên board: pad xanh = an toàn, cam = có lưu ý. Nắm đầu dây ở pad kéo sang pad khác để đổi, thả ra ngoài để gỡ; nắm thân dây để dời đoạn đứng/ngang cho dễ nhìn. Trên điện thoại có thể chạm ● rồi chạm pad.</p>
         <div class="bchips">${chips}</div>
         <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Gợi ý tự động các chân chưa nối</button>` : ""}
         ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
