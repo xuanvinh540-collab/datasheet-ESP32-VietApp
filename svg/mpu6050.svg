@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 165" width="100%" height="100%">
+  <defs>
+    <g id="pin">
+      <circle cx="0" cy="0" r="3.2" fill="#D4AF37" stroke="#9A7B1C" stroke-width="0.6"/>
+      <circle cx="0" cy="0" r="1.5" fill="#FFFFFF" opacity="0.35"/>
+    </g>
+    <style>
+      .pin-label { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 5.8px; fill: #FFFFFF; font-weight: bold; text-anchor: middle; }
+      .header-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 7.5px; fill: #D0E8FF; font-weight: bold; text-anchor: middle; letter-spacing: 0.5px; }
+      .chip-text { font-family: monospace; font-size: 5.8px; fill: #CCCCCC; text-anchor: middle; font-weight: bold; }
+      .axis-text { font-family: sans-serif; font-size: 6px; fill: #FFFFFF; font-weight: bold; }
+    </style>
+  </defs>
+
+  <!-- GY-521 Blue PCB Substrate -->
+  <rect x="8" y="8" width="134" height="149" rx="7" fill="#0B5394" stroke="#073763" stroke-width="2"/>
+
+  <!-- Mounting Holes -->
+  <circle cx="18" cy="18" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.4"/>
+  <circle cx="132" cy="18" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.4"/>
+  <circle cx="18" cy="147" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.4"/>
+  <circle cx="132" cy="147" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.4"/>
+
+  <!-- 5-Pin Header Box -->
+  <rect x="23" y="13" width="104" height="15" rx="2" fill="#151920"/>
+
+  <!-- Pins: VCC, GND, SCL, SDA, INT -->
+  <use href="#pin" x="34" y="21"/>
+  <text x="34" y="35" class="pin-label">VCC</text>
+
+  <use href="#pin" x="54" y="21"/>
+  <text x="54" y="35" class="pin-label">GND</text>
+
+  <use href="#pin" x="75" y="21"/>
+  <text x="75" y="35" class="pin-label">SCL</text>
+
+  <use href="#pin" x="96" y="21"/>
+  <text x="96" y="35" class="pin-label">SDA</text>
+
+  <use href="#pin" x="116" y="21"/>
+  <text x="116" y="35" class="pin-label">INT</text>
+
+  <!-- Title -->
+  <text x="75" y="48" class="header-title">MPU-6050 6-DOF IMU</text>
+
+  <!-- LDO & Power LED -->
+  <rect x="22" y="62" width="16" height="10" rx="1" fill="#1A1A1A" stroke="#555" stroke-width="0.6"/>
+  <rect x="114" y="64" width="8" height="12" rx="1" fill="#00E676" stroke="#B9F6CA" stroke-width="0.6"/>
+  <text x="118" y="84" class="chip-text">PWR</text>
+
+  <!-- Central MPU-6050 QFN-24 IC -->
+  <rect x="51" y="66" width="48" height="48" rx="3" fill="#181818" stroke="#444444" stroke-width="1"/>
+  <circle cx="57" cy="72" r="2" fill="#666666"/>
+  <text x="75" y="88" class="chip-text">MPU-6050</text>
+  <text x="75" y="98" class="chip-text">INVENSENSE</text>
+
+  <!-- X / Y Orientation Axes Silkscreen -->
+  <line x1="52" y1="130" x2="78" y2="130" stroke="#FFFFFF" stroke-width="1.3"/>
+  <polygon points="81,130 75,127 75,133" fill="#FFFFFF"/>
+  <text x="84" y="132" class="axis-text">X</text>
+
+  <line x1="52" y1="130" x2="52" y2="114" stroke="#FFFFFF" stroke-width="1.3"/>
+  <polygon points="52,111 49,117 55,117" fill="#FFFFFF"/>
+  <text x="41" y="117" class="axis-text">Y</text>
+
+  <text x="75" y="148" class="chip-text">GY-521 · I2C 0x68</text>
+</svg>

@@ -32,19 +32,17 @@ ${base ? `<base href="${base}">\n` : ""}<link rel="canonical" href="${url}">
 <script>window.PAGE_BOARD=${JSON.stringify(board ? board.id : null)};window.PAGE_LANG=${JSON.stringify(en ? "en" : "vi")};</script><!--/SEO-->`;
 }
 
-function body(board, en, base) {
-  const links = BOARDS.map(b => `<li><a href="${en ? "en/" : ""}${b.id}/">${esc(T(b.name, en))}</a> <span class="muted small">${esc(b.chip)}</span></li>`).join("");
-  const nav = `<h3>${en ? "All boards" : "Tất cả board"}</h3><ul class="seo-links">${links}</ul>`;
-  if (!board) return `<!--SEOBODY--><section class="card spec seo"><h2>${en ? "Pinout reference for microcontroller boards" : "Tra cứu sơ đồ chân vi điều khiển"}</h2>
-<p class="muted">${en ? "Pin functions, warnings, electrical specs and companion parts taken from the manufacturers' datasheets, for ESP32, Raspberry Pi Pico, Raspberry Pi and Arduino boards." : "Chức năng từng chân, cảnh báo, thông số điện và linh kiện đi kèm, lấy từ datasheet của hãng, cho các board ESP32, Raspberry Pi Pico, Raspberry Pi và Arduino."}</p>${nav}</section><!--/SEOBODY-->`;
-  const pins = board.headers.flatMap(h => h.pins.map((p, i) => ({ ...p, hdr: h.sch || h.id, pn: p.pn || i + 1 })));
-  const rows = pins.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.hdr)}-${p.pn}</td><td>${p.gpio != null ? p.gpio : "–"}</td><td>${esc(en ? CAT_EN[p.cat] : CATS[p.cat].label)}</td><td>${esc(p.fn.map(f => T(f, en)).join(", "))}</td><td>${esc(p.warn ? T(p.warn, en) : "")}</td></tr>`).join("");
-  const facts = board.facts.map(([k, v]) => `<dt>${esc(T(k, en))}</dt><dd>${esc(T(v, en))}</dd>`).join("");
-  const docs = board.docs.map(([, l, u]) => `<li><a href="${esc(u)}" rel="noopener" target="_blank">${esc(T(l, en))}</a></li>`).join("");
-  return `<!--SEOBODY--><section class="card spec seo"><h2>${en ? `${esc(board.name)} pinout table` : `Bảng chân ${esc(board.name)}`}</h2>
-<p class="muted">${esc(T(board.summary, en))}</p><dl class="facts">${facts}</dl>
-<div class="tw"><table><thead><tr><th>${en ? "Pin" : "Chân"}</th><th>${en ? "Header" : "Vị trí"}</th><th>GPIO</th><th>${en ? "Type" : "Loại"}</th><th>${en ? "Functions" : "Chức năng"}</th><th>${en ? "Notes" : "Lưu ý"}</th></tr></thead><tbody>${rows}</tbody></table></div>
-<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3><ul class="seo-links">${docs}</ul>${nav}</section><!--/SEOBODY-->`;
+function body(board, en) {
+  const b = board || BOARDS[0], shop = window.SHOPEE_LINKS || {};
+  const docs = b.docs.map(([, l, u]) => `<li><a href="${esc(u)}" rel="noopener" target="_blank">${esc(T(l, en))}</a></li>`).join("");
+  const links = BOARDS.map(x => {
+    const sUrl = shop[x.id] || x.shopee || ("https://shopee.vn/search?keyword=" + encodeURIComponent(x.name));
+    return `<li><a href="${esc(sUrl)}" target="_blank" rel="noopener sponsored">${esc(T(x.name, en))}</a> <span class="muted small">${esc(x.chip)}</span></li>`;
+  }).join("");
+  return `<!--SEOBODY--><section class="card spec seo"><h2>${en ? "Pinout reference for microcontroller boards" : "Tra cứu sơ đồ chân vi điều khiển"}</h2>
+<p class="muted">${en ? "Pin functions, warnings, electrical specs and companion parts taken from the manufacturers' datasheets, for ESP32, Raspberry Pi Pico, Raspberry Pi and Arduino boards." : "Chức năng từng chân, cảnh báo, thông số điện và linh kiện đi kèm, lấy từ datasheet của hãng, cho các board ESP32, Raspberry Pi Pico, Raspberry Pi và Arduino."}</p>
+<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3><ul class="seo-links">${docs}</ul>
+<h3>${en ? "All boards" : "Tất cả board"}</h3><ul class="seo-links">${links}</ul></section><!--/SEOBODY-->`;
 }
 
 function page({ board, en }) {

@@ -1,0 +1,79 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 210" width="100%" height="100%">
+  <!-- Definitions for Reusable Parts -->
+  <defs>
+    <!-- Male Header Pin Grid -->
+    <g id="pin">
+      <circle cx="0" cy="0" r="3" fill="#D4AF37" stroke="#9A7B1C" stroke-width="0.5"/>
+      <circle cx="0" cy="0" r="1.5" fill="#FFFFFF" opacity="0.3"/>
+    </g>
+    <!-- Text Style for Pins -->
+    <style>
+      .pin-label { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 5.5px; fill: #FFFFFF; font-weight: bold; text-anchor: middle; }
+      .header-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 7px; fill: #AAAAAA; font-weight: bold; text-anchor: middle; letter-spacing: 0.5px; }
+      .screen-text { font-family: monospace; font-size: 10px; fill: #00FF00; text-anchor: middle; font-weight: bold; }
+    </style>
+  </defs>
+
+  <!-- Blue PCB Substrate -->
+  <rect x="10" y="10" width="140" height="190" rx="6" fill="#004B87" stroke="#003366" stroke-width="2"/>
+  
+  <!-- PCB Corner Mounting Holes -->
+  <circle cx="18" cy="18" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.5"/>
+  <circle cx="142" cy="18" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.5"/>
+  <circle cx="18" cy="192" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.5"/>
+  <circle cx="142" cy="192" r="4" fill="#111111" stroke="#CCCCCC" stroke-width="1.5"/>
+
+  <!-- Pin Header Background Box -->
+  <rect x="25" y="14" width="110" height="14" rx="2" fill="#1A1A1A"/>
+  
+  <!-- 7 Pin Header Contacts & Labels -->
+  <!-- Pin 1: GND -->
+  <use href="#pin" x="34" y="21"/>
+  <text x="34" y="34" class="pin-label">GND</text>
+
+  <!-- Pin 2: VCC -->
+  <use href="#pin" x="50" y="21"/>
+  <text x="50" y="34" class="pin-label">VCC</text>
+
+  <!-- Pin 3: SCL -->
+  <use href="#pin" x="66" y="21"/>
+  <text x="66" y="34" class="pin-label">SCL</text>
+
+  <!-- Pin 4: SDA -->
+  <use href="#pin" x="82" y="21"/>
+  <text x="82" y="34" class="pin-label">SDA</text>
+
+  <!-- Pin 5: RES -->
+  <use href="#pin" x="98" y="21"/>
+  <text x="98" y="34" class="pin-label">RES</text>
+
+  <!-- Pin 6: DC -->
+  <use href="#pin" x="114" y="21"/>
+  <text x="114" y="34" class="pin-label">DC</text>
+
+  <!-- Pin 7: BLK -->
+  <use href="#pin" x="130" y="21"/>
+  <text x="130" y="34" class="pin-label">BLK</text>
+
+  <!-- Module Identifier Marking -->
+  <text x="80" y="47" class="header-title">ST7789 IPS 240x240</text>
+
+  <!-- Display Panel Frame (The Screen Bezel) -->
+  <rect x="20" y="55" width="120" height="120" rx="4" fill="#151515" stroke="#0d0d0d" stroke-width="2"/>
+  
+  <!-- Inner Screen Border -->
+  <rect x="24" y="59" width="112" height="112" fill="#000000"/>
+
+  <!-- Active TFT Screen Area (Simulating Active Display) -->
+  <rect x="26" y="61" width="108" height="108" fill="#111122"/>
+  
+  <!-- Subtle Screen Sheen Matrix (Simulating Glass Panel) -->
+  <path d="M 26,61 L 134,169 L 26,169 Z" fill="#FFFFFF" opacity="0.03"/>
+  <path d="M 26,61 L 134,61 L 134,169 Z" fill="#FFFFFF" opacity="0.01"/>
+
+  <!-- Graphic Preview Placeholder on Screen -->
+  <circle cx="80" cy="115" r="28" fill="none" stroke="#FF0055" stroke-width="3" opacity="0.8"/>
+  <polygon points="80,95 85,110 100,110 88,120 92,135 80,125 68,135 72,120 60,110 75,110" fill="#FFAA00" opacity="0.9"/>
+  <text x="80" y="152" class="screen-text">READY</text>
+</svg>
+

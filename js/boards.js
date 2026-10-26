@@ -615,6 +615,17 @@
   };
 
   window.BOARDS = [ESP32_C3, ESP32_C3_SM, ESP32_S3, TDISPLAY, PICO2W, PICO2, RPI, UNO];
+  /* Link Shopee Affiliate mua từng board (thay URL rút gọn s.shopee.vn/... của bạn vào đây) */
+  window.SHOPEE_LINKS = {
+    "esp32-c3-devkitm-1": "https://shopee.vn/search?keyword=ESP32-C3-DevKitM-1",
+    "esp32-c3-supermini": "https://shopee.vn/search?keyword=ESP32-C3%20Super%20Mini",
+    "esp32-s3-devkitc-1": "https://shopee.vn/search?keyword=ESP32-S3-DevKitC-1",
+    "lilygo-t-display-s3": "https://shopee.vn/search?keyword=LilyGO%20T-Display-S3",
+    "pico-2-w": "https://shopee.vn/search?keyword=Raspberry%20Pi%20Pico%202%20W",
+    "pico-2": "https://shopee.vn/search?keyword=Raspberry%20Pi%20Pico%202",
+    "raspberry-pi-40pin": "https://shopee.vn/search?keyword=Raspberry%20Pi%205",
+    "arduino-uno-r3": "https://shopee.vn/search?keyword=Arduino%20Uno%20R3"
+  };
   window.CATS = {
     power: { label: "Nguồn", c: "--c-power" }, gnd: { label: "GND", c: "--c-gnd" }, gpio: { label: "GPIO", c: "--c-gpio" },
     adc: { label: "Analog", c: "--c-adc" }, comm: { label: "UART/I2C", c: "--c-comm" }, usb: { label: "USB", c: "--c-usb" },

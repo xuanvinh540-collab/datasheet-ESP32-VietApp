@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 150" width="100%" height="100%">
+  <defs>
+    <g id="pin">
+      <circle cx="0" cy="0" r="3.4" fill="#D4AF37" stroke="#9A7B1C" stroke-width="0.6"/>
+      <circle cx="0" cy="0" r="1.6" fill="#FFFFFF" opacity="0.35"/>
+    </g>
+    <style>
+      .pin-label { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 6.5px; fill: #FFFFFF; font-weight: bold; text-anchor: middle; }
+      .header-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 7.5px; fill: #CCCCCC; font-weight: bold; text-anchor: middle; letter-spacing: 0.6px; }
+      .led-idx { font-family: monospace; font-size: 5px; fill: #999999; text-anchor: middle; font-weight: bold; }
+    </style>
+  </defs>
+
+  <!-- Matte Black PCB Substrate -->
+  <rect x="8" y="8" width="164" height="134" rx="8" fill="#181A1D" stroke="#333840" stroke-width="2"/>
+
+  <!-- Mounting Holes -->
+  <circle cx="18" cy="18" r="4" fill="#0B0C0E" stroke="#D4AF37" stroke-width="1.5"/>
+  <circle cx="162" cy="18" r="4" fill="#0B0C0E" stroke="#D4AF37" stroke-width="1.5"/>
+  <circle cx="18" cy="132" r="4" fill="#0B0C0E" stroke="#D4AF37" stroke-width="1.5"/>
+  <circle cx="162" cy="132" r="4" fill="#0B0C0E" stroke="#D4AF37" stroke-width="1.5"/>
+
+  <!-- 3-Pin Header Strip -->
+  <rect x="44" y="13" width="92" height="16" rx="2.5" fill="#0D0E10" stroke="#2A2E33" stroke-width="0.8"/>
+
+  <!-- Pin 1: GND -->
+  <use href="#pin" x="58" y="21"/>
+  <text x="58" y="36" class="pin-label">GND</text>
+
+  <!-- Pin 2: VCC -->
+  <use href="#pin" x="90" y="21"/>
+  <text x="90" y="36" class="pin-label">VCC</text>
+
+  <!-- Pin 3: DIN -->
+  <use href="#pin" x="122" y="21"/>
+  <text x="122" y="36" class="pin-label">DIN</text>
+
+  <!-- Module Title -->
+  <text x="90" y="49" class="header-title">WS2812B RGB 8-LED</text>
+
+  <!-- 8x 5050 SMD RGB LEDs (2 rows x 4 cols) -->
+  <!-- Row 1 -->
+  <g transform="translate(24, 58)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#FFF5F8" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#FF2A85"/>
+    <text x="12" y="31" class="led-idx">D1</text>
+  </g>
+  <g transform="translate(60, 58)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#FFF8F0" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#FF7700"/>
+    <text x="12" y="31" class="led-idx">D2</text>
+  </g>
+  <g transform="translate(96, 58)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#FFFFF0" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#FFD500"/>
+    <text x="12" y="31" class="led-idx">D3</text>
+  </g>
+  <g transform="translate(132, 58)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#F0FFF4" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#00E676"/>
+    <text x="12" y="31" class="led-idx">D4</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(24, 96)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#F0FCFF" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#00E5FF"/>
+    <text x="12" y="31" class="led-idx">D5</text>
+  </g>
+  <g transform="translate(60, 96)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#F0F4FF" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#2979FF"/>
+    <text x="12" y="31" class="led-idx">D6</text>
+  </g>
+  <g transform="translate(96, 96)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#F8F0FF" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#AA00FF"/>
+    <text x="12" y="31" class="led-idx">D7</text>
+  </g>
+  <g transform="translate(132, 96)">
+    <rect x="0" y="0" width="24" height="24" rx="2" fill="#EAEAEA" stroke="#AAAAAA" stroke-width="0.8"/>
+    <circle cx="12" cy="12" r="8.5" fill="#FFF0F8" stroke="#CCCCCC" stroke-width="0.6"/>
+    <circle cx="12" cy="12" r="5.5" fill="#FF4081"/>
+    <text x="12" y="31" class="led-idx">D8</text>
+  </g>
+</svg>

@@ -55,7 +55,13 @@
   }
   // URL dạng <gốc app>/[en/]<board>/#<chân> – mỗi board là một trang thật (xem tools/build-seo.js)
   const appRoot = new URL(".", document.baseURI).href;
+  if (!document.querySelector("base")) { const bs = document.createElement("base"); bs.href = appRoot; document.head.prepend(bs); }
   function syncHash() {
+    if (location.protocol === "file:") {
+      const h = "#" + state.b.id + (state.sel ? "/" + encodeURIComponent(state.sel.name) : "");
+      if (location.hash !== h) history.replaceState(null, "", h);
+      return;
+    }
     const en = document.documentElement.lang === "en";
     const url = appRoot + (en ? "en/" : "") + state.b.id + "/" + (state.sel ? "#" + encodeURIComponent(state.sel.name) : "");
     if (location.href !== url) history.replaceState(null, "", url);
@@ -295,7 +301,6 @@
         <p class="muted">${esc(b.summary)}</p>
         <dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
         <button class="btn-share share">⤴ Chia sẻ board này</button>
-        <div class="d-sec">Tài liệu hãng</div>${docList(b.docs)}
         <p class="hint">Chạm vào một chân trên hình để xem chức năng, cảnh báo và linh kiện gợi ý.</p>`;
       return;
     }
@@ -331,15 +336,21 @@
     $("#docsAll").innerHTML = BOARDS.map(b => `<section class="card"><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.chip)} · ${esc(b.vendor)}</p>${docList(b.docs)}</section>`).join("");
   }
 
-  /* Bảng chân dạng chữ (trang tĩnh viết sẵn cho SEO); khi đổi board trong app thì vẽ lại theo board đang chọn */
+  /* Khung bên dưới: Tra cứu sơ đồ chân vi điều khiển + Tài liệu hãng + Tất cả board (link Shopee Affiliate) */
   function renderSeoTable() {
-    const box = document.querySelector(".seo"); if (!box || !window.PAGE_BOARD && !box.dataset.dyn) { if (!box || !window.PAGE_BOARD) return; }
-    if (state.b.id === window.PAGE_BOARD && !box.dataset.dyn) return;
-    const b = state.b;
-    const rows = pins.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.hdr)}-${p.pn}</td><td>${p.gpio != null ? p.gpio : "–"}</td><td>${esc(CATS[p.cat].label)}</td><td>${esc(p.fn.join(", "))}</td><td>${esc(p.warn || "")}</td></tr>`).join("");
-    box.dataset.dyn = 1;
-    box.innerHTML = `<h2>Bảng chân ${esc(b.name)}</h2><p class="muted">${esc(b.summary)}</p><dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
-      <div class="tw"><table><thead><tr><th>Chân</th><th>Vị trí</th><th>GPIO</th><th>Loại</th><th>Chức năng</th><th>Lưu ý</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    const box = document.querySelector(".seo"); if (!box) return;
+    const b = state.b, en = document.documentElement.lang === "en", shop = window.SHOPEE_LINKS || {};
+    const docs = b.docs.map(([, label, url]) => `<li><a href="${esc(url)}" rel="noopener" target="_blank">${esc(label)}</a></li>`).join("");
+    const links = BOARDS.map(x => {
+      const sUrl = shop[x.id] || x.shopee || ("https://shopee.vn/search?keyword=" + encodeURIComponent(x.name));
+      return `<li><a href="${esc(sUrl)}" target="_blank" rel="noopener sponsored">${esc(x.name)}</a> <span class="muted small">${esc(x.chip)}</span></li>`;
+    }).join("");
+    box.innerHTML = `<h2>${en ? "Pinout reference for microcontroller boards" : "Tra cứu sơ đồ chân vi điều khiển"}</h2>
+      <p class="muted">${en ? "Pin functions, warnings, electrical specs and companion parts taken from the manufacturers' datasheets, for ESP32, Raspberry Pi Pico, Raspberry Pi and Arduino boards." : "Chức năng từng chân, cảnh báo, thông số điện và linh kiện đi kèm, lấy từ datasheet của hãng, cho các board ESP32, Raspberry Pi Pico, Raspberry Pi và Arduino."}</p>
+      <h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3>
+      <ul class="seo-links">${docs}</ul>
+      <h3>${en ? "All boards" : "Tất cả board"}</h3>
+      <ul class="seo-links">${links}</ul>`;
   }
 
   /* ---------- Thông số chip ---------- */
@@ -441,7 +452,7 @@
   const loadJs = src => new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
-    if (!window.BUILD) { await loadJs("js/modules.js?v=42"); await loadJs("js/build.js?v=42"); }
+    if (!window.BUILD) { await loadJs("js/modules.js?v=50"); await loadJs("js/build.js?v=50"); }
     setTab("build"); BUILD.open(h);
   }
   window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };

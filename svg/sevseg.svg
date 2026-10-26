@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -1.5 14 26" width="100%" height="100%">
+  <!-- Top & Bottom Metal Pins -->
+  <g fill="#B0BEC5" stroke="#607D8B" stroke-width="0.15">
+    <!-- Top row: G(10), F(9), COM(8), A(7), B(6) -->
+    <rect x="1.6" y="-1" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="4.2" y="-1" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="6.8" y="-1" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="9.4" y="-1" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="12.0" y="-1" width="0.8" height="2.2" rx="0.2"/>
+    <!-- Bottom row: E(1), D(2), COM(3), C(4), DP(5) -->
+    <rect x="1.6" y="21.5" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="4.2" y="21.5" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="6.8" y="21.5" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="9.4" y="21.5" width="0.8" height="2.2" rx="0.2"/>
+    <rect x="12.0" y="21.5" width="0.8" height="2.2" rx="0.2"/>
+  </g>
+  <!-- Body -->
+  <rect x="0.4" y="1" width="13.2" height="20.6" rx="0.8" fill="#141414" stroke="#333" stroke-width="0.3"/>
+  <!-- 7-Segment Digit -->
+  <g transform="skewX(-8) translate(4.4, 4.4) scale(0.75)">
+    <polygon points="2 0 8 0 9 1 8 2 2 2 1 1" fill="#ff2a2a" />
+    <polygon points="10 2 10 8 9 9 8 8 8 2 9 1" fill="#ff2a2a" />
+    <polygon points="10 10 10 16 9 17 8 16 8 10 9 9" fill="#ff2a2a" />
+    <polygon points="8 18 2 18 1 17 2 16 8 16 9 17" fill="#3a3a3a" />
+    <polygon points="0 16 0 10 1 9 2 10 2 16 1 17" fill="#3a3a3a" />
+    <polygon points="0 8 0 2 1 1 2 2 2 8 1 9" fill="#ff2a2a" />
+    <polygon points="2 8 8 8 9 9 8 10 2 10 1 9" fill="#ff2a2a" />
+  </g>
+  <circle cx="11.2" cy="17.2" r="0.8" fill="#ff2a2a" />
+  <!-- Pin Labels -->
+  <g font-family="sans-serif" font-size="1.25" font-weight="bold" fill="#FFFFFF" text-anchor="middle">
+    <text x="2.0" y="2.8">G</text>
+    <text x="4.6" y="2.8">F</text>
+    <text x="7.2" y="2.8">GND</text>
+    <text x="9.8" y="2.8">A</text>
+    <text x="12.4" y="2.8">B</text>
+    <text x="2.0" y="20.8">E</text>
+    <text x="4.6" y="20.8">D</text>
+    <text x="9.8" y="20.8">C</text>
+    <text x="12.4" y="20.8">DP</text>
+  </g>
+</svg>
