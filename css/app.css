@@ -325,3 +325,8 @@ main { padding-top: 12px; }
 .seo-links li { min-width: 220px; }
 .seo h3 { margin: 16px 0 4px; }
 @media (min-width: 900px) { section[data-panel="pins"] > .seo { grid-column: 2; } }
+
+/* Nút chia sẻ + thông báo nhỏ */
+.d-act { display: flex; gap: 6px; }
+.btn-share { width: 100%; margin-top: 14px; padding: 10px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-fg); font-weight: 600; font-size: 15px; }
+.toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 200; background: #111; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; }

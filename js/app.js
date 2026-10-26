@@ -289,6 +289,7 @@
       box.innerHTML = `<div class="d-head"><div><div class="d-kicker">Board</div><h2>${esc(b.name)}</h2></div></div>
         <p class="muted">${esc(b.summary)}</p>
         <dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+        <button class="btn-share share">⤴ Chia sẻ board này</button>
         <div class="d-sec">Tài liệu hãng</div>${docList(b.docs)}
         <p class="hint">Chạm vào một chân trên hình để xem chức năng, cảnh báo và linh kiện gợi ý.</p>`;
       return;
@@ -297,7 +298,7 @@
     const elec = p.gpio != null && b.elec ? b.elec.map(([k, v]) => [k, typeof v === "function" ? v(p) : v]) : [];
     box.innerHTML = `<div class="d-head"><div><h2 class="mono">${esc(p.name)}</h2>
         <div class="d-kicker">${p.gpio != null ? "GPIO" + p.gpio + " · " : ""}${esc(p.hdr)}-${p.pn} · ${esc(cat.label)}</div></div>
-        <button class="icon-btn" id="dClose" aria-label="Đóng">✕</button></div>
+        <div class="d-act"><button class="icon-btn share" aria-label="Chia sẻ">⤴</button><button class="icon-btn" id="dClose" aria-label="Đóng">✕</button></div></div>
       <div class="status ${st[1]}">${st[2]} ${st[0]}</div>
       ${p.warn ? `<p class="wtext">${esc(p.warn)}</p>` : ""}
       ${p.notes.length ? `<ul class="notes">${p.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
@@ -307,6 +308,18 @@
       <p class="srcline">📄 Nguồn: ${esc(b.src)} · <a href="${esc(b.docs[0][2])}" target="_blank" rel="noopener">datasheet ↗</a></p>`;
     $("#dClose").onclick = () => { state.sel = null; $("#detail").classList.remove("open"); applyDim(); renderDetail(); syncHash(); };
   }
+  // Chia sẻ: Web Share API trên điện thoại (Zalo, Messenger…), máy tính thì copy link
+  async function share() {
+    const en = document.documentElement.lang === "en", p = state.sel, b = state.b;
+    const title = p ? `${b.name} – ${p.name}` : (en ? `${b.name} pinout` : `Sơ đồ chân ${b.name}`);
+    const text = p ? `${p.name}: ${p.fn.slice(0, 4).join(", ")}${p.warn ? " ⚠" : ""}` : (en ? "Pin functions, warnings and datasheet links" : "Chức năng từng chân, cảnh báo, link datasheet");
+    const url = location.href;
+    try { if (navigator.share) return await navigator.share({ title, text, url }); } catch (e) { return; }
+    try { await navigator.clipboard.writeText(url); toast(en ? "Link copied" : "Đã copy link"); } catch (e) { prompt("Link:", url); }
+  }
+  function toast(t) { const d = h("div", "toast", esc(t)); document.body.appendChild(d); setTimeout(() => d.remove(), 1800); }
+  $("#detailBody").addEventListener("click", e => { if (e.target.closest(".share")) share(); });
+
   const KIND = { datasheet: "Datasheet", manual: "Manual", guide: "Hướng dẫn", schematic: "Schematic", pinout: "Pinout", errata: "Errata", code: "Code" };
   const docList = docs => `<ul class="docs">${docs.map(([k, label, url]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener"><span class="dk">${KIND[k] || k}</span><span>${esc(label)}</span><span class="ext">↗</span></a></li>`).join("")}</ul>`;
   function renderDocs() {
