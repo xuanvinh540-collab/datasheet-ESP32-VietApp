@@ -90,3 +90,12 @@
 .lb-bar .icon-btn { border: 2px solid #fff1e8; box-shadow: 3px 3px 0 #000; }
 
 @media (prefers-reduced-motion: reduce) { #svg .pin.sel .tab { animation: none; } }
+
+/* Panel kiến thức */
+.learn-h { font-family: var(--vt) !important; font-size: 28px !important; line-height: 1.05 !important; }
+.procon { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.d-sec.ok { color: var(--ok); } .d-sec.bad { color: var(--ban); }
+.pinchip { border: 2px solid var(--line); background: var(--surface2); font: 18px var(--vt); padding: 2px 8px; box-shadow: 2px 2px 0 var(--hard); }
+.pinchip:active { transform: translate(2px, 2px); box-shadow: none; }
+.code { margin: 6px 0 0; padding: 10px 12px; background: #12101f; color: #00e436; border: 2px solid var(--line); font: 18px/1.25 var(--vt); white-space: pre-wrap; overflow-x: auto; }
+@media (max-width: 420px) { .procon { grid-template-columns: 1fr; } }

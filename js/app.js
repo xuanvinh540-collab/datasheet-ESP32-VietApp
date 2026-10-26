@@ -64,7 +64,11 @@
     const used = new Set(pins.flatMap(p => p.flags));
     Object.entries(FLAGS).filter(([k]) => used.has(k)).forEach(([k, label]) => {
       const c = h("button", "chip", esc(label)); c.setAttribute("aria-pressed", state.flag === k);
-      c.onclick = () => { state.flag = state.flag === k ? null : k; renderFilters(); applyDim(); };
+      c.onclick = () => {
+        state.flag = state.flag === k ? null : k; state.sel = null;
+        renderFilters(); applyDim(); renderDetail(); syncHash();
+        if (state.flag && matchMedia("(max-width: 899px)").matches) $("#detail").classList.add("open");
+      };
       box.appendChild(c);
     });
     const legend = $("#legend"); legend.innerHTML = "";
@@ -254,6 +258,24 @@
   const SRC = { ds: "Datasheet", hdg: "HDG", std: "Thông lệ" };
   function renderDetail() {
     const box = $("#detailBody"), b = state.b, p = state.sel;
+    const L = !p && state.flag && window.LEARN && LEARN[state.flag];
+    if (L) {
+      const hit = pins.filter(x => x.flags.includes(state.flag));
+      const li = a => `<ul class="notes">${a.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+      box.innerHTML = `<div class="d-head"><div><div class="d-kicker">Kiến thức · ${esc(FLAGS[state.flag])}</div><h2 class="learn-h">${esc(L.title)}</h2></div>
+          <button class="icon-btn" id="dClose" aria-label="Đóng">✕</button></div>
+        <p class="wtext">${esc(L.def)}</p>
+        <div class="d-sec">Nguyên lý</div><p class="small">${esc(L.how)}</p>
+        <div class="d-sec">Ứng dụng</div>${li(L.use)}
+        <div class="procon"><div><div class="d-sec ok">▲ Ưu điểm</div>${li(L.pro)}</div><div><div class="d-sec bad">▼ Nhược điểm</div>${li(L.con)}</div></div>
+        <div class="d-sec">Chân trên ${esc(b.name)} (${hit.length})</div>
+        <div class="fns">${hit.map(x => `<button class="pinchip" data-i="${pins.indexOf(x)}">${esc(x.name)}</button>`).join("")}</div>
+        <div class="d-sec">Ví dụ nối dây</div><p class="small">${esc(L.ex)}</p>
+        <pre class="code">${esc(L.code)}</pre>`;
+      box.querySelectorAll(".pinchip").forEach(bt => bt.onclick = () => pick(pins[+bt.dataset.i]));
+      $("#dClose").onclick = () => { state.flag = null; $("#detail").classList.remove("open"); renderFilters(); applyDim(); renderDetail(); };
+      return;
+    }
     if (!p) {
       box.innerHTML = `<div class="d-head"><div><div class="d-kicker">Board</div><h2>${esc(b.name)}</h2></div></div>
         <p class="muted">${esc(b.summary)}</p>
