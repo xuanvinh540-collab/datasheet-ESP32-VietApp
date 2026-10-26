@@ -99,3 +99,27 @@
 .pinchip:active { transform: translate(2px, 2px); box-shadow: none; }
 .code { margin: 6px 0 0; padding: 10px 12px; background: #12101f; color: #00e436; border: 2px solid var(--line); font: 18px/1.25 var(--vt); white-space: pre-wrap; overflow-x: auto; }
 @media (max-width: 420px) { .procon { grid-template-columns: 1fr; } }
+
+/* Tone xanh ô liu: nền/viền ngả ô liu, ô liu cho trạng thái "đang chọn"; đỏ PICO-8 giữ cho nút chính và cảnh báo */
+:root { --olive: #6b7a2a; --olive-hi: #a3b44a; --olive-fg: #f6f4e4;
+  --bg: #f3f1e0; --surface: #fbfaf0; --surface2: #e7e8c9; --canvas: #e4e6c4; --line: #2f3518; --hard: #2f3518; --fg: #232812; --muted: #616944; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --olive: #8d9c3a; --olive-hi: #b9cb5a; --olive-fg: #141808;
+  --bg: #121509; --surface: #1b2010; --surface2: #262c16; --canvas: #0e1107; --line: #3d4622; --hard: #000; --fg: #eef0d8; --muted: #a6ad85; } }
+:root[data-theme="dark"] { --olive: #8d9c3a; --olive-hi: #b9cb5a; --olive-fg: #141808;
+  --bg: #121509; --surface: #1b2010; --surface2: #262c16; --canvas: #0e1107; --line: #3d4622; --hard: #000; --fg: #eef0d8; --muted: #a6ad85; }
+
+.board-card[aria-pressed="true"] { border-color: var(--olive); box-shadow: 3px 3px 0 var(--olive); background: color-mix(in srgb, var(--olive) 14%, var(--surface)); }
+.board-card[aria-pressed="true"] .bc-icon { box-shadow: 0 0 0 2px var(--olive); }
+.seg button[aria-pressed="true"], .stab[aria-pressed="true"], .chip[aria-pressed="true"] { background: var(--olive); color: var(--olive-fg); }
+.appbar { background: var(--surface); box-shadow: 0 3px 0 color-mix(in srgb, var(--olive) 45%, transparent); }
+.brand img { image-rendering: pixelated; }
+.d-sec, .d-kicker { color: var(--olive-hi); }
+:root[data-theme="light"] .d-sec, :root[data-theme="light"] .d-kicker { color: var(--olive); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .d-sec, :root:not([data-theme="dark"]) .d-kicker { color: var(--olive); } }
+.pinchip:hover, .docs a:hover, .board-card:hover { background: color-mix(in srgb, var(--olive) 18%, var(--surface)); }
+.dk, .tag.hdg { background: var(--olive) !important; color: var(--olive-fg) !important; }
+.code { background: #0e1107; color: var(--olive-hi); }
+.grab { background: var(--olive) !important; }
+#svg .pin.sel .ring { stroke: var(--olive-hi); }
+.kv div, .pp { border-left: 6px solid var(--olive); }
