@@ -117,25 +117,24 @@
   function c3(n) {
     const p = pin("IO" + n, { gpio: n });
     if (n <= 4) { p.fn.push("ADC1_CH" + n); p.flags.push("adc"); }
-    if (n === 5) { p.fn.push("ADC2_CH0"); p.flags.push("adc"); p.warn = "ADC2 trên ESP32-C3 không ổn định (xem errata). Cần đo analog thì dùng IO0–IO4 (ADC1)."; }
+    if (n === 5) { p.fn.push("ADC2_CH0"); p.flags.push("adc"); p.warn = "ADC2 không được hiệu chỉnh từ nhà máy và không dùng được trên một số revision chip (xem errata). Cần đo analog thì dùng IO0–IO4 (ADC1)."; }
     if (n === 0) p.fn.push("XTAL_32K_P");
     if (n === 1) p.fn.push("XTAL_32K_N");
     const MUX = { 2: "FSPIQ", 4: "FSPIHD · MTMS", 5: "FSPIWP · MTDI", 6: "FSPICLK · MTCK", 7: "FSPID · MTDO", 10: "FSPICS0", 18: "USB_D-", 19: "USB_D+", 20: "U0RXD", 21: "U0TXD" };
     if (MUX[n]) p.fn.push(MUX[n]);
-    if (n >= 4 && n <= 7) p.flags.push("jtag");
+    if (n >= 4 && n <= 7) { p.flags.push("jtag"); p.notes.push("Lúc reset chân này mặc định là tín hiệu JTAG (" + ["MTMS", "MTDI", "MTCK", "MTDO"][n - 4] + "); phần mềm chuyển sang GPIO khi cần."); }
+    if ([2, 4, 5, 6, 7, 10].includes(n)) p.flags.push("spi");
     if (n === 18 || n === 19) p.flags.push("usb");
-    const ARD = { 4: "Arduino SCK", 5: "Arduino MISO", 6: "Arduino MOSI", 7: "Arduino SS", 8: "Arduino SDA", 9: "Arduino SCL" };
-    if (ARD[n]) { p.fn.push(ARD[n]); p.flags.push(n >= 8 ? "i2c" : "spi"); }
     if (n === 20 || n === 21) { p.flags.push("uart"); p.name = n === 20 ? "RX" : "TX"; p.fn.push("IO" + n); }
     if ([2, 8, 9].includes(n)) p.flags.push("strap");
     if (n === 8) { p.fn.push("RGB LED (WS2812)"); p.flags.push("led"); }
     if (n === 9) p.fn.push("Nút BOOT");
     const w = {
-      2: "Strapping: thả nổi lúc reset. Datasheet khuyên kéo lên HIGH (chống nhiễu) để vào đúng chế độ boot.",
+      2: "Strapping: thả nổi lúc reset. Không quyết định chế độ boot nhưng datasheet khuyên kéo lên HIGH vì có thể bị nhiễu (glitch).",
       8: "Strapping: thả nổi lúc reset; phải HIGH khi vào chế độ nạp, đồng thời điều khiển việc in log ROM. Có RGB LED trên chân này.",
-      9: "Strapping: pull-up yếu mặc định. LOW lúc reset = chế độ nạp (nút BOOT). Không gắn tải kéo LOW.",
-      18: "USB D− của USB Serial/JTAG. Dùng làm GPIO phải tắt chức năng USB; có xung HIGH ~50 µs lúc cấp nguồn.",
-      19: "USB D+ của USB Serial/JTAG. Dùng làm GPIO phải tắt chức năng USB.",
+      9: "Strapping: pull-up yếu mặc định. LOW lúc reset = chế độ nạp (nút BOOT). Không gắn tải kéo LOW, không gắn tụ lớn.",
+      18: "USB D− của USB Serial/JTAG (mặc định bật). Dùng làm GPIO phải tắt chức năng USB; có xung HIGH ~50 µs lúc cấp nguồn.",
+      19: "USB D+ của USB Serial/JTAG (mặc định bật, có pull-up USB). Dùng làm GPIO phải tắt chức năng USB.",
       20: "UART0 RX nối chip USB-UART CP2102 trên board: dùng để nạp và log. Nên để nguyên.",
       21: "UART0 TX nối chip USB-UART CP2102 trên board: chip in log ROM ra đây lúc khởi động. Nên để nguyên."
     };
@@ -146,8 +145,10 @@
     if (n === 0 || n === 1) p.notes.push("Có thể gắn thạch anh 32.768 kHz cho RTC chính xác.");
     p.cat = p.flags.includes("strap") ? "strap" : p.flags.includes("usb") ? "usb" : p.flags.includes("uart") ? "comm" : p.flags.includes("adc") ? "adc" : "gpio";
     if (p.flags.includes("adc")) p.parts.push(["Lọc ADC", "Tụ 0.1 µF từ chân xuống GND", "hdg"]);
-    if (n === 2 || n === 8) p.parts.push(["Pull-up", "10 kΩ lên 3V3 để giữ HIGH lúc boot", "ds"]);
-    if (n === 9) p.parts.push(["Nút nhấn", "Nút nối xuống GND, dùng pull-up nội/ngoài (giống nút BOOT)", "std"]);
+    if (n === 2) p.parts.push(["Pull-up", "Kéo lên 3V3 (HDG không ghi giá trị; thường dùng 10 kΩ)", "hdg"]);
+    if (n === 8) p.parts.push(["Pull-up", "Giữ HIGH khi cần vào chế độ nạp (thường 10 kΩ)", "std"]);
+    if (n === 9) p.parts.push(["Pull-up", "Điện trở kéo lên; không gắn tụ lớn, dễ làm chip vào chế độ nạp", "hdg"]);
+    if (n === 18 || n === 19) p.parts.push(["USB", "Điện trở nối tiếp 22–33 Ω; tụ xuống GND để trống ban đầu", "hdg"]);
     if (n === 21) p.parts.push(["UART TX", "Điện trở nối tiếp 499 Ω", "hdg"]);
     if (p.cat === "gpio" || p.cat === "adc") p.parts.push(i2cPull);
     return p;
@@ -176,7 +177,7 @@
       { side: "R", n: "Header J1 + J3", s: "2 × 15 chân", k: "io", bus: "GPIO" }] },
     summary: "RISC-V 1 nhân 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG.",
     w: 25, h: 39, pcb: "black", logic: "3.3 V",
-    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định (IO2–IO5: 10 mA), tối đa 40 mA"], ["ADC", "2 × SAR 12-bit, 6 kênh (ADC1: IO0–IO4)"], ["Nguồn vào", "5V qua Micro-USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102N) hoặc USB Serial/JTAG (IO18/IO19)"]],
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định (IO2–IO5: 10 mA), tối đa 40 mA"], ["ADC", "2 × SAR 12-bit: ADC1 5 kênh (IO0–IO4, đã hiệu chỉnh), ADC2 1 kênh (IO5)"], ["Nguồn vào", "5V qua Micro-USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102N) hoặc USB Serial/JTAG (IO18/IO19)"]],
     docs: [
       ["datasheet", "ESP32-C3 Series Datasheet v2.4", "https://documentation.espressif.com/esp32-c3_datasheet_en.pdf"],
       ["datasheet", "ESP32-C3-MINI-1 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf"],
