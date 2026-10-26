@@ -431,7 +431,7 @@
     for (let i = 1; i <= n; i++) {
       const t = L * i / (n + 1), p = pe.getPointAtLength(t), q = pe.getPointAtLength(Math.min(L, t + .6));
       const vert = Math.abs(q.x - p.x) < Math.abs(q.y - p.y) * .4;
-      el("text", { x: p.x, y: p.y, "text-anchor": "middle", "font-size": 1.1, class: "wlabel", fill: c, ...tag,
+      el("text", { x: p.x, y: p.y, "text-anchor": "middle", "font-size": 1.45, class: "wlabel", ...tag,
         transform: vert ? `rotate(-90 ${p.x} ${p.y}) translate(0 -.55)` : "translate(0 -.55)" }, parent, label);
     }
   }
@@ -444,6 +444,24 @@
     }
   }
   function nearestPad(pt) { let best = null, bd = 2.6; for (const p of A.pins) { const d = Math.hypot(p.x - pt.x, p.y - pt.y); if (d < bd) { bd = d; best = p; } } return best; }
+  // chân linh kiện gần con trỏ nhất – để rút đầu dây phía linh kiện sang chân khác
+  function nearestSock(pt, skip) {
+    let best = null, bd = 2.6;
+    for (const [mi, m] of B.mods.entries()) M[m.type].pins.forEach(([label], k) => {
+      if (skip && skip.m === mi && skip.label === label) return;
+      const a = sockPos(m, k), d = Math.hypot(a.x - pt.x, a.y - pt.y);
+      if (d < bd) { bd = d; best = { m: mi, label, x: a.x, y: a.y }; }
+    });
+    return best;
+  }
+  // chuyển dây sang chân linh kiện khác, giữ nguyên chân board
+  function moveWire(from, to, padName) {
+    const src = B.mods[from.m], dst = B.mods[to.m];
+    if (score(pinByName(padName), roleOf(dst, to.label), board()) <= -1e8) { A.toast(padName + " không dùng được cho " + to.label + "."); return false; }
+    setPin(src, from.label, null); if (src.route) delete src.route[from.label];
+    setPin(dst, to.label, padName); if (dst.route) delete dst.route[to.label];
+    save(); A.toast("Đã chuyển dây sang " + M[dst.type].short + " · " + to.label); return true;
+  }
   function connect(m, label, p) {
     if (score(p, roleOf(m, label), board()) <= -1e8) { A.toast(`${p.name} không dùng được cho ${label}.`); return false; }
     setPin(m, label, p.name); if (m.route) delete m.route[label]; save(); return true;
@@ -451,18 +469,28 @@
   function startWire(e, mi, label, fromEnd) {
     e.stopPropagation(); e.preventDefault();
     const m = B.mods[mi], k = M[m.type].pins.findIndex(x => x[0] === label), a = sockPos(m, k), s = svg();
-    showGlow(m, label);
+    const padPin = pinByName(getPin(m, label) || "");
+    // nắm đầu nào thì đầu đó rút ra: đầu board giữ chân linh kiện, đầu linh kiện giữ chân board
+    const loose = !fromEnd && padPin ? "sock" : "pad";
+    if (loose === "pad") showGlow(m, label); else $("#glow").innerHTML = "";
     // dây đang nối của chân này ẩn đi, thay bằng dây tạm bám theo con trỏ (khi nắm đầu dây thì làm mờ dây khác)
-    const mine = x => x.dataset.wm === String(mi) && x.dataset.wl === label, cur = pinByName(getPin(m, label) || "");
-    $("#wires").querySelectorAll("path,circle,text").forEach(x => { if (mine(x)) x.style.display = "none"; else if (fromEnd) x.style.opacity = .25; });
-    const tmp = el("path", { d: cur ? wirePath(a, cur) : "", stroke: COLOR[M[m.type].pins[k][1]] || M[m.type].color, class: "bwire" + (cur ? "" : " tmp") }, $("#wires"));
+    const mine = x => x.dataset.wm === String(mi) && x.dataset.wl === label;
+    $("#wires").querySelectorAll("path,circle,text").forEach(x => { if (mine(x)) x.style.display = "none"; else x.style.opacity = .25; });
+    const anchor = loose === "sock" ? { x: padPin.x, y: padPin.y, dir: "L" } : a;
+    const far = loose === "sock" ? a : padPin;
+    const tmp = el("path", { d: padPin ? wirePath(anchor, far) : "", stroke: COLOR[M[m.type].pins[k][1]] || M[m.type].color, class: "bwire" + (padPin ? "" : " tmp") }, $("#wires"));
     let moved = false;
-    const mv = ev => { moved = true; const pt = toSvg(ev), near = nearestPad(pt); tmp.setAttribute("d", wirePath(a, near ? { x: near.x, y: near.y } : pt)); };
+    const mv = ev => {
+      moved = true; const pt = toSvg(ev);
+      const near = loose === "sock" ? nearestSock(pt) : nearestPad(pt);
+      tmp.setAttribute("d", wirePath(anchor, near ? { x: near.x, y: near.y } : pt));
+    };
     const up = ev => {
       s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up);
       if (!moved) { B.arm = B.arm && B.arm.m === mi && B.arm.label === label ? null : { m: mi, label }; return refresh(); }   // chạm (không kéo) = chọn rồi chạm pad
-      const p = nearestPad(toSvg(ev));
-      if (p) connect(m, label, p); else if (getPin(m, label)) { setPin(m, label, null); if (m.route) delete m.route[label]; save(); A.toast("Đã gỡ dây " + label); }
+      const pt = toSvg(ev), drop = () => { setPin(m, label, null); if (m.route) delete m.route[label]; save(); A.toast("Đã gỡ dây " + label); };
+      if (loose === "sock") { const sk = nearestSock(pt, { m: mi, label }); if (sk) moveWire({ m: mi, label }, sk, padPin.name); else if (!nearestSock(pt)) drop(); }
+      else { const p = nearestPad(pt); if (p) connect(m, label, p); else if (getPin(m, label)) drop(); }
       B.arm = null; refresh();
     };
     s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
@@ -502,6 +530,12 @@
     const m = B.mods[mi]; if (!m) return;
     setPin(m, label, null); if (m.route) delete m.route[label];
     B.selW = null; save(); refresh(); A.toast("Đã xoá dây " + label);
+  }
+  function unwireMod(i, quiet) {
+    const m = B.mods[i]; if (!m) return;
+    for (const [label] of M[m.type].pins) setPin(m, label, null);
+    m.route = {}; B.selW = null;
+    if (!quiet) { save(); refresh(); A.toast("Đã xoá nối dây " + M[m.type].short); }
   }
   function autoMod(i) { const m = B.mods[i]; if (!m) return; autoAssign(m); save(); refresh(); A.toast("Đã tự nối chân " + M[m.type].short); }
   function rewire(mi, label) {
@@ -547,6 +581,7 @@
         $("#bspread").onchange = () => save();
       }
     }
+    if (!$("#btitle")) { const t = document.createElement("div"); t.id = "btitle"; t.className = "btitle"; $("#bboard").after(t); }
     if (!$("#bname")) { const nm = document.createElement("div"); nm.id = "bname"; nm.className = "bname"; s.after(nm); }
     if (!$("#bwinfo")) { const wi = document.createElement("div"); wi.id = "bwinfo"; wi.className = "bwinfo"; wi.hidden = true; s.after(wi); }
     // chuột phải: menu Xoá / Tự nối chân
@@ -555,11 +590,11 @@
       e.preventDefault();
       if (node) {
         const i = +node.dataset.m; B.selM = i; B.selW = null; draw();
-        ctxMenu(e, [["🗑 Xoá linh kiện", () => removeMod(i)], ["✨ Tự nối chân", () => autoMod(i)]]);
+        ctxMenu(e, [["🗑 Xoá linh kiện", () => removeMod(i)], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["✨ Tự nối chân", () => autoMod(i)]]);
       } else if (w) {
         const i = +w.dataset.wm, l = w.dataset.wl; selectWire(i, l);
-        ctxMenu(e, [["🗑 Xoá dây", () => removeWire(i, l)], ["✨ Tự nối lại chân này", () => rewire(i, l)], ["✨ Tự nối chân linh kiện", () => autoMod(i)]]);
-      } else if (B.mods.length) ctxMenu(e, [["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }]]);
+        ctxMenu(e, [["🔌 Xoá nối dây", () => removeWire(i, l)], ["✨ Tự nối lại chân này", () => rewire(i, l)], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["✨ Tự nối chân linh kiện", () => autoMod(i)]]);
+      } else if (B.mods.length) ctxMenu(e, [["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }], ["🔌 Xoá hết nối dây", () => { B.mods.forEach((m, j) => unwireMod(j, true)); save(); refresh(); A.toast("Đã xoá hết nối dây"); }]]);
     });
     document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); }, true);
     addEventListener("keydown", e => {
@@ -609,7 +644,8 @@
   }
   function side() {
     const box = $("#bside"), b = board();
-    $("#bboard").innerHTML = BOARDS.map(x => `<option value="${x.id}"${x.id === b.id ? " selected" : ""}>${esc(x.name)}</option>`).join("");
+    $("#bboard").hidden = true;
+    const bt = $("#btitle"); if (bt) bt.textContent = b.name;
     if (!supported(b)) { box.innerHTML = `<p class="wtext">Chưa hỗ trợ board này.</p>`; return; }
     const W = warnings();
     const cards = B.mods.map((m, i) => { const d = M[m.type]; return `<div class="bcard" style="--mc:${d.color}"><div class="bc-h"><b>${esc(d.name)}</b><span>${esc(d.iface)} · ${esc(d.vcc)}</span><button class="icon-btn bx" data-del="${i}" aria-label="Bỏ">✕</button></div>
@@ -675,7 +711,7 @@
   let inited = false;
   window.BUILD = {
     open(h) {
-      if (!inited) { initCanvas(); $("#bboard").onchange = e => { A.selectBoard(e.target.value); B.boardId = null; BUILD.open(); }; inited = true; }
+      if (!inited) { initCanvas(); inited = true; }
       if (B.boardId !== board().id) restore();
       if (h) importHash(h);
       refresh();

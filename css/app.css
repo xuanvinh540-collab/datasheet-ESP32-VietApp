@@ -362,7 +362,7 @@ main { padding-top: 12px; }
 /* Tab Build: khu vẽ node + thanh bên */
 .tabbar .tab-build { color: #1b1f0a !important; background: #f5d63d !important; font-weight: 800; }
 .tabbar .tab-build[aria-selected="true"] { background: #d4ff00 !important; }
-.bwrap { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; align-items: start; }
+.bwrap { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 12px; align-items: start; }
 .bstage { padding: 10px; }
 .bbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
 .bbar select { padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface2); color: var(--fg); font-weight: 600; }
@@ -399,7 +399,8 @@ main { padding-top: 12px; }
 
 #bsvg .whit { fill: none; stroke: transparent; stroke-width: 1.8; cursor: move; }
 #bsvg .whit:hover + * , #bsvg .whit:hover { stroke: rgba(255,255,255,.08); }
-#bsvg .wlabel { font-weight: 800; paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: .08; pointer-events: none; }
+#bsvg .wlabel { font-weight: 800; fill: #cfd6d2 !important; paint-order: stroke; stroke: rgba(0,0,0,.75); stroke-width: .22; pointer-events: none; }
+:root[data-theme="light"] #bsvg .wlabel { fill: #4a524e !important; stroke: rgba(255,255,255,.8); }
 
 /* Listdown chọn linh kiện phân loại + tìm kiếm */
 .mdrop { border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); margin: 8px 0; overflow: hidden; }
@@ -410,7 +411,8 @@ main { padding-top: 12px; }
 .msearch input { width: 100%; border: 0; background: transparent; color: var(--fg); font: 12.5px var(--mono); outline: none; }
 .mcat-h { font: 700 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 4px 2px 3px; }
 .mlist { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.mitem { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--line); border-left: 3px solid var(--mc); border-radius: 7px; background: var(--surface); color: var(--fg); font: 600 12px var(--mono); cursor: pointer; text-align: left; }
+.mitem > span:first-child { flex: none; }
+.mitem { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid var(--line); border-left: 3px solid var(--mc); border-radius: 7px; background: var(--surface); color: var(--fg); font: 600 11.5px var(--mono); letter-spacing: -.04em; cursor: pointer; text-align: left; }
 .mitem:hover { border-color: var(--mc); }
 .mitem.on { background: color-mix(in srgb, var(--mc) 22%, var(--surface)); border-color: var(--mc); }
 .mitem:disabled { opacity: .35; cursor: not-allowed; }
@@ -477,8 +479,10 @@ main { padding-top: 12px; }
 .bmenu button:hover, .bmenu button:focus-visible { background: var(--surface2); outline: none; }
 .bwinfo { position: absolute; left: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; max-width: calc(100% - 40px); padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--surface) 90%, transparent); font: 600 12px var(--mono); color: var(--fg); pointer-events: none; }
 .bwinfo span { color: var(--muted); }
-.mitem img { flex: none; width: 42px; height: 34px; object-fit: contain; }
-.mitem { min-height: 44px; }
+.mitem img { flex: none; width: 30px; height: 26px; object-fit: contain; }
+.mitem { min-height: 38px; }
+.mitem .mi { letter-spacing: -.05em; }
+.mdrop-body { padding: 6px; }
 
 /* Panel thông tin board: nhãn cột cố định, giá trị căn đều, mỗi dòng một đường kẻ mảnh */
 .facts { display: block; margin: 14px 0 0; border-top: 1px solid var(--line); }
@@ -497,3 +501,5 @@ main { padding-top: 12px; }
 .fact:has(.fv.two) { grid-template-columns: 1fr; }
 .fv.two li { white-space: nowrap; }
 .fv.two { grid-template-columns: repeat(3, auto); justify-content: start; gap: 4px 18px; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) #bsvg .wlabel { fill: #4a524e !important; stroke: rgba(255,255,255,.8); } }
+.btitle { font: 700 15px var(--mono); color: var(--fg); padding: 4px 2px; }
