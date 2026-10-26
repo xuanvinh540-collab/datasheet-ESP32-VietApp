@@ -11,9 +11,11 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
 <link rel="stylesheet" href="css/app.css">
-<link rel="stylesheet" href="css/retro.css">
+<link rel="stylesheet" href="css/retro.css" id="skin-8bit">
+<link rel="stylesheet" href="css/pinout.css" id="skin-pinout" disabled>
+<link rel="stylesheet" href="css/amber.css" id="skin-amber" disabled>
 </head>
 <body>
 <header class="appbar">
@@ -23,6 +25,7 @@
     <button data-tab="calc" role="tab">Tính toán</button>
     <button data-tab="docs" role="tab">Tài liệu</button>
   </nav>
+  <select id="skin" class="skin" aria-label="Chọn giao diện"><option value="8bit">8-bit</option><option value="pinout">Pinout</option><option value="amber">Hổ phách</option><option value="clean">Gốc</option></select>
   <button class="icon-btn" id="theme" aria-label="Đổi giao diện sáng/tối">◐</button>
 </header>
 

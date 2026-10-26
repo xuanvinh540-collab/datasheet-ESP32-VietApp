@@ -1,0 +1,15 @@
+/* Theme "Hổ phách": dùng bố cục của pinout.css, đổi bảng màu sang nâu gỗ + hổ phách */
+:root {
+  --leaf: #7a4a1e; --navy: #2b1a0e; --accent: #b86f1c;
+  --bg: #f6efe2; --surface: #fffaf1; --surface2: #f0e2c8; --fg: #2e1f12; --muted: #7a654c; --line: #dcc7a4; --canvas: #efe0c2;
+  --c-gpio: #b3801a; --c-strap: #e2a21b; --c-ctl: #8a7259; --ok: #7a4a1e; --warn: #b86f1c;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --leaf: #8a5523; --accent: #e09a35;
+  --bg: #17110b; --surface: #21180f; --surface2: #2d2115; --fg: #f1e4cf; --muted: #b9a283; --line: #43311f; --canvas: #120d08; } }
+:root[data-theme="dark"] {
+  --leaf: #8a5523; --accent: #e09a35;
+  --bg: #17110b; --surface: #21180f; --surface2: #2d2115; --fg: #f1e4cf; --muted: #b9a283; --line: #43311f; --canvas: #120d08; }
+.appbar { background: linear-gradient(90deg, #6b3f17, #a8641f); }
+.code { color: #ffc46b; }
+#svg .pad { stroke: #e2a21b; }

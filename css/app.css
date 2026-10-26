@@ -284,3 +284,7 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
 .bc-icon b { position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); font: 700 10px var(--mono); padding: 1px 5px; border-radius: 5px; color: #fff; white-space: nowrap; }
 .bc-icon.esp b { background: #d23a2f; } .bc-icon.rp b { background: #b81a4c; } .bc-icon.avr b { background: #0f8a93; }
 .board-card[aria-pressed="true"] .bc-icon { box-shadow: 0 0 0 2px var(--accent); }
+
+/* Ô chọn giao diện nhỏ góc phải */
+.skin { height: 38px; padding: 0 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font: 600 13px var(--mono); color: var(--fg); }
+@media (max-width: 560px) { .skin { margin-left: auto; } #theme { margin-left: 0; } }

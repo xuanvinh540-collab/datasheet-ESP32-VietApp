@@ -399,6 +399,16 @@
     try { localStorage.setItem("theme", r.dataset.theme); } catch (e) { }
   };
   try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) { }
+  // Chọn bộ giao diện: bật/tắt file CSS tương ứng; SVG vẽ lại để nhận font mới
+  const setSkin = k => {
+    $("#skin-8bit").disabled = k !== "8bit"; $("#skin-pinout").disabled = k !== "pinout" && k !== "amber"; $("#skin-amber").disabled = k !== "amber";
+    document.documentElement.dataset.skin = k; $("#skin").value = k;
+    try { localStorage.setItem("skin", k); } catch (e) { }
+    if (state.b) draw();
+  };
+  $("#skin").onchange = e => setSkin(e.target.value);
+  let sk = "8bit"; try { sk = localStorage.getItem("skin") || sk; } catch (e) { }
+  setSkin(sk);
   const fromHash = () => { const [hid, hpin] = location.hash.slice(1).split("/"); selectBoard(hid || BOARDS[0].id, hpin && decodeURIComponent(hpin)); };
   addEventListener("hashchange", fromHash);
   fromHash();
