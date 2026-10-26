@@ -543,18 +543,20 @@ main { padding-top: 12px; }
 .adm-row a { text-decoration: none; }
 .adm-note { color: var(--muted); font-size: 13px; }
 @media (max-width: 620px) { .adm-row { grid-template-columns: 1fr auto; } .adm-row span { grid-column: 1 / -1; } }
-/* Nền tối: mảng trắng mềm trùm cả logo lẫn chữ Pindexio, mép loang dần ra ngoài */
-.appbar .brand { position: relative; }
-.appbar .brand > * { position: relative; z-index: 1; }
-.brand-glow { display: none; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --brand-glow: 1; } }
-:root[data-theme="dark"] { --brand-glow: 1; }
-@supports (color: rgb(0 0 0 / 1)) {
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar .brand::before { content: ""; position: absolute; inset: -20px -90px -20px -30px; z-index: 0; border-radius: 999px; background: radial-gradient(70% 120% at 32% 50%, rgb(255 255 255 / .98) 0%, rgb(255 255 255 / .94) 38%, rgb(255 255 255 / .7) 62%, rgb(255 255 255 / .28) 82%, rgb(255 255 255 / 0) 100%); pointer-events: none; } }
-  :root[data-theme="dark"] .appbar .brand::before { content: ""; position: absolute; inset: -20px -90px -20px -30px; z-index: 0; border-radius: 999px; background: radial-gradient(70% 120% at 32% 50%, rgb(255 255 255 / .98) 0%, rgb(255 255 255 / .94) 38%, rgb(255 255 255 / .7) 62%, rgb(255 255 255 / .28) 82%, rgb(255 255 255 / 0) 100%); pointer-events: none; }
-}
+/* Nền tối: dải trắng gắn vào thanh tiêu đề – mép trên, dưới, trái thẳng cứng sát khung;
+   chỉ mép phải kéo dài ra thêm và loang mềm vào nền, không bo cong */
+.appbar > * { position: relative; z-index: 1; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 400px; max-width: 78vw; z-index: 0; pointer-events: none;
+  background: linear-gradient(90deg, #fff 0, #fff 58%, rgb(255 255 255 / .62) 76%, rgb(255 255 255 / .24) 90%, rgb(255 255 255 / 0) 100%); } }
+:root[data-theme="dark"] .appbar::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 400px; max-width: 78vw; z-index: 0; pointer-events: none;
+  background: linear-gradient(90deg, #fff 0, #fff 58%, rgb(255 255 255 / .62) 76%, rgb(255 255 255 / .24) 90%, rgb(255 255 255 / 0) 100%); }
 /* chữ trên mảng trắng phải là navy, không theo màu chữ của nền tối */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar .brand .wm-n { color: #041E42; }
   :root:not([data-theme="light"]) .appbar .brand span { color: #4a6b88; } }
 :root[data-theme="dark"] .appbar .brand .wm-n { color: #041E42; }
 :root[data-theme="dark"] .appbar .brand span { color: #4a6b88; }
+/* Điện thoại: thanh tiêu đề xuống nhiều hàng, dải trắng chỉ phủ hàng có logo */
+@media (max-width: 899px) {
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar::before { bottom: auto; height: 76px; } }
+  :root[data-theme="dark"] .appbar::before { bottom: auto; height: 76px; }
+}
