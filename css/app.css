@@ -477,4 +477,5 @@ main { padding-top: 12px; }
 .bmenu button:hover, .bmenu button:focus-visible { background: var(--surface2); outline: none; }
 .bwinfo { position: absolute; left: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; max-width: calc(100% - 40px); padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--surface) 90%, transparent); font: 600 12px var(--mono); color: var(--fg); pointer-events: none; }
 .bwinfo span { color: var(--muted); }
-.mitem img { flex: none; width: 24px; height: 18px; object-fit: contain; }
+.mitem img { flex: none; width: 42px; height: 34px; object-fit: contain; }
+.mitem { min-height: 44px; }

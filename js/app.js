@@ -38,7 +38,8 @@
     d.pins.forEach(([name, role, v5, sx, sy, dir], i) => {
       const [cat, fn] = ROLE[role] || ["gpio", role], side = dir || d.pinDir || "T";
       const p = { name, gpio: null, cat, fn: [fn], flags: [], notes: [], parts: [], hdr: "Pin", pn: i + 1, x: (sx - vx) / vw * w, y: (sy - vy) / vh * h,
-        warn: v5 ? "Chân này ra mức 5 V: board 3.3 V cần cầu chia áp (1 kΩ + 2 kΩ) trước khi vào GPIO." : "" };
+        warn: v5 ? "Chân này ra mức 5 V: board 3.3 V cần cầu chia áp (1 kΩ + 2 kΩ) trước khi vào GPIO." : "",
+        doc: (window.PIN_DOC || {})[k + "." + name] || (window.PIN_DOC || {})[name] };
       p.status = cat === "power" || cat === "gnd" ? "info" : v5 ? "warn" : "ok";
       (sides[side] = sides[side] || []).push(p);
     });
@@ -370,6 +371,7 @@
         <div class="d-kicker">${p.gpio != null ? "GPIO" + p.gpio + " · " : ""}${esc(p.hdr)}-${p.pn} · ${esc(cat.label)}</div></div>
         <div class="d-act"><button class="icon-btn share" aria-label="Chia sẻ">⤴</button><button class="icon-btn" id="dClose" aria-label="Đóng">✕</button></div></div>
       <div class="status ${st[1]}">${st[2]} ${st[0]}</div>
+      ${p.doc ? `<div class="d-sec">Chân này làm gì</div><p class="small">${esc(p.doc[0])}</p><div class="d-sec">Cách nối</div><p class="small">${esc(p.doc[1])}</p>` : ""}
       ${p.warn ? `<p class="wtext">${esc(p.warn)}</p>` : ""}
       ${p.notes.length ? `<ul class="notes">${p.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
       ${p.fn.length ? `<div class="fns">${p.fn.map(f => `<span>${esc(f)}</span>`).join("")}</div>` : ""}
@@ -513,7 +515,7 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=56");
+    if (!window.MODULES) await loadJs("js/modules.js?v=58");
     if (!window.BUILD) await loadJs("js/build.js?v=57");
     setTab("build"); BUILD.open(h);
   }

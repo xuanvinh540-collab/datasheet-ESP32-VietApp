@@ -183,3 +183,40 @@ window.MOD_CATS = [
   ["Âm thanh & Còi", "🔊", ["buzzer", "max98357a", "inmp441"]],
   ["Điều khiển & Cơ bản", "🎛️", ["button", "led"]]
 ];
+/* Giải thích từng chân linh kiện: [chân này làm gì, cách nối]. Khoá "mã.CHÂN" ưu tiên hơn khoá chung "CHÂN". */
+window.PIN_DOC = {
+  VCC: ["Chân cấp nguồn dương cho module.", "Nối 3V3 hoặc 5V của board theo điện áp ghi trên module. Cấp sai điện áp có thể hỏng module."],
+  VDD: ["Chân cấp nguồn dương (VDD là tên khác của VCC).", "Nối 3V3 của board."],
+  VIN: ["Chân cấp nguồn dương cho mạch khuếch đại.", "Nối 3V3 hoặc 5V của board; 5V cho loa to hơn."],
+  GND: ["Mass (0 V), điểm chung của mọi tín hiệu.", "Nối GND của board. Module và board phải chung GND thì tín hiệu mới đọc đúng."],
+  SDA: ["Dây dữ liệu của bus I2C (Serial Data). Dữ liệu đi cả hai chiều trên cùng một dây.", "Nối chân SDA của board. Nhiều thiết bị I2C nối chung một dây SDA, phân biệt nhau bằng địa chỉ. Bus cần điện trở kéo lên (thường 4.7 kΩ), nhiều module có sẵn."],
+  SCL: ["Dây xung nhịp của bus I2C (Serial Clock). Board (master) phát xung để đồng bộ dữ liệu trên SDA.", "Nối chân SCL của board, dùng chung cho mọi thiết bị I2C. Cần điện trở kéo lên như SDA."],
+  INT: ["Chân ngắt (Interrupt): module kéo mức để báo có dữ liệu mới hoặc có sự kiện.", "Nối một GPIO bất kỳ và dùng attachInterrupt(). Không bắt buộc, có thể để trống nếu chỉ đọc định kỳ."],
+  XSHUT: ["Chân tắt cảm biến (Shutdown): mức LOW tắt cảm biến, HIGH bật lại.", "Nối GPIO nếu cần bật/tắt hoặc đổi địa chỉ khi gắn nhiều VL53L0X; dùng một cảm biến thì có thể để trống."],
+  "st7789.SCL": ["Xung nhịp SPI (SCK). Trên màn này chữ SCL in trên module nhưng thực chất là SPI, không phải I2C.", "Nối chân SPI SCK của board (ESP32-S3 mặc định IO12)."],
+  "st7789.SDA": ["Dữ liệu SPI từ board vào màn (MOSI). Tên in SDA nhưng là SPI, không phải I2C.", "Nối chân SPI MOSI của board (ESP32-S3 mặc định IO11)."],
+  "st7789.RES": ["Chân reset màn hình: kéo LOW một lúc để khởi động lại bộ điều khiển ST7789.", "Nối một GPIO; thư viện tự điều khiển khi gọi tft.init()."],
+  "st7789.DC": ["Data/Command: LOW = byte gửi đi là lệnh, HIGH = byte gửi đi là dữ liệu điểm ảnh.", "Nối một GPIO bất kỳ, khai báo trong thư viện (tham số DC)."],
+  "st7789.BLK": ["Đèn nền (Backlight). HIGH = sáng, LOW = tắt; cấp PWM để chỉnh độ sáng.", "Nối GPIO có PWM để chỉnh sáng, hoặc nối thẳng 3V3 nếu luôn bật."],
+  "ws2812.DIN": ["Ngõ vào dữ liệu (Data In) của chuỗi LED. Mỗi LED nhận màu của mình rồi chuyển phần còn lại sang LED kế tiếp.", "Nối một GPIO qua điện trở 330 Ω. Dây dữ liệu nên ngắn; dải dài với board 3.3 V nên thêm IC chuyển mức (74AHCT125)."],
+  "ws2812.VCC": ["Nguồn 5 V cho các LED. Mỗi LED trắng sáng tối đa có thể ăn khoảng 60 mA.", "Nối 5V; nhiều LED thì dùng nguồn riêng và tụ 1000 µF, nối chung GND với board."],
+  "hcsr04.TRIG": ["Trigger: board phát một xung HIGH khoảng 10 µs để cảm biến bắn sóng siêu âm.", "Nối một GPIO đặt OUTPUT. Mức 3.3 V vẫn kích được."],
+  "hcsr04.ECHO": ["Echo: cảm biến giữ chân này HIGH đúng bằng thời gian sóng đi và dội về. Khoảng cách (cm) ≈ thời gian (µs) / 58.", "Nối GPIO đặt INPUT, đọc bằng pulseIn(). Chân ra 5 V: với board 3.3 V phải chia áp 1 kΩ + 2 kΩ trước khi vào GPIO."],
+  "hcsr04.VCC": ["Nguồn 5 V cho cảm biến siêu âm.", "Nối 5V của board (HC-SR04 bản thường không chạy ổn ở 3.3 V)."],
+  "max98357a.BCLK": ["Bit Clock của I2S: mỗi xung là một bit âm thanh.", "Nối chân I2S BCLK của board (GPIO bất kỳ trên ESP32)."],
+  "max98357a.LRC": ["Left/Right Clock (WS): đổi mức để báo đang gửi kênh trái hay phải; tần số bằng tần số lấy mẫu.", "Nối chân I2S WS/LRCLK. Trên Pico phải là chân ngay sau BCLK (BCLK + 1)."],
+  "max98357a.DIN": ["Dữ liệu âm thanh I2S đi vào ampli.", "Nối chân I2S data out (DOUT) của board."],
+  "inmp441.SCK": ["Bit Clock của I2S do board phát cho micro.", "Nối chân I2S BCLK của board."],
+  "inmp441.WS": ["Word Select (LRCLK): chọn kênh trái/phải, tần số bằng tần số lấy mẫu.", "Nối chân I2S WS của board. Chân L/R của micro nối GND để micro ra kênh trái."],
+  "inmp441.SD": ["Serial Data: dữ liệu âm thanh số từ micro gửi về board.", "Nối chân I2S data in (DIN) của board."],
+  "button.SIG": ["Chân tín hiệu của nút: khi nhấn, chân này được nối xuống GND.", "Nối GPIO và bật pinMode(pin, INPUT_PULLUP): bình thường đọc HIGH, nhấn đọc LOW."],
+  "led.A": ["Anode (+), chân dài của LED. Dòng đi từ Anode sang Cathode thì LED sáng.", "Nối GPIO qua điện trở 220–330 Ω để giới hạn dòng."],
+  "led.GND": ["Cathode (−), chân ngắn, phía có mặt vát trên vỏ LED.", "Nối GND."],
+  "buzzer.SIG": ["Chân tín hiệu của còi piezo: tần số xung quyết định cao độ âm.", "Nối GPIO và dùng tone(pin, tần số)."],
+  "sevseg.GND": ["Chân chung (COM) của loại Cathode chung.", "Nối GND. Nếu module là loại Anode chung thì COM nối VCC và logic đảo ngược."],
+  "sevseg.DP": ["Dấu chấm thập phân (Decimal Point).", "Nối GPIO qua điện trở 220–330 Ω."],
+  "ldr.AO": ["Analog Out: điện áp thay đổi liên tục theo độ sáng.", "Nối chân ADC và đọc bằng analogRead()."],
+  "ldr.DO": ["Digital Out: ra 0 hoặc 1 khi độ sáng vượt ngưỡng chỉnh bằng biến trở trên module.", "Nối GPIO đặt INPUT và đọc bằng digitalRead()."],
+  "dht22.SDA": ["Dây dữ liệu 1 dây riêng của DHT (không phải I2C dù in chữ SDA). Gửi nhiệt độ và độ ẩm theo xung thời gian.", "Nối một GPIO, có điện trở kéo lên 4.7–10 kΩ lên VCC; dùng thư viện DHT."]
+};
+for (const s of "ABCDEFG") PIN_DOC["sevseg." + s] = [`Đoạn ${s} của LED 7 đoạn (đặt tên theo chiều kim đồng hồ từ A ở trên cùng, G ở giữa).`, "Nối GPIO qua điện trở 220–330 Ω; HIGH = đoạn sáng (loại Cathode chung)."];

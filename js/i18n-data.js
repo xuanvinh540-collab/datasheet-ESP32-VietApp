@@ -691,5 +691,7 @@ window.EN_DATA = {
 "✨ Tự nối lại chân này": "✨ Re-wire this pin",
 "✨ Tự nối chân linh kiện": "✨ Auto-wire this component",
 "✨ Tự nối tất cả chân": "✨ Auto-wire all pins",
-"Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân.": "Select a component or wire and press Delete, or right-click for Remove / Auto-wire."
+"Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân.": "Select a component or wire and press Delete, or right-click for Remove / Auto-wire.",
+"Chân này làm gì": "What this pin does",
+"Cách nối": "How to wire it"
 };
