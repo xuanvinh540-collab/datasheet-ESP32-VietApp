@@ -4,11 +4,29 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), SITE = "https://pindex.pages.dev/";
 global.window = {};
-for (const f of ["boards", "i18n-data", "modules"]) require(path.join(ROOT, "js", f + ".js"));
+for (const f of ["boards", "i18n-data", "modules", "seo-body"]) require(path.join(ROOT, "js", f + ".js"));
 const { BOARDS, CATS, EN_DATA } = window;
 const CAT_EN = { power: "Power", gnd: "GND", gpio: "GPIO", adc: "Analog", comm: "UART/I2C", usb: "USB", strap: "Strapping ⚠", ban: "Reserved", ctl: "Control", nc: "NC" };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const T = (s, en) => en ? (EN_DATA[s] || s) : s;
+// Một số phiên bản cache duy nhất cho mọi file tĩnh: tăng 1 mỗi lần chạy, rồi ghi vào
+// index.html (?v=), js/app.js (script tải động) và sw.js (tên cache). Không sửa tay ?v= nữa.
+function bumpVersion() {
+  const idx = path.join(ROOT, "index.html");
+  let html = fs.readFileSync(idx, "utf8");
+  const cur = Math.max(0, ...[...html.matchAll(/\?v=(\d+)/g)].map(m => +m[1]));
+  const v = cur + 1;
+  const sub = (file, re) => {
+    const f = path.join(ROOT, file);
+    fs.writeFileSync(f, fs.readFileSync(f, "utf8").replace(re, (m, a) => a + v));
+  };
+  sub("index.html", /((?:css|js)\/[a-z0-9-]+\.(?:css|js)\?v=)\d+/g);
+  sub("js/app.js", /(js\/[a-z0-9-]+\.js\?v=)\d+/g);
+  sub("sw.js", /(pindex-v)\d+/g);
+  console.log("Phiên bản cache →", v);
+  return v;
+}
+bumpVersion();
 const tpl = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const today = new Date().toISOString().slice(0, 10);
 
@@ -46,31 +64,12 @@ ${list ? `<script type="application/ld+json">${JSON.stringify(list)}</script>\n`
 }
 
 function body(board, en, base) {
-  const root = base || "";
-  // Danh sách board: link nội bộ tới trang board (cho Google đi tiếp) + link mua riêng
-  const links = BOARDS.map(x => {
-    const href = root + (en ? "en/" : "") + x.id + "/";
-    const cur = board && x.id === board.id;
-    return `<li><a href="${href}"${cur ? ' aria-current="page"' : ""}>${esc(T(x.name, en))}</a> <span class="muted small">${esc(x.chip)}</span></li>`;
-  }).join("");
-  const nav = `<h3>${en ? "All boards" : "Tất cả board"}</h3><ul class="seo-links">${links}</ul>`;
-
-  if (!board) {
-    const mods = (window.MOD_CATS || []).map(([n, , keys]) =>
-      `<li><b>${esc(T(n, en))}:</b> ${keys.map(k => esc(((window.MODULES || {})[k] || {}).short || k)).join(", ")}</li>`).join("");
-    return `<!--SEOBODY--><section class="card spec seo"><h2>${en ? "Pinout reference for microcontroller boards" : "Tra cứu sơ đồ chân vi điều khiển"}</h2>
-<p class="muted">${en ? "Pin functions, warnings, electrical specs and companion parts taken from the manufacturers' datasheets, for ESP32, Raspberry Pi Pico, Raspberry Pi and Arduino boards." : "Chức năng từng chân, cảnh báo, thông số điện và linh kiện đi kèm, lấy từ datasheet của hãng, cho các board ESP32, Raspberry Pi Pico, Raspberry Pi và Arduino."}</p>
-${nav}${mods ? `<h3>${en ? "Component pinouts" : "Sơ đồ chân linh kiện"}</h3><ul class="seo-links">${mods}</ul>` : ""}</section><!--/SEOBODY-->`;
-  }
-
-  const pins = board.headers.flatMap(h => h.pins.map((p, i) => ({ ...p, hdr: h.sch || h.id, pn: p.pn || i + 1 })));
-  const rows = pins.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.hdr)}-${p.pn}</td><td>${p.gpio != null ? p.gpio : "–"}</td><td>${esc(en ? CAT_EN[p.cat] : CATS[p.cat].label)}</td><td>${esc(p.fn.map(f => T(f, en)).join(", "))}</td><td>${esc(p.warn ? T(p.warn, en) : "")}</td></tr>`).join("");
-  const facts = board.facts.map(([k, v]) => `<dt>${esc(T(k, en))}</dt><dd>${esc(T(v, en))}</dd>`).join("");
-  const docs = board.docs.map(([, l, u]) => `<li><a href="${esc(u)}" rel="noopener" target="_blank">${esc(T(l, en))}</a></li>`).join("");
-  return `<!--SEOBODY--><section class="card spec seo"><h2>${en ? `${esc(board.name)} pinout table` : `Bảng chân ${esc(board.name)}`}</h2>
-<p class="muted">${esc(T(board.summary, en))}</p><dl class="facts">${facts}</dl>
-<div class="tw"><table><thead><tr><th>${en ? "Pin" : "Chân"}</th><th>${en ? "Header" : "Vị trí"}</th><th>GPIO</th><th>${en ? "Type" : "Loại"}</th><th>${en ? "Functions" : "Chức năng"}</th><th>${en ? "Notes" : "Lưu ý"}</th></tr></thead><tbody>${rows}</tbody></table></div>
-<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3><ul class="seo-links">${docs}</ul>${nav}</section><!--/SEOBODY-->`;
+  // Nội dung do js/seo-body.js dựng – app.js vẽ lại đúng khối này khi đổi board
+  const html = window.seoBody(board, {
+    en, base: base || "", T: s => T(s, en),
+    cat: p => (en ? CAT_EN[p.cat] : CATS[p.cat].label)
+  });
+  return `<!--SEOBODY--><section class="card spec seo">${html}</section><!--/SEOBODY-->`;
 }
 
 function page({ board, en }) {

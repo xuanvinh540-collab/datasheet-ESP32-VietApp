@@ -164,7 +164,9 @@
   function short(p) {
     if (!showAlt() || ["power", "gnd", "ctl", "nc"].includes(p.cat)) return "";
     const f = p.fn.find(x => !/^Arduino|^PIO|^Ground|^GPIO\d|^IO\d/.test(x)), a = p.fn.find(x => /^Arduino (SDA|SCL|MOSI|MISO|SCK|SS)$/.test(x));
-    const main = f ? f.replace(/ \(.*\)$/, "").replace(" · ", "·") : "";
+    // dịch trước rồi mới cắt ngắn, nếu không chuỗi cắt dở sẽ không khớp từ điển EN
+    const tr = x => document.documentElement.lang === "en" ? ((window.EN_DATA || {})[x] || x) : x;
+    const main = f ? tr(f).replace(/ \(.*\)$/, "").replace(" · ", "·") : "";
     return (a ? a.slice(8) + (main ? " · " + main : "") : main).slice(0, 20);
   }
   function labelColors(p) { return { bg: cv(CATS[p.cat].c), fg: ["strap", "nc"].includes(p.cat) ? "#1a1a1a" : "#fff" }; }
@@ -410,24 +412,10 @@
   /* Khung bên dưới: Tra cứu sơ đồ chân vi điều khiển + Tài liệu hãng + Tất cả board (link Shopee Affiliate) */
   function renderSeoTable() {
     const box = document.querySelector(".seo"); if (!box) return;
-    const b = state.b, en = document.documentElement.lang === "en";
-    const links = BOARDS.map(x => {
-      const href = (en ? "en/" : "") + x.id + "/";
-      return `<li><a href="${href}"${x.id === b.id ? ' aria-current="page"' : ""}>${esc(x.name)}</a> <span class="muted small">${esc(x.chip)}</span></li>`;
-    }).join("");
-    const nav = `<h3>${en ? "All boards" : "Tất cả board"}</h3><ul class="seo-links">${links}</ul>`;
-    if (b.mod) {   // trang linh kiện: không có bảng chân tĩnh, chỉ danh sách board
-      box.innerHTML = `<h2>${esc(b.name)}</h2><p class="muted">${esc(b.summary)}</p>${nav}`;
-      return;
-    }
-    const rows = pins.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.hdr)}-${p.pn}</td><td>${p.gpio != null ? p.gpio : "–"}</td><td>${esc(CATS[p.cat].label)}</td><td>${esc(p.fn.join(", "))}</td><td>${esc(p.warn || "")}</td></tr>`).join("");
-    const docs = b.docs.map(([, label, url]) => `<li><a href="${esc(url)}" rel="noopener" target="_blank">${esc(label)}</a></li>`).join("");
-    box.innerHTML = `<h2>${en ? `${esc(b.name)} pinout table` : `Bảng chân ${esc(b.name)}`}</h2>
-      <p class="muted">${esc(b.summary)}</p>
-      <dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
-      <div class="tw"><table><thead><tr><th>${en ? "Pin" : "Chân"}</th><th>${en ? "Header" : "Vị trí"}</th><th>GPIO</th><th>${en ? "Type" : "Loại"}</th><th>${en ? "Functions" : "Chức năng"}</th><th>${en ? "Notes" : "Lưu ý"}</th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${docs ? `<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3><ul class="seo-links">${docs}</ul>` : ""}${nav}`;
+    // HTML do js/seo-body.js dựng, đúng y như trang tĩnh (xem tools/build-seo.js)
+    box.innerHTML = window.seoBody(state.b, { en: document.documentElement.lang === "en", pins: state.b.mod ? null : pins });
   }
+
 
 
   /* ---------- Thẻ mua board (tiếp thị liên kết) ---------- */
@@ -549,8 +537,8 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=58");
-    if (!window.BUILD) await loadJs("js/build.js?v=63");
+    if (!window.MODULES) await loadJs("js/modules.js?v=72");
+    if (!window.BUILD) await loadJs("js/build.js?v=72");
     setTab("build"); BUILD.open(h);
   }
   window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };

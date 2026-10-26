@@ -40,6 +40,8 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
 index.html              Khuôn trang (KHÔNG sửa trong <!--SEO--> và <!--SEOBODY--> bằng tay: bị ghi đè)
 js/boards.js            DỮ LIỆU board (nguồn sự thật): chân, vị trí mm, linh kiện, docs, oem, arch
 js/app.js               Vẽ SVG (PCB/kiến trúc), panel chân, bộ lọc, popup zoom, chia sẻ, tab, router
+js/seo-body.js          Khối chữ cuối trang Sơ đồ chân (bảng chân + tài liệu + danh sách board) – DÙNG CHUNG
+                        cho app.js (vẽ lại khi đổi board) và tools/build-seo.js (trang tĩnh). Chỉ sửa ở đây.
 js/build.js, modules.js Tab Build + thư viện module
 js/specs.js             Thông số chip theo board id (HTML chuỗi)
 js/learn.js             Bài giải thích ADC/PWM/I2C/SPI/UART/Touch/USB/Strapping/JTAG/LED
@@ -69,7 +71,7 @@ Mỗi board là object: `id, tag, name, vendor, chip, family (ESP32|RP2|AVR|Rasp
 ## 7. Quy ước mã
 - JS thuần ES2020, IIFE, không module. Biến toàn cục: `BOARDS, CATS, FLAGS, SPECS, LEARN, MODULES, EN_DATA, APP, BUILD`.
 - CSS dùng biến (`--bg --fg --accent --c-*`); giao diện ghi đè bằng file riêng, bật/tắt bằng `disabled` trên thẻ `<link>`.
-- Cache: mọi `<script>/<link>` trong `index.html` có `?v=N`; khi đổi file phải **tăng N** (và `modules.js?v=`/`build.js?v=` trong `app.js`) + đổi tên cache `pindex-vN` trong `sw.js`, nếu không trình duyệt giữ bản cũ.
+- Cache: **không sửa tay `?v=`**. `node tools/build-seo.js` tự tăng một số phiên bản duy nhất rồi ghi vào `index.html`, `js/app.js` và `sw.js`. Cứ chạy nó sau khi sửa file tĩnh.
 - Hash/URL: `/<board-id>/#<chân>` (EN: `/en/<board-id>/`); link cũ `#<board>/<chân>` vẫn chạy; `#build=<base64>` mở Build.
 - Giữ code gọn, comment tiếng Việt ngắn; không thêm thư viện ngoài (chỉ Google Fonts đã có).
 

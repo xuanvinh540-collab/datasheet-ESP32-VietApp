@@ -52,8 +52,6 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
 .board-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .bc-name { font-weight: 600; font-size: 14px; }
 .bc-chip { grid-column: 1; font: 12px var(--mono); color: var(--muted); }
-.bc-logic { grid-row: 1 / 3; grid-column: 2; align-self: center; font: 600 11px var(--mono); padding: 3px 6px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--line); }
-.bc-logic.l5 { color: var(--c-usb); }
 
 /* Bố cục chính */
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
@@ -112,8 +110,6 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
 .d-head h2 { margin: 0; font-size: 24px; line-height: 1.2; }
 .d-kicker { font: 500 12px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 .d-head .icon-btn { width: 32px; height: 32px; font-size: 14px; }
-.badges { display: flex; gap: 6px; margin: 10px 0 4px; flex-wrap: wrap; }
-.badge { font: 600 12px var(--mono); padding: 3px 8px; border-radius: 6px; color: #fff; background: var(--b); }
 .st { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid currentColor; }
 .st.ok { color: var(--ok); } .st.warn { color: var(--warn); } .st.ban { color: var(--ban); } .st.info { color: var(--info); }
 .d-sec { margin: 16px 0 6px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
@@ -333,8 +329,6 @@ main { padding-top: 12px; }
 
 /* ⚡ BUILD: nút vàng nổi bật + panel ghép module */
 .stage-head { align-items: center; }
-.build-btn { border: 0; border-radius: 10px; padding: 8px 16px; font: 800 14px var(--mono); letter-spacing: .04em; background: #f5d63d; color: #1b1f0a; box-shadow: 0 0 0 2px #1b1f0a, 0 4px 14px rgba(245,214,61,.35); cursor: pointer; }
-.build-btn:hover { filter: brightness(1.08); } .build-btn[aria-pressed="true"] { background: #d4ff00; box-shadow: 0 0 0 2px #1b1f0a, 0 0 0 5px #d4ff00; }
 #svg .modbox { fill: var(--surface); stroke-width: .35; }
 #svg .modt { fill: #111; font-weight: 700; }
 #svg .mptxt { fill: var(--fg); } #svg .mpval { fill: var(--muted); }
@@ -342,9 +336,6 @@ main { padding-top: 12px; }
 #svg .mpin:hover .mprow, #svg .mpin.on .mprow { fill: color-mix(in srgb, #f5d63d 30%, transparent); }
 #svg .hint { animation: blink 1s steps(2) infinite; }
 .btabs { margin: 10px 0; }
-.bchips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.bchip { border: 1px solid var(--mc); background: transparent; color: var(--fg); border-radius: 999px; padding: 5px 11px; font: 600 12.5px var(--mono); }
-.bchip.on { background: var(--mc); color: #111; } .bchip:disabled { opacity: .35; }
 .bwarn { display: grid; gap: 4px; margin: 8px 0; font-size: 13px; }
 .bwarn .w-ban { color: var(--ban); } .bwarn .w-warn { color: var(--warn); } .bwarn .w-info { color: var(--muted); }
 .bcard { border: 1px solid var(--line); border-left: 4px solid var(--mc); border-radius: 10px; padding: 8px 10px; margin-top: 10px; }
@@ -419,20 +410,7 @@ main { padding-top: 12px; }
 .mitem .mn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mitem .mi { font-size: 10px; color: var(--muted); font-weight: 500; }
 
-.seo-bgrid { margin-top: 8px; }
-.seo-bcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface2); }
-.seo-bcard.on { border-color: var(--accent); }
-.seo-bh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-
 /* Link tài liệu dạng chữ tô màu đơn giản (không đóng khung thành nút) */
-.dtext-links { list-style: disc; padding-left: 20px; margin: 10px 0 4px; display: grid; gap: 8px; }
-.dtext-links a { color: var(--accent); text-decoration: none; font-size: 14.5px; font-weight: 500; display: inline-flex; align-items: baseline; flex-wrap: wrap; }
-.dtext-links a:hover { text-decoration: underline; filter: brightness(1.15); }
-.dtext-links .dk-lbl { color: var(--muted); font: 600 12px var(--mono); margin-right: 6px; }
-.dtext-links .ext { font-size: 12px; margin-left: 4px; opacity: .7; }
-
-
-
 
 /* Danh sách linh kiện dưới các board (tab Sơ đồ chân): thu gọn 3 hàng / mở rộng theo nhóm */
 .mods { grid-column: 1 / -1; display: grid; gap: 2px; padding: 6px; margin-top: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-align: left; }
@@ -492,7 +470,6 @@ main { padding-top: 12px; }
 .fv { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
 .fv li { position: relative; padding-left: 12px; }
 .fv li::before { content: ""; position: absolute; left: 0; top: .6em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
-.fv-n { color: var(--muted); font-size: 12.5px; }
 .detail .hint { margin: 14px 0 0; }
 @media (max-width: 430px) { .fact { grid-template-columns: 1fr; gap: 2px; } }
 .fv.two { grid-template-columns: 1fr 1fr; gap: 3px 12px; }
