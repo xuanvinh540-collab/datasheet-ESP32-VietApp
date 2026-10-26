@@ -1,15 +1,20 @@
-# ESP32-S3 Pin Explorer
+# Pin Explorer VN
 
-Trang tra cứu trực quan cho ESP32-S3-DevKitC-1: sơ đồ chân tô màu, tìm kiếm, cảnh báo chân strapping/PSRAM, linh kiện đi kèm, thông số điện, dòng tiêu thụ, ADC, ngoại vi, biến thể chip và Wi-Fi/BLE.
+Tra cứu sơ đồ chân vi điều khiển bằng tiếng Việt, dựa trên datasheet hãng. Web tĩnh, tối ưu cho điện thoại và iPad (cài được lên màn hình chính).
 
-**Xem trực tuyến:** https://xuanvinh540-collab.github.io/datasheet-ESP32-VietApp/
+Board hiện có: ESP32-C3 Super Mini, ESP32-S3-DevKitC-1, Raspberry Pi Pico 2 W, Arduino Uno R3, Raspberry Pi 4/5 (header 40 chân).
 
-## Nguồn dữ liệu
-- ESP32-S3 Series Datasheet v2.2 (Espressif Systems)
-- ESP32-S3 Hardware Design Guidelines, Schematic Checklist
+- Hai kiểu xem: PCB (vị trí chân theo mm thật) và Schematic (ký hiệu connector).
+- Tab Tính toán: điện trở LED, phân áp ADC, pull-up I2C, mạch RC.
+- Tab Tài liệu: link datasheet/schematic gốc của hãng.
 
-Dữ liệu được tổng hợp lại và có thể có sai sót. Hãy kiểm tra lại tài liệu gốc của Espressif trước khi thiết kế mạch.
-ESP32 là thương hiệu của Espressif Systems. Dự án này không liên kết với Espressif.
+## Cấu trúc
+- `js/boards.js` – dữ liệu board. Thêm board mới: tạo object theo mẫu (toạ độ mm, gốc góc trên-trái PCB) và thêm vào `BOARDS`.
+- `js/app.js` – vẽ SVG, panel chi tiết, bộ tính toán.
+- `css/app.css` – giao diện (sáng/tối).
 
-## Chạy offline
-Tải `index.html` về và mở bằng trình duyệt.
+## Deploy Cloudflare
+```
+npx wrangler deploy --assets=. --name pin-explorer-vn --compatibility-date 2026-10-19
+```
+(chỉ nên chép `index.html icon.svg manifest.webmanifest sw.js css js` vào một thư mục riêng rồi trỏ `--assets` tới đó).

@@ -3,511 +3,79 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>[hidden]{display:none!important}*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}</style>
+<title>Pin Explorer VN</title>
+<meta name="description" content="Tra cứu sơ đồ chân ESP32, Raspberry Pi Pico, Arduino, Raspberry Pi theo datasheet hãng – bằng tiếng Việt.">
+<meta name="theme-color" content="#0f1714">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<title>ESP32-S3 Pin Explorer</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<style>
-/* Layout: toolbar on top, board SVG (2/3) + detail panel (1/3), legend below; stacks on phone */
-:root{
-  --bg:#eef2ef; --surface:#ffffff; --fg:#14201a; --muted:#5b6b62; --line:#cfd9d3;
-  --pcb:#1f4a3a; --pcb-edge:#163729; --silk:#e9f2ec; --chip:#2a2f2c;
-  --c-power:#d43c3c; --c-gnd:#4a4f4c; --c-gpio:#2f9e5b; --c-adc:#8a5cd6; --c-touch:#2f7fd6;
-  --c-usb:#e07b1f; --c-strap:#d9a400; --c-ban:#9aa39e; --c-ctl:#6b7a72;
-  --accent:#1f7a52; --dim:.18;
-  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
-  --sans:"IBM Plex Sans",system-ui,"Segoe UI",sans-serif;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0e1612; --surface:#15201b; --fg:#e3ece6; --muted:#93a59a; --line:#26352d;
-  --pcb:#173d2f; --pcb-edge:#0f2a20; --silk:#d9e8de; --chip:#0b0f0d; --c-gnd:#7d8580; --c-ban:#5d6762;
-  --accent:#4cc28a; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0e1612; --surface:#15201b; --fg:#e3ece6; --muted:#93a59a; --line:#26352d;
-  --pcb:#173d2f; --pcb-edge:#0f2a20; --silk:#d9e8de; --chip:#0b0f0d; --c-gnd:#7d8580; --c-ban:#5d6762;
-  --accent:#4cc28a; color-scheme:dark}
-body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 32px}
-.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-header h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
-header p{margin:4px 0 0;color:var(--muted);max-width:65ch}
-.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.search{flex:1 1 240px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0 12px}
-.search input{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font:500 14px var(--mono);padding:10px 0;outline:none}
-.search:focus-within{border-color:var(--accent)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font:500 12px var(--mono);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:6px}
-.chip .dot{width:9px;height:9px;border-radius:50%}
-.chip[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
-.chip:focus-visible,.pin:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.main{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;align-items:start}
-.board{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto}
-.board svg{display:block;width:100%;min-width:560px;height:auto}
-.pin{cursor:pointer;transition:opacity .18s}
-.pin.dim{opacity:var(--dim)}
-.pin .pad{stroke:var(--pcb-edge);stroke-width:1.5}
-.pin.sel .pad{stroke:var(--fg);stroke-width:3}
-.pin text{font-family:var(--mono);font-size:12px;font-weight:600}
-.pill{font-family:var(--mono);font-size:10px}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;position:sticky;top:env(safe-area-inset-top,0px)}
-.panel h2{font:600 22px var(--mono);margin:0}
-.panel .sub{color:var(--muted);font-size:12px;font-family:var(--mono)}
-.tags{display:flex;flex-wrap:wrap;gap:6px}
-.tag{font:500 12px var(--mono);padding:3px 8px;border-radius:6px;border:1px solid var(--line)}
-.status{padding:10px 12px;border-radius:8px;font-weight:500;border-left:4px solid}
-.status.ok{border-color:var(--c-gpio);background:color-mix(in srgb,var(--c-gpio) 12%,transparent)}
-.status.warn{border-color:var(--c-strap);background:color-mix(in srgb,var(--c-strap) 14%,transparent)}
-.status.ban{border-color:var(--c-power);background:color-mix(in srgb,var(--c-power) 12%,transparent)}
-.status.info{border-color:var(--c-ctl);background:color-mix(in srgb,var(--c-ctl) 12%,transparent)}
-.panel dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;font-size:13px}
-.panel dt{color:var(--muted)} .panel dd{margin:0;font-family:var(--mono)}
-.src{font-size:12px;color:var(--muted)}
-.results{font-size:12px;color:var(--muted);font-family:var(--mono)}
-.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--muted)}
-.legend span{display:flex;align-items:center;gap:6px}
-.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
-.note{font-size:12px;color:var(--muted)}
-.ph{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px}
-.parts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.parts li{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
-.parts b{font-weight:600}.parts span{grid-column:1/-1;color:var(--fg)}
-.parts em,.ref em{font:500 10px var(--mono);font-style:normal;padding:2px 6px;border-radius:4px;align-self:start}
-.notes{margin:0;padding-left:18px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-.card{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:4px;font-size:13px}
-.card h3{margin:0;font:600 14px var(--mono);display:flex;justify-content:space-between;gap:8px}
-.card h3 small{font-weight:500;color:var(--muted)}
-.card .pins{font-family:var(--mono);font-size:12px;color:var(--muted)}
-em.ds{background:color-mix(in srgb,var(--c-touch) 18%,transparent)}
-.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.tab{font:500 13px var(--mono);border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:6px;padding:7px 12px;cursor:pointer}
-.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
-.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.ref td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-.bar{height:8px;border-radius:4px;background:var(--c-adc);min-width:2px}
-.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
-.kv div{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
-.kv b{display:block;font:600 18px var(--mono);font-variant-numeric:tabular-nums}
-.kv span{font-size:12px;color:var(--muted)}
-em.hdg{background:color-mix(in srgb,var(--c-gpio) 18%,transparent)}em.std{background:color-mix(in srgb,var(--c-ctl) 18%,transparent)}
-.ref{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
-.ref h2{font:600 16px var(--mono);margin:0 0 4px}.ref p{margin:0 0 12px;color:var(--muted);font-size:13px}
-.ref .tw{overflow-x:auto}.ref table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
-.ref th,.ref td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-.ref th{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.ref td:nth-child(2){font-family:var(--mono)}
-@media (max-width:820px){.main{grid-template-columns:1fr}.panel{position:static}}
-@media (prefers-reduced-motion:reduce){.pin{transition:none}}
-</style>
+<header class="appbar">
+  <div class="brand"><img src="icon.svg" alt="" width="28" height="28"><div><b>Pin Explorer</b><span>Datasheet tiếng Việt</span></div></div>
+  <nav class="tabbar" role="tablist">
+    <button data-tab="pins" role="tab">Sơ đồ chân</button>
+    <button data-tab="calc" role="tab">Tính toán</button>
+    <button data-tab="docs" role="tab">Tài liệu</button>
+  </nav>
+  <button class="icon-btn" id="theme" aria-label="Đổi giao diện sáng/tối">◐</button>
+</header>
 
-<div class="wrap">
-  <header>
-    <h1>ESP32-S3-DevKitC-1 · Pin Explorer</h1>
-    <p>Bấm vào một chân để xem chức năng và cảnh báo. Gõ tên ngoại vi để làm sáng các chân phù hợp. Bản mẫu, dữ liệu rút gọn từ datasheet v1.x.</p>
-  </header>
-
-  <div class="toolbar">
-    <label class="search" for="q">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="Thử: adc, touch, usb, 4, strapping…" autocomplete="off">
-    </label>
-    <div class="chips" id="layers" role="group" aria-label="Lớp hiển thị"></div>
-  </div>
-  <div class="results" id="results"></div>
-
-  <div class="main">
-    <div class="board"><svg id="svg" viewBox="-60 0 760 700" role="img" aria-label="Sơ đồ chân ESP32-S3-DevKitC-1"></svg></div>
-    <aside class="panel" id="panel" aria-live="polite"></aside>
-  </div>
-
-  <div class="legend" id="legend"></div>
-
-  <section class="ref" aria-labelledby="spec-h">
-    <h2 id="spec-h">Thông số chip</h2>
-    <p>Số liệu chép từ ESP32-S3 Series Datasheet v2.2, đo ở 3.3 V và 25 °C.</p>
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" id="tab-boot" aria-selected="true" data-p="p-boot">Boot / Strapping</button>
-      <button class="tab" role="tab" id="tab-pwr" aria-selected="false" data-p="p-pwr">Nguồn & giới hạn</button>
-      <button class="tab" role="tab" id="tab-cur" aria-selected="false" data-p="p-cur">Dòng tiêu thụ</button>
-      <button class="tab" role="tab" id="tab-adc" aria-selected="false" data-p="p-adc">ADC</button>
-      <button class="tab" role="tab" id="tab-per" aria-selected="false" data-p="p-per">Ngoại vi</button>
-      <button class="tab" role="tab" id="tab-cpu" aria-selected="false" data-p="p-cpu">CPU & bộ nhớ</button>
-      <button class="tab" role="tab" id="tab-var" aria-selected="false" data-p="p-var">Biến thể chip</button>
-      <button class="tab" role="tab" id="tab-rf" aria-selected="false" data-p="p-rf">Wi-Fi & BLE</button>
-    </div>
-
-    <div id="p-per" role="tabpanel" hidden>
-      <div class="cards" id="perCards"></div>
-      <p style="margin:12px 0 0">Hầu hết tín hiệu đi được tới bất kỳ GPIO nào qua GPIO matrix. Chân "IO MUX" là đường cố định, cần khi chạy tốc độ cao. Nguồn: chương 4.2 và Bảng 2-9.</p>
-    </div>
-
-    <div id="p-cpu" role="tabpanel" hidden>
-      <div class="kv">
-        <div><b>2 × LX7</b><span>Xtensa 32-bit, tới 240 MHz, pipeline 5 tầng</span></div>
-        <div><b>1329.92</b><span>CoreMark (2 lõi @240 MHz, 5.54/MHz)</span></div>
-        <div><b>512 KB</b><span>SRAM trong chip</span></div>
-        <div><b>384 KB</b><span>ROM</span></div>
-        <div><b>16 KB</b><span>SRAM RTC, giữ được khi deep-sleep</span></div>
-        <div><b>45 GPIO</b><span>4 chân strapping; 6–7 chân dành cho Flash/PSRAM trong chip</span></div>
+<main>
+  <section data-panel="pins">
+    <div class="boards" id="boards" aria-label="Chọn board"></div>
+    <div class="layout">
+      <div class="stage card">
+        <div class="stage-head">
+          <div><h1 id="bTitle"></h1><p id="bSub" class="muted small"></p></div>
+          <div class="seg" role="group" aria-label="Kiểu hình">
+            <button id="viewPcb">PCB</button><button id="viewSch">Schematic</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Tìm chân: 8, ADC, SDA, TX…" autocomplete="off"></label>
+          <div class="zoom"><button class="icon-btn" id="zout" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="zin" aria-label="Phóng to">+</button></div>
+        </div>
+        <div class="chips" id="filters"></div>
+        <div class="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ chân board"></svg></div>
+        <div class="stage-foot"><div class="legend" id="legend"></div><span id="count" class="muted small"></span></div>
+        <p id="bNote" class="note small"></p>
       </div>
-      <div class="tw"><table>
-        <thead><tr><th>Thành phần</th><th>Chi tiết</th></tr></thead>
-        <tbody>
-          <tr><td>Tăng tốc AI / DSP</td><td>Bus dữ liệu 128-bit và lệnh SIMD riêng; có FPU số thực đơn</td></tr>
-          <tr><td>Đồng xử lý ULP</td><td>ULP-RISC-V và ULP-FSM, chạy được khi deep-sleep</td></tr>
-          <tr><td>DMA</td><td>GDMA 5 kênh phát + 5 kênh nhận</td></tr>
-          <tr><td>Bộ nhớ ngoài</td><td>SPI, Dual, Quad, Octal, QPI, OPI cho Flash và PSRAM; có cache</td></tr>
-          <tr><td>eFuse</td><td>4096 bit, người dùng dùng tối đa 1792 bit; ghi một lần</td></tr>
-          <tr><td>Timer</td><td>4 timer 54-bit, 1 system timer 52-bit, 3 watchdog</td></tr>
-          <tr><td>Bảo mật</td><td>Secure boot, mã hóa Flash, tăng tốc AES/SHA/RSA, chữ ký số RSA tới 4096 bit</td></tr>
-          <tr><td>Flash trong chip</td><td>80 MHz, 100 000 lần ghi/xóa, lưu dữ liệu 20 năm</td></tr>
-        </tbody>
-      </table></div>
-      <p style="margin:12px 0 0">Nguồn: phần Features, chương 4.1 và Bảng 5-11.</p>
-    </div>
-
-    <div id="p-var" role="tabpanel" hidden>
-      <div class="tw"><table>
-        <thead><tr><th>Mã chip</th><th>Flash trong chip</th><th>PSRAM trong chip</th><th>Nhiệt độ</th><th>VDD_SPI</th></tr></thead>
-        <tbody>
-          <tr><td>ESP32-S3</td><td>—</td><td>—</td><td>−40 ~ 105 °C</td><td>3.3 / 1.8 V</td></tr>
-          <tr><td>ESP32-S3FN8</td><td>8 MB Quad</td><td>—</td><td>−40 ~ 85 °C</td><td>3.3 V</td></tr>
-          <tr><td>ESP32-S3RH2</td><td>—</td><td>2 MB Quad</td><td>−40 ~ 105 °C</td><td>3.3 V</td></tr>
-          <tr><td>ESP32-S3R8</td><td>—</td><td>8 MB Octal</td><td>−40 ~ 65 °C</td><td>3.3 V</td></tr>
-          <tr><td>ESP32-S3R16V</td><td>—</td><td>16 MB Octal</td><td>−40 ~ 65 °C</td><td>1.8 V</td></tr>
-          <tr><td>ESP32-S3FH4R2</td><td>4 MB Quad</td><td>2 MB Quad</td><td>−40 ~ 85 °C</td><td>3.3 V</td></tr>
-          <tr><td>ESP32-S3R8V (ngừng SX)</td><td>—</td><td>8 MB Octal</td><td>−40 ~ 65 °C</td><td>1.8 V</td></tr>
-          <tr><td>ESP32-S3R2 (ngừng SX)</td><td>—</td><td>2 MB Quad</td><td>−40 ~ 85 °C</td><td>3.3 V</td></tr>
-        </tbody>
-      </table></div>
-      <p style="margin:12px 0 0">Đọc mã: <b>F</b> = Flash, <b>R</b> = PSRAM, số = dung lượng MB, <b>H</b>/<b>N</b> = nhiệt độ cao/thường, <b>V</b> = Flash ngoài 1.8 V. Bản PSRAM Octal chiếm GPIO33–37. Bật ECC cho PSRAM Octal thì chịu được 85 °C nhưng mất 1/16 dung lượng. Module như WROOM-1-N8R8 dùng chip R8 cộng Flash ngoài. Nguồn: Bảng 1-1.</p>
-    </div>
-
-    <div id="p-rf" role="tabpanel" hidden>
-      <div class="kv">
-        <div><b>802.11 b/g/n</b><span>2.4 GHz, 20/40 MHz, tới 150 Mbps</span></div>
-        <div><b>21 dBm</b><span>Công suất phát Wi-Fi 802.11b</span></div>
-        <div><b>−98.4 dBm</b><span>Độ nhạy thu tốt nhất (802.11b 1 Mbps)</span></div>
-        <div><b>BLE 5</b><span>Mesh, Long Range 125/500 kbps, 1–2 Mbps, phát tới 20 dBm</span></div>
-      </div>
-      <div class="tw"><table>
-        <thead><tr><th>Tốc độ Wi-Fi</th><th style="text-align:right">Công suất phát</th><th style="text-align:right">Độ nhạy thu</th></tr></thead>
-        <tbody>
-          <tr><td>802.11b, 1 Mbps</td><td class="num">21.0 dBm</td><td class="num">−98.4 dBm</td></tr>
-          <tr><td>802.11b, 11 Mbps</td><td class="num">21.0 dBm</td><td class="num">−88.6 dBm</td></tr>
-          <tr><td>802.11g, 54 Mbps</td><td class="num">19.0 dBm</td><td class="num">−76.5 dBm</td></tr>
-          <tr><td>802.11n HT20, MCS7</td><td class="num">18.5 dBm</td><td class="num">−74.2 dBm</td></tr>
-          <tr><td>802.11n HT40, MCS7</td><td class="num">18.0 dBm</td><td class="num">—</td></tr>
-        </tbody>
-      </table></div>
-      <p style="margin:12px 0 0">Tốc độ càng cao thì độ nhạy càng kém, nghĩa là cự ly ngắn hơn. Wi-Fi và BLE dùng chung anten nhờ cơ chế coexistence. Có 4 giao diện Wi-Fi ảo, chạy Station và SoftAP cùng lúc (cùng kênh). Nguồn: Features, Bảng 6-1 đến 6-4.</p>
-    </div>
-
-    <div id="p-boot" role="tabpanel">
-      <div class="tw"><table>
-        <thead><tr><th>Chân</th><th>Mặc định</th><th>Điều khiển</th><th>Ghi chú</th></tr></thead>
-        <tbody>
-          <tr><td>GPIO0</td><td>Pull-up yếu (1)</td><td>Chế độ boot</td><td>Nút BOOT kéo xuống 0</td></tr>
-          <tr><td>GPIO46</td><td>Pull-down yếu (0)</td><td>Chế độ boot, log ROM</td><td>Cùng GPIO0 quyết định nạp hay chạy</td></tr>
-          <tr><td>GPIO45</td><td>Pull-down yếu (0)</td><td>Điện áp VDD_SPI</td><td>0 → 3.3 V · 1 → 1.8 V (khi eFuse chưa ghi)</td></tr>
-          <tr><td>GPIO3</td><td>Thả nổi</td><td>Nguồn tín hiệu JTAG</td><td>Không có pull nội, mạch ngoài phải giữ mức</td></tr>
-        </tbody>
-      </table></div>
-      <div class="tw" style="margin-top:12px"><table>
-        <thead><tr><th>Chế độ boot</th><th>GPIO0</th><th>GPIO46</th></tr></thead>
-        <tbody>
-          <tr><td>Chạy chương trình từ Flash (mặc định)</td><td>1</td><td>Tùy ý</td></tr>
-          <tr><td>Nạp firmware (USB hoặc UART)</td><td>0</td><td>0</td></tr>
-        </tbody>
-      </table></div>
-      <p style="margin:12px 0 0">Thời gian: mức chân phải có trước khi CHIP_PU lên cao (tSU ≥ 0 ms) và giữ thêm ≥ 3 ms sau đó (tH). Nguồn: Bảng 3-1 đến 3-4.</p>
-    </div>
-
-    <div id="p-pwr" role="tabpanel" hidden>
-      <div class="kv">
-        <div><b>3.0 – 3.6 V</b><span>Điện áp nguồn khuyến nghị (điển hình 3.3 V)</span></div>
-        <div><b>≥ 0.5 A</b><span>Dòng nguồn cần cung cấp</span></div>
-        <div><b>3.6 V</b><span>Tối đa tuyệt đối, vượt có thể hỏng chip</span></div>
-        <div><b>1500 mA</b><span>Tổng dòng ra của tất cả IO</span></div>
-      </div>
-      <div class="tw"><table>
-        <thead><tr><th>Thông số</th><th>Giá trị</th><th>Ghi chú</th></tr></thead>
-        <tbody>
-          <tr><td>Mức vào HIGH (VIH)</td><td>≥ 0.75 × VDD</td><td>≈ 2.5 V ở 3.3 V</td></tr>
-          <tr><td>Mức vào LOW (VIL)</td><td>≤ 0.25 × VDD</td><td>≈ 0.8 V ở 3.3 V</td></tr>
-          <tr><td>Mức ra HIGH / LOW</td><td>≥ 0.8 × VDD / ≤ 0.1 × VDD</td><td>Tải trở kháng cao</td></tr>
-          <tr><td>Dòng cấp (IOH)</td><td>40 mA</td><td>VOH ≥ 2.64 V, drive = 3</td></tr>
-          <tr><td>Dòng hút (IOL)</td><td>28 mA</td><td>VOL = 0.495 V, drive = 3</td></tr>
-          <tr><td>Pull-up / pull-down nội</td><td>45 kΩ</td><td>Điển hình</td></tr>
-          <tr><td>Điện dung chân</td><td>2 pF</td><td></td></tr>
-          <tr><td>VDD_SPI 3.3 V</td><td>Qua điện trở 14 Ω</td><td>Tính sụt áp khi Flash/PSRAM chạy</td></tr>
-          <tr><td>VDD_SPI 1.8 V</td><td>LDO nội, 40 mA</td><td></td></tr>
-          <tr><td>Ghi eFuse</td><td>VDD3P3_CPU ≤ 3.3 V</td><td>Mạch ghi eFuse nhạy điện áp cao</td></tr>
-        </tbody>
-      </table></div>
-      <p style="margin:12px 0 0">Nguồn: Bảng 5-1 đến 5-4.</p>
-    </div>
-
-    <div id="p-cur" role="tabpanel" hidden>
-      <div class="tw"><table id="curTable">
-        <thead><tr><th>Chế độ</th><th style="text-align:right">Dòng</th><th style="width:40%">So sánh (thang log)</th></tr></thead>
-        <tbody></tbody>
-      </table></div>
-      <p style="margin:12px 0 0">Wi-Fi/BLE là dòng đỉnh. Modem-sleep đo với clock ngoại vi tắt; bật hết clock thì cộng thêm khoảng 6–16 mA. Chip có PSRAM tốn thêm, ví dụ light-sleep +140 µA với PSRAM 8 MB 3.3 V. Nguồn: Bảng 5-7 đến 5-10.</p>
-    </div>
-
-    <div id="p-adc" role="tabpanel" hidden>
-      <div class="kv">
-        <div><b>12 bit</b><span>Độ phân giải, 2 bộ ADC, 20 kênh</span></div>
-        <div><b>100 kSPS</b><span>Tốc độ lấy mẫu tối đa</span></div>
-        <div><b>±4 / ±8 LSB</b><span>DNL / INL</span></div>
-      </div>
-      <div class="tw"><table>
-        <thead><tr><th>Suy giảm</th><th>Dải đo hiệu dụng</th><th style="width:35%"></th><th style="text-align:right">Sai số sau hiệu chỉnh</th></tr></thead>
-        <tbody>
-          <tr><td>ATTEN0 (0 dB)</td><td>0 – 850 mV</td><td><div class="bar" style="width:29%"></div></td><td class="num">±5 mV</td></tr>
-          <tr><td>ATTEN1 (2.5 dB)</td><td>0 – 1100 mV</td><td><div class="bar" style="width:38%"></div></td><td class="num">±6 mV</td></tr>
-          <tr><td>ATTEN2 (6 dB)</td><td>0 – 1600 mV</td><td><div class="bar" style="width:55%"></div></td><td class="num">±10 mV</td></tr>
-          <tr><td>ATTEN3 (12 dB)</td><td>0 – 2900 mV</td><td><div class="bar" style="width:100%"></div></td><td class="num">±50 mV</td></tr>
-        </tbody>
-      </table></div>
-      <p style="margin:12px 0 0">Mẹo: ADC không đọc được tới 3.3 V. Cần đo chính xác thì chọn suy giảm nhỏ nhất đủ dải và dùng cầu chia áp. Số liệu đo với tụ 100 nF ở chân ADC và Wi-Fi tắt. Nguồn: Bảng 5-5, 5-6.</p>
+      <aside class="detail card" id="detail"><div class="grab" aria-hidden="true"></div><div id="detailBody"></div></aside>
     </div>
   </section>
 
-  <section class="ref" aria-labelledby="ref-h">
-    <h2 id="ref-h">Linh kiện đi kèm khi tự làm mạch</h2>
-    <p>Dành cho mạch dùng chip hoặc module trực tiếp. Board DevKitC-1 đã có sẵn phần lớn các linh kiện này. Nhãn <em class="hdg" style="font:500 10px var(--mono);font-style:normal;padding:2px 6px;border-radius:4px">HDG</em> / Espressif là số trong Hardware Design Guidelines, <em class="ds" style="font:500 10px var(--mono);font-style:normal;padding:2px 6px;border-radius:4px">Datasheet</em> là số trong datasheet; <em class="std" style="font:500 10px var(--mono);font-style:normal;padding:2px 6px;border-radius:4px">Thông lệ</em> là cách làm phổ biến, không phải số của Espressif.</p>
-    <div class="tw"><table>
-      <thead><tr><th>Vị trí</th><th>Giá trị</th><th>Ghi chú</th><th>Nguồn</th></tr></thead>
-      <tbody>
-        <tr><td>Đầu vào 3.3V</td><td>≥10 µF + diode ESD</td><td>Nguồn ≥500 mA</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>VDD3P3_CPU, VDD3P3_RTC</td><td>0.1 µF</td><td>Sát chân</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>VDD3P3 (RF)</td><td>10 µF + 1 µF, lọc LC</td><td>Cuộn cảm chịu ≥500 mA</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>VDD_SPI</td><td>0.1 µF + 1 µF</td><td>Không dùng tụ quá lớn</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>CHIP_PU (EN)</td><td>10 kΩ + 1 µF</td><td>Mạch RC trễ khởi động</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>Thạch anh 40 MHz</td><td>24 nH nối tiếp XTAL_P</td><td>Tụ tải tính theo CL, chỉnh để đạt ±10 ppm</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>Phối hợp RF (π)</td><td>C 1.2–1.8 pF, L 2.0–3.0 nH</td><td>Linh kiện 0201, đường 50 Ω; giá trị cuối tùy layout</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>USB D−/D+ (IO19/20)</td><td>22 Ω hoặc 33 Ω</td><td>Nối tiếp, sát chip</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>U0TXD (IO43)</td><td>499 Ω</td><td>Nối tiếp</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>Chân ADC</td><td>0.1 µF</td><td>Xuống GND</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>Chân Touch</td><td>510 Ω (470 Ω–2 kΩ)</td><td>Nối tiếp phía chip</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>GPIO0</td><td>Pull-up</td><td>Không gắn tụ lớn</td><td><em class="hdg">Espressif</em></td></tr>
-        <tr><td>I2C SDA/SCL</td><td>4.7 kΩ / 2.2 kΩ</td><td>100 kHz / 400 kHz</td><td><em class="std">Thông lệ</em></td></tr>
-        <tr><td>Nút nhấn</td><td>Pull nội ~45 kΩ (+100 nF)</td><td>Tụ để chống dội nếu cần</td><td><em class="std">Thông lệ</em></td></tr>
-      </tbody>
-    </table></div>
-    <p style="margin:12px 0 0">Nguồn: <a href="https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32s3/schematic-checklist.html" style="color:var(--accent)">ESP32-S3 Hardware Design Guidelines · Schematic Checklist</a></p>
+  <section data-panel="calc" id="calc" hidden>
+    <div class="grid2">
+      <div class="card calc"><h3>Điện trở LED</h3>
+        <div class="f3"><label>V nguồn (V)<input id="ledV" inputmode="decimal" value="3.3"></label><label>Vf LED (V)<input id="ledVf" inputmode="decimal" value="2.0"></label><label>Dòng (mA)<input id="ledI" inputmode="decimal" value="10"></label></div>
+        <p class="hint">Vf tham khảo: đỏ 1.8–2.2 V · xanh lá 2.0–3.2 V · xanh dương/trắng 2.8–3.3 V.</p>
+        <div class="out" id="ledOut"></div></div>
+      <div class="card calc"><h3>Phân áp cho ADC</h3>
+        <div class="f3"><label>Vin max (V)<input id="dvIn" inputmode="decimal" value="12"></label><label>V ADC max (V)<input id="dvMax" inputmode="decimal" value="3.1"></label><label>R2 (kΩ)<input id="dvR2" inputmode="decimal" value="10"></label></div>
+        <p class="hint">ESP32 (atten 11–12 dB) đo tốt tới ~2.5–3.1 V · Pico 3.3 V · Uno 5 V.</p>
+        <div class="out" id="dvOut"></div></div>
+      <div class="card calc"><h3>Pull-up I2C</h3>
+        <div class="f3"><label>VDD (V)<input id="i2V" inputmode="decimal" value="3.3"></label><label>C bus (pF)<input id="i2C" inputmode="decimal" value="100"></label><label>Tốc độ<select id="i2M"><option value="100">100 kHz</option><option value="400" selected>400 kHz</option><option value="1000">1 MHz</option></select></label></div>
+        <p class="hint">Mỗi thiết bị ~10 pF, dây ~50–100 pF/m.</p>
+        <div class="out" id="i2Out"></div></div>
+      <div class="card calc"><h3>Mạch RC (reset trễ / lọc)</h3>
+        <div class="f3"><label>R (kΩ)<input id="rcR" inputmode="decimal" value="10"></label><label>C (µF)<input id="rcC" inputmode="decimal" value="1"></label><label></label></div>
+        <p class="hint">Espressif gợi ý R 10 kΩ + C 1 µF cho chân EN.</p>
+        <div class="out" id="rcOut"></div></div>
+    </div>
   </section>
-  <p class="note">GPIO26–32 nối với Flash và không có trên header. Tra lại datasheet chính thức trước khi làm PCB.</p>
-</div>
 
-<script>
-const CAT = {
-  power:{label:"Nguồn",v:"--c-power"}, gnd:{label:"GND",v:"--c-gnd"}, gpio:{label:"GPIO an toàn",v:"--c-gpio"},
-  adc:{label:"ADC",v:"--c-adc"}, touch:{label:"Touch",v:"--c-touch"}, usb:{label:"USB / UART",v:"--c-usb"},
-  strap:{label:"Strapping ⚠",v:"--c-strap"}, ban:{label:"PSRAM (cấm)",v:"--c-ban"}, ctl:{label:"Điều khiển",v:"--c-ctl"}
-};
-// Build pin records
-function gp(n){
-  const p={id:"IO"+n,gpio:n,fn:[],flags:[],warn:null,src:"Datasheet v2.2, chương 2 và Bảng 5-4"};
-  if(n>=1&&n<=10){p.fn.push("ADC1_CH"+(n-1));p.flags.push("adc")}
-  if(n>=11&&n<=20){p.fn.push("ADC2_CH"+(n-11));p.flags.push("adc");p.adc2=true}
-  if(n>=1&&n<=14){p.fn.push("TOUCH"+n);p.flags.push("touch")}
-  if(n===19){p.fn.push("USB_D-");p.flags.push("usb")}
-  if(n===20){p.fn.push("USB_D+");p.flags.push("usb")}
-  if(n===43){p.fn.push("U0TXD");p.flags.push("usb");p.id="TX"}
-  if(n===44){p.fn.push("U0RXD");p.flags.push("usb");p.id="RX"}
-  if([0,3,45,46].includes(n)){p.flags.push("strap")}
-  if([35,36,37].includes(n)){p.flags.push("ban");p.fn.push("SPIIO"+(n-29)+" (Octal PSRAM)")}
-  if(n>=39&&n<=42){p.fn.push(["MTCK","MTDO","MTDI","MTMS"][n-39]+" (JTAG)")}
-  // IO MUX fixed functions (Table 2-9); everything else can still go through the GPIO matrix
-  const MUX={9:"FSPIHD",10:"FSPICS0",11:"FSPID",12:"FSPICLK",13:"FSPIQ",14:"FSPIWP",15:"U0RTS · XTAL_32K_P",16:"U0CTS · XTAL_32K_N",17:"U1TXD",18:"U1RXD",19:"U1RTS",20:"U1CTS",47:"SPICLK_P_DIFF",48:"SPICLK_N_DIFF"};
-  if(MUX[n])p.fn.push(MUX[n]);
-  p.notes=[];
-  if((n>=1&&n<=14)||n===17)p.notes.push("Có xung LOW ~60 µs lúc cấp nguồn. Đừng dùng điều khiển thứ cần im lặng khi khởi động (relay, MOSFET công suất).");
-  if(n===15||n===16)p.notes.push("Có xung LOW ~60 µs lúc cấp nguồn. Dùng làm chân thạch anh 32 kHz nếu cần RTC chính xác.");
-  p.notes.push("Dòng drive mặc định: "+(n===17||n===18?"10 mA":n===19||n===20?"40 mA":"20 mA")+".");
-  if(n>=9&&n<=14)p.notes.push("Chân IO MUX của SPI2 (FSPI): chạy được 80 MHz. Qua GPIO matrix chỉ tối đa 60 MHz.");
-  if(n===47||n===48)p.notes.push("Với chip VDD_SPI 1.8 V (R8V, R16V) chân này chạy ở 1.8 V, khác các GPIO khác.");
-  if(n===48)p.fn.push("RGB LED (v1.0)");
-  if(n===38)p.fn.push("RGB LED (v1.1)");
-  const w={0:"Strapping: LOW lúc boot = chế độ nạp firmware. Có nút BOOT nối vào chân này.",
-    3:"Strapping: chọn nguồn tín hiệu JTAG. Tránh kéo cứng lúc boot.",
-    45:"Strapping: chọn điện áp VDD_SPI. Sai mức có thể làm Flash/PSRAM không chạy.",
-    46:"Strapping: cùng GPIO0 chọn chế độ boot, và điều khiển log ROM. Giữ LOW lúc khởi động.",
-    19:"USB D- của cổng USB native. Dùng làm GPIO sẽ mất USB/JTAG nạp qua cổng này.",
-    20:"USB D+ của cổng USB native. Dùng làm GPIO sẽ mất USB/JTAG nạp qua cổng này.",
-    43:"UART0 TX: log và nạp qua cổng UART. Nên để nguyên.",44:"UART0 RX: nạp qua cổng UART. Nên để nguyên."};
-  if(w[n])p.warn=w[n];
-  if([35,36,37].includes(n))p.warn="Bản có Octal PSRAM (N8R8, N16R8…) dùng chân này cho PSRAM. Không dùng làm GPIO.";
-  if(p.adc2&&!p.warn)p.warn="ADC2 không đọc được khi Wi-Fi đang bật. Cần ADC thì ưu tiên ADC1 (IO1–IO10).";
-  p.cat=p.flags.includes("ban")?"ban":p.flags.includes("strap")?"strap":p.flags.includes("usb")?"usb":"gpio";
-  p.status=p.cat==="ban"?"ban":p.cat==="strap"||p.cat==="usb"||p.adc2?"warn":"ok";
-  return p;
-}
-function sp(id,cat,fn,desc){return{id,gpio:null,fn,flags:[cat],cat,status:"info",warn:desc,src:"DevKitC-1 schematic"}}
-const L=["3V3","3V3","RST",4,5,6,7,15,16,17,18,8,3,46,9,10,11,12,13,14,"5V","G"];
-const R=["G",43,44,1,2,42,41,40,39,38,37,36,35,0,45,48,47,21,20,19,"G","G"];
-function mk(x){
-  if(typeof x==="number")return gp(x);
-  if(x==="3V3")return sp("3V3","power",["Ngõ ra 3.3V"],"Ngõ ra LDO 3.3V. Tổng dòng cho ngoại vi nên giữ dưới khoảng 500 mA.");
-  if(x==="5V")return sp("5V","power",["5V từ USB"],"Nối trực tiếp 5V từ USB. Không đưa 5V vào bất kỳ GPIO nào.");
-  if(x==="RST")return sp("RST","ctl",["CHIP_PU / EN"],"Kéo LOW để reset chip. Nối với nút RST.");
-  return sp("GND","gnd",["Ground"],"Mass chung.");
-}
-const pins=[];L.forEach((x,i)=>pins.push({...mk(x),side:"L",row:i}));R.forEach((x,i)=>pins.push({...mk(x),side:"R",row:i}));
-pins.forEach((p,i)=>{p.key=i;p.hdr=(p.side==="L"?"J1-":"J3-")+(p.row+1)});
-// Recommended parts. "hdg" = Hardware Design Guidelines, Schematic Checklist; "std" = common practice, not from Espressif
-function parts(p){
-  const a=[],n=p.gpio;
-  if(p.id==="3V3")a.push(["Tụ","≥10 µF tại đầu vào nguồn + 0.1 µF sát chân","hdg"],["Nguồn","3.3 V, ≥500 mA, thêm diode ESD ở đầu vào","hdg"]);
-  if(p.id==="5V")a.push(["Bảo vệ","Không nối 5V vào GPIO; cấp 5V vào đây thì không cắm USB cùng lúc nếu không có diode","std"]);
-  if(p.id==="RST")a.push(["RC trễ","R = 10 kΩ kéo lên 3V3, C = 1 µF xuống GND (chỉnh theo nguồn thực tế)","hdg"],["Thời gian","tSTBL ≥ 50 µs, tRST ≥ 50 µs","hdg"]);
-  if(n===null)return a;
-  if(n===0)a.push(["Pull-up","Nên có điện trở kéo lên (board đã có sẵn cùng nút BOOT)","hdg"],["Tránh","Không gắn tụ lớn lên GPIO0, dễ làm chip vào chế độ nạp","hdg"]);
-  if(n===46)a.push(["Mức boot","Pull-down nội mặc định. Vào chế độ nạp cần GPIO0=0 và GPIO46=0; boot Flash chỉ cần GPIO0=1","ds"]);
-  if(n===45)a.push(["Mức boot","Pull-down nội mặc định: 0 → VDD_SPI 3.3 V, 1 → 1.8 V. Giữ đúng mức theo Flash/PSRAM của module","ds"]);
-  if(n===3)a.push(["Mức boot","Không có pull nội. Nếu dùng làm nguồn JTAG thì mạch ngoài phải giữ mức rõ ràng, không thả nổi","ds"]);
-  if(p.flags.includes("adc"))a.push(["Lọc ADC","Tụ 0.1 µF từ chân xuống GND","hdg"]);
-  if(p.flags.includes("touch"))a.push(["Touch","Điện trở nối tiếp phía chip 470 Ω – 2 kΩ, nên dùng 510 Ω","hdg"]);
-  if(n===19||n===20)a.push(["USB","Điện trở nối tiếp 22 Ω hoặc 33 Ω đặt sát chip; tụ xuống GND để trống ban đầu","hdg"]);
-  if(n===43)a.push(["UART TX","Điện trở nối tiếp 499 Ω","hdg"]);
-  if(p.cat==="gpio"&&!p.flags.length)a.push(["Pull nội","~45 kΩ bật bằng phần mềm; đủ cho nút nhấn","std"]);
-  if(p.cat==="gpio")a.push(["Nếu làm I2C","Pull-up ngoài 4.7 kΩ (100 kHz) hoặc 2.2 kΩ (400 kHz) lên 3V3","std"]);
-  return a;
-}
-
-const NS="http://www.w3.org/2000/svg",svg=document.getElementById("svg");
-const css=v=>`var(${v})`;
-function el(t,a,parent){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(parent)parent.appendChild(e);return e}
-// Board
-el("rect",{x:150,y:20,width:340,height:660,rx:14,fill:css("--pcb"),stroke:css("--pcb-edge"),"stroke-width":3},svg);
-el("rect",{x:240,y:40,width:160,height:120,rx:6,fill:css("--chip")},svg);
-const t1=el("text",{x:320,y:96,"text-anchor":"middle",fill:css("--silk"),"font-family":"IBM Plex Mono,monospace","font-size":14,"font-weight":600},svg);t1.textContent="ESP32-S3";
-const t2=el("text",{x:320,y:116,"text-anchor":"middle",fill:css("--silk"),"font-family":"IBM Plex Mono,monospace","font-size":10,opacity:.7},svg);t2.textContent="WROOM-1 · Wi-Fi + BLE";
-el("rect",{x:270,y:615,width:40,height:50,rx:4,fill:css("--chip")},svg);el("rect",{x:330,y:615,width:40,height:50,rx:4,fill:css("--chip")},svg);
-[["USB",290],["UART",350]].forEach(([s,x])=>{const t=el("text",{x,y:655,"text-anchor":"middle",fill:css("--silk"),"font-family":"IBM Plex Mono,monospace","font-size":9},svg);t.textContent=s});
-[["BOOT",280,580],["RST",360,580]].forEach(([s,x,y])=>{el("rect",{x:x-18,y:y-14,width:36,height:20,rx:3,fill:"none",stroke:css("--silk"),opacity:.6},svg);const t=el("text",{x,y:y+1,"text-anchor":"middle",fill:css("--silk"),"font-family":"IBM Plex Mono,monospace","font-size":9},svg);t.textContent=s});
-
-const pinG=[];
-pins.forEach(p=>{
-  const y=210+p.row*20.5- (p.row>0?0:0), L_=p.side==="L";
-  const cx=L_?172:468;
-  const g=el("g",{class:"pin",tabindex:0,role:"button","aria-label":p.id+" "+p.fn.join(", ")},svg);
-  el("rect",{class:"pad",x:cx-8,y:y-8,width:16,height:16,rx:p.gpio===null?3:8,fill:css(CAT[p.cat].v)},g);
-  if(p.cat==="ban")el("path",{d:`M${cx-6} ${y+6}L${cx+6} ${y-6}`,stroke:css("--surface"),"stroke-width":2},g);
-  // label as a colored tab outside the board edge, joined to the pad by a short lead
-  const TW=58, tx=L_?146-TW:494;
-  el("path",{d:L_?`M146 ${y}H${cx-8}`:`M494 ${y}H${cx+8}`,stroke:css(CAT[p.cat].v),"stroke-width":2},g);
-  el("rect",{x:tx,y:y-9,width:TW,height:18,rx:4,fill:css(CAT[p.cat].v)},g);
-  const lt=el("text",{x:tx+TW/2,y:y+4,"text-anchor":"middle",fill:["strap","ban"].includes(p.cat)?"#1a1a1a":"#ffffff"},g);
-  lt.textContent=(p.cat==="strap"?"⚠ ":"")+p.id;
-  // pills outside label
-  const extra=p.fn.filter(f=>/^(ADC|TOUCH|USB)/.test(f)).slice(0,2);
-  let off=L_?tx-6:tx+TW+6;
-  extra.forEach(f=>{
-    const short=f.replace("ADC1_CH","A1.").replace("ADC2_CH","A2.").replace("TOUCH","T").replace("USB_","");
-    const w=short.length*6.4+10, x=L_?off-w:off;
-    const col=f.startsWith("ADC")?"--c-adc":f.startsWith("TOUCH")?"--c-touch":"--c-usb";
-    el("rect",{x,y:y-8,width:w,height:16,rx:8,fill:css(col),opacity:.22,stroke:css(col),"stroke-opacity":.6},g);
-    const pt=el("text",{class:"pill",x:x+w/2,y:y+3.5,"text-anchor":"middle",fill:css("--fg")},g);pt.textContent=short;
-    off=L_?x-4:x+w+4;
-  });
-  g.addEventListener("click",()=>select(p.key));
-  g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(p.key)}});
-  pinG[p.key]=g;
-});
-
-// Layers
-const LAYERS=[["all","Tất cả",null],["adc","ADC","--c-adc"],["touch","Touch","--c-touch"],["safe","An toàn","--c-gpio"],["strap","Strapping ⚠","--c-strap"],["usb","USB/UART","--c-usb"],["ban","Cấm dùng","--c-ban"]];
-let layer="all";
-const lbox=document.getElementById("layers");
-LAYERS.forEach(([k,l,v])=>{const b=document.createElement("button");b.className="chip";b.id="layer-"+k;b.setAttribute("aria-pressed",k==="all");
-  b.innerHTML=(v?`<i class="dot" style="background:var(${v})"></i>`:"")+l;b.onclick=()=>{layer=k;document.querySelectorAll("#layers .chip").forEach(c=>c.setAttribute("aria-pressed",c===b));apply()};lbox.appendChild(b)});
-
-const lg=document.getElementById("legend");
-Object.values(CAT).forEach(c=>{lg.insertAdjacentHTML("beforeend",`<span><i style="background:var(${c.v})"></i>${c.label}</span>`)});
-
-function matchLayer(p){
-  if(layer==="all")return true;
-  if(layer==="safe")return p.status==="ok";
-  return p.flags.includes(layer);
-}
-const ALIAS={i2c:"any",spi:"any",uart:"usb",pwm:"any",ledc:"any",i2s:"any",gpio:"any",an:"adc",analog:"adc",cam:"any"};
-function matchQ(p,q){
-  if(!q)return true;
-  if(ALIAS[q]==="any")return p.gpio!==null&&p.cat!=="ban";
-  if(ALIAS[q])q=ALIAS[q];
-  if(/^\d+$/.test(q))return p.gpio===+q;
-  const hay=[p.id,p.hdr,...p.fn,...p.flags,p.cat==="strap"?"strapping":"",p.cat,CAT[p.cat].label].join(" ").toLowerCase();
-  return hay.includes(q);
-}
-const q=document.getElementById("q"),res=document.getElementById("results");
-function apply(){
-  const s=q.value.trim().toLowerCase();let n=0;
-  pins.forEach(p=>{const on=matchLayer(p)&&matchQ(p,s);pinG[p.key].classList.toggle("dim",!on);if(on&&p.cat!=="gnd")n++});
-  const note=ALIAS[s]==="any"?` · ${s.toUpperCase()} đi qua GPIO matrix, gán được vào hầu hết các chân`:"";
-  res.textContent=(s||layer!=="all")?`${n} chân khớp${note}`:"";
-}
-q.addEventListener("input",apply);
-
-const panel=document.getElementById("panel");
-const STAT={ok:["ok","✅ An toàn để dùng làm GPIO"],warn:["warn","⚠ Dùng được nhưng cần chú ý"],ban:["ban","⛔ Không dùng làm GPIO"],info:["info","Chân nguồn / điều khiển"]};
-function select(k){
-  pinG.forEach(g=>g.classList.remove("sel"));pinG[k].classList.add("sel");
-  const p=pins[k],[cls,txt]=STAT[p.status];
-  panel.innerHTML=`<div><h2>${p.id}</h2><div class="sub">${p.gpio!==null?"GPIO"+p.gpio+" · ":""}${p.hdr} · ${CAT[p.cat].label}</div></div>
-  <div class="status ${cls}">${txt}</div>
-  ${p.warn?`<div>${p.warn}</div>`:""}
-  ${p.notes&&p.notes.length?`<ul class="notes">${p.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}
-  <div class="tags">${p.fn.map(f=>`<span class="tag">${f}</span>`).join("")||'<span class="tag">GPIO thuần</span>'}</div>
-  <dl>${p.gpio!==null?`<dt>Mức logic</dt><dd>3.3 V (không chịu 5 V)</dd><dt>VIH / VIL</dt><dd>≥0.75·VDD / ≤0.25·VDD</dd><dt>Dòng ra</dt><dd>cấp 40 mA · hút 28 mA</dd><dt>Pull nội</dt><dd>45 kΩ</dd><dt>Ngoại vi số</dt><dd>${p.cat==="ban"?"—":"Qua GPIO matrix"}</dd>`:""}</dl>
-  ${(()=>{const a=parts(p);return a.length?`<div><h3 class="ph">Linh kiện đi kèm</h3><ul class="parts">${a.map(([k,v,s])=>`<li><b>${k}</b><span>${v}</span><em class="${s}">${s==="hdg"?"HDG":s==="ds"?"Datasheet":"Thông lệ"}</em></li>`).join("")}</ul></div>`:""})()}
-  <div class="src">📄 Nguồn: ${p.src}</div>`;
-}
-select(pins.findIndex(p=>p.gpio===4));
-
-// Spec tabs
-document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
-  document.querySelectorAll(".tab").forEach(o=>{o.setAttribute("aria-selected",o===t);document.getElementById(o.dataset.p).hidden=o!==t});
-}));
-// Current table, values in µA
-const CUR=[
-  ["Wi-Fi TX 802.11b @21 dBm",340e3],["BLE TX @21 dBm",335e3],["Wi-Fi TX 802.11n HT20 @18.5 dBm",283e3],
-  ["BLE RX",93e3],["Wi-Fi RX HT20",88e3],
-  ["Modem-sleep 240 MHz, 2 lõi chạy",91.7e3],["Modem-sleep 240 MHz, rảnh",32.9e3],["Modem-sleep 80 MHz, rảnh",22e3],["Modem-sleep 40 MHz, rảnh",13.2e3],
-  ["Light-sleep",240],["Deep-sleep + ULP-RISC-V",190],["Deep-sleep + ULP-FSM",170],["Deep-sleep, touch đánh thức (1%)",18],
-  ["Deep-sleep, RTC ngoại vi bật",8],["Deep-sleep, chỉ RTC memory",7],["Tắt (CHIP_PU = LOW)",1]
-];
-const PER=[
-  ["UART","3 bộ","Tới 5 Mbps, RS232/RS485/IrDA. FIFO chung 1024 byte.","UART0: IO43/44 · UART1: IO17/18"],
-  ["I2C","2 bộ","100 / 400 kbit/s, tới 800 kbit/s tùy điện trở kéo lên. Địa chỉ 7 và 10 bit.","Bất kỳ GPIO"],
-  ["SPI","2 bộ đa dụng","SPI2: 80 MHz qua IO MUX, 60 MHz qua matrix. SPI3: 60 MHz. Hỗ trợ DMA.","SPI2: IO9–14"],
-  ["I2S","2 bộ","Dữ liệu 8–32 bit, BCK 10 kHz – 40 MHz. Dùng cho micro, loa, codec âm thanh.","Bất kỳ GPIO"],
-  ["LCD","1 bộ","Song song 8–16 bit, RGB / I8080 / MOTO6800, tới 40 MHz.","Bất kỳ GPIO"],
-  ["Camera DVP","1 bộ","8–16 bit, clock tới 40 MHz.","Bất kỳ GPIO"],
-  ["USB OTG","Full-speed","USB 1.1 12 Mbps, host hoặc device, 8 kênh.","IO19 (D−) / IO20 (D+)"],
-  ["USB Serial/JTAG","1 bộ","Nạp code, log và debug qua USB, không cần chip USB-UART.","IO19 / IO20"],
-  ["TWAI (CAN)","1 bộ","CAN 2.0, ID 11 và 29 bit, 1 kbit/s – 1 Mbit/s. Cần IC transceiver ngoài.","Bất kỳ GPIO"],
-  ["SD/MMC","2 khe","1/4/8 bit, clock tới 80 MHz.","Bất kỳ GPIO"],
-  ["LED PWM (LEDC)","8 kênh","Độ phân giải duty tới 14 bit, có fade tăng/giảm dần.","Bất kỳ GPIO"],
-  ["MCPWM","2 bộ","PWM điều khiển động cơ, có dead-time và ngõ vào lỗi.","Bất kỳ GPIO"],
-  ["RMT","4 TX + 4 RX","Phát/thu xung tùy ý: IR remote, LED WS2812.","Bất kỳ GPIO"],
-  ["PCNT","4 bộ","Đếm xung 16 bit, 2 kênh mỗi bộ; đọc encoder quay.","Bất kỳ GPIO"],
-  ["ADC","2 × 12 bit","20 kênh, 100 kSPS. ADC2 không dùng được khi Wi-Fi bật.","ADC1: IO1–10 · ADC2: IO11–20"],
-  ["Touch","14 kênh","Cảm ứng điện dung, đánh thức được từ deep-sleep.","IO1–14"],
-  ["Cảm biến nhiệt","1","Đo nhiệt độ bên trong chip, không phải nhiệt độ môi trường.","—"]
-];
-document.getElementById("perCards").innerHTML=PER.map(([n,c,d,pp])=>`<div class="card"><h3>${n}<small>${c}</small></h3><div>${d}</div><div class="pins">${pp}</div></div>`).join("");
-const fmt=u=>u>=1000?(u/1000).toLocaleString("vi-VN",{maximumFractionDigits:1})+" mA":u+" µA";
-const lmax=Math.log10(340e3);
-document.querySelector("#curTable tbody").innerHTML=CUR.map(([k,u])=>{
-  const col=u>=50e3?"--c-power":u>=1000?"--c-strap":"--c-gpio";
-  return `<tr><td>${k}</td><td class="num">${fmt(u)}</td><td><div class="bar" style="width:${Math.max(2,Math.log10(u)/lmax*100)}%;background:var(${col})"></div></td></tr>`}).join("");
-</script>
-
+  <section data-panel="docs" hidden>
+    <p class="muted">Link trỏ thẳng tới tài liệu gốc của hãng. Dữ liệu trong app tóm tắt từ các tài liệu này; khi thiết kế mạch thật, kiểm tra lại bản mới nhất.</p>
+    <div class="grid2" id="docsAll"></div>
+  </section>
+</main>
+<script src="js/boards.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
