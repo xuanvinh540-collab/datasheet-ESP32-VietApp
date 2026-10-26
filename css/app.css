@@ -231,3 +231,36 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
   .board-card .bc-chip { display: none; }
   .board-card .bc-name { font-size: 10.5px; font-weight: 500; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 }
+
+/* Panel chân kiểu bản cũ: banner trạng thái, thông số điện, thẻ linh kiện có nhãn nguồn */
+.d-head h2 { font: 700 26px var(--mono); }
+.d-head .d-kicker { text-transform: none; letter-spacing: 0; margin-top: 2px; }
+.status { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-weight: 600; font-size: 14px; border-left: 4px solid; }
+.status.ok { border-color: var(--c-gpio); background: color-mix(in srgb, var(--c-gpio) 12%, transparent); }
+.status.warn { border-color: var(--c-strap); background: color-mix(in srgb, var(--c-strap) 16%, transparent); }
+.status.ban { border-color: var(--c-power); background: color-mix(in srgb, var(--c-power) 12%, transparent); }
+.status.info { border-color: var(--c-ctl); background: color-mix(in srgb, var(--c-ctl) 12%, transparent); }
+.wtext { margin: 12px 0 0; font-size: 14.5px; }
+.notes { margin-top: 10px; color: var(--muted); }
+.fns { margin-top: 12px; }
+.fns span { font: 600 12px var(--mono); background: var(--surface); }
+.elec { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 14px 0 0; font-size: 14px; }
+.elec dt { color: var(--muted); } .elec dd { margin: 0; font-family: var(--mono); font-size: 13.5px; }
+.pparts { display: grid; gap: 8px; }
+.pp { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.pp b { display: block; margin-bottom: 2px; }
+.pp .tag { display: block; margin-top: 6px; padding: 2px 6px; border-radius: 4px; font: 600 11px var(--mono); }
+.tag.hdg { background: color-mix(in srgb, var(--c-gpio) 16%, transparent); }
+.tag.ds { background: color-mix(in srgb, var(--c-comm) 16%, transparent); }
+.tag.std { background: color-mix(in srgb, var(--muted) 18%, transparent); }
+.srcline { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* Tab thông số: nút chữ nhật, font mono, nút đang chọn tô màu đậm */
+#specTabs { display: flex; flex-wrap: wrap; gap: 6px; overflow: visible; }
+.stab { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 7px 12px; font: 500 13px var(--mono); }
+.stab[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.spec h2 { font: 700 17px var(--mono); }
+.spec th { text-transform: uppercase; letter-spacing: .04em; font-size: 11px; background: none; }
+.spec td:nth-child(2) { font-family: var(--mono); font-size: 13px; }
+.kv b { font-size: 19px; }
+@media (max-width: 560px) { #specTabs { flex-wrap: nowrap; overflow-x: auto; } .stab { flex: none; } }

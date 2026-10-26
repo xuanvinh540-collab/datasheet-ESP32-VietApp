@@ -259,8 +259,8 @@
     applyDim(); renderDetail(); syncHash();
     if (state.sel && matchMedia("(max-width: 899px)").matches) $("#detail").classList.add("open");
   }
-  const STATUS = { ok: ["Dùng tự do", "ok"], warn: ["Dùng có điều kiện", "warn"], ban: ["Không dùng", "ban"], info: ["Nguồn / điều khiển", "info"] };
-  const SRC = { ds: "Datasheet", hdg: "Design guide", std: "Thực hành" };
+  const STATUS = { ok: ["Dùng tự do", "ok", "✅"], warn: ["Dùng được nhưng cần chú ý", "warn", "⚠"], ban: ["Không dùng làm GPIO", "ban", "⛔"], info: ["Chân nguồn / điều khiển", "info", "ℹ"] };
+  const SRC = { ds: "Datasheet", hdg: "HDG", std: "Thông lệ" };
   function renderDetail() {
     const box = $("#detailBody"), b = state.b, p = state.sel;
     if (!p) {
@@ -272,14 +272,17 @@
       return;
     }
     const st = STATUS[p.status], cat = CATS[p.cat];
-    box.innerHTML = `<div class="d-head"><div><div class="d-kicker">${esc(p.hdr)} · chân ${p.pn}${p.gpio != null ? " · GPIO " + p.gpio : ""}</div>
-        <h2 class="mono">${esc(p.name)}</h2></div><button class="icon-btn" id="dClose" aria-label="Đóng">✕</button></div>
-      <div class="badges"><span class="badge" style="--b:${cv(cat.c)}">${esc(cat.label)}</span><span class="st ${st[1]}">${st[0]}</span></div>
-      ${p.fn.length ? `<div class="d-sec">Chức năng</div><div class="fns">${p.fn.map(f => `<span>${esc(f)}</span>`).join("")}</div>` : ""}
-      ${p.warn ? `<div class="warn ${p.status}">${esc(p.warn)}</div>` : ""}
-      ${p.notes.length ? `<div class="d-sec">Ghi chú</div><ul class="notes">${p.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
-      ${p.parts.length ? `<div class="d-sec">Linh kiện gợi ý</div><table class="parts">${p.parts.map(([k, v, s]) => `<tr><th>${esc(k)}</th><td>${esc(v)} <span class="src">${SRC[s] || s}</span></td></tr>`).join("")}</table>` : ""}
-      <div class="d-sec">Nguồn</div><p class="muted small">${esc(b.src)}. <a href="${esc(b.docs[0][2])}" target="_blank" rel="noopener">Mở datasheet ↗</a></p>`;
+    const elec = p.gpio != null && b.elec ? b.elec.map(([k, v]) => [k, typeof v === "function" ? v(p) : v]) : [];
+    box.innerHTML = `<div class="d-head"><div><h2 class="mono">${esc(p.name)}</h2>
+        <div class="d-kicker">${p.gpio != null ? "GPIO" + p.gpio + " · " : ""}${esc(p.hdr)}-${p.pn} · ${esc(cat.label)}</div></div>
+        <button class="icon-btn" id="dClose" aria-label="Đóng">✕</button></div>
+      <div class="status ${st[1]}">${st[2]} ${st[0]}</div>
+      ${p.warn ? `<p class="wtext">${esc(p.warn)}</p>` : ""}
+      ${p.notes.length ? `<ul class="notes">${p.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+      ${p.fn.length ? `<div class="fns">${p.fn.map(f => `<span>${esc(f)}</span>`).join("")}</div>` : ""}
+      ${elec.length ? `<dl class="elec">${elec.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
+      ${p.parts.length ? `<div class="d-sec">Linh kiện đi kèm</div><div class="pparts">${p.parts.map(([k, v, s]) => `<div class="pp"><b>${esc(k)}</b><div>${esc(v)}</div><span class="tag ${s}">${SRC[s] || s}</span></div>`).join("")}</div>` : ""}
+      <p class="srcline">📄 Nguồn: ${esc(b.src)} · <a href="${esc(b.docs[0][2])}" target="_blank" rel="noopener">datasheet ↗</a></p>`;
     $("#dClose").onclick = () => { state.sel = null; $("#detail").classList.remove("open"); applyDim(); renderDetail(); syncHash(); };
   }
   const KIND = { datasheet: "Datasheet", manual: "Manual", guide: "Hướng dẫn", schematic: "Schematic", pinout: "Pinout", errata: "Errata", code: "Code" };
@@ -295,7 +298,7 @@
     if (!sp) return;
     $("#specNote").textContent = sp.note || "";
     const tabs = $("#specTabs"); tabs.innerHTML = "";
-    sp.tabs.forEach(([t], k) => { const c = h("button", "chip", esc(t)); c.setAttribute("aria-pressed", k === i); c.onclick = () => renderSpec(k); tabs.appendChild(c); });
+    sp.tabs.forEach(([t], k) => { const c = h("button", "stab", esc(t)); c.setAttribute("aria-pressed", k === i); c.onclick = () => renderSpec(k); tabs.appendChild(c); });
     $("#specBody").innerHTML = sp.tabs[i][1];
     if (sp.ref) $("#refBody").innerHTML = sp.ref;
   }
