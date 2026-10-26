@@ -114,10 +114,10 @@
     el("line", { x1: 0, y1: 0, x2: 0, y2: 1.2, stroke: "#d8c27a", "stroke-width": .35 }, hp);
 
     const board = el("g", { class: "board" }, svg);
-    el("rect", { x: 0, y: 0, width: b.w, height: b.h, rx: 1.2, fill, stroke: edge, "stroke-width": .5 }, board);
+    if (!b.photo) el("rect", { x: 0, y: 0, width: b.w, height: b.h, rx: 1.2, fill, stroke: edge, "stroke-width": .5 }, board);
     el("rect", { x: .6, y: .6, width: b.w - 1.2, height: b.h - 1.2, rx: .8, fill: "none", stroke: "rgba(255,255,255,.07)", "stroke-width": .25 }, board);
     // Có ảnh board chính thức thì dùng ảnh làm nền (đã cắt khớp toạ độ chân), không vẽ linh kiện giả
-    if (b.photo) el("image", { href: b.photo.src, x: 0, y: 0, width: b.w, height: b.h, preserveAspectRatio: "none" }, board);
+    if (b.photo) { const [px, py, pw2, ph] = b.photo.box || [0, 0, b.w, b.h]; el("image", { href: b.photo.src, x: px, y: py, width: pw2, height: ph, preserveAspectRatio: "none" }, board); grow(px, py); grow(px + pw2, py + ph); }
     else b.parts.forEach(pt => drawPart(board, pt));
 
     b.headers.forEach(hd => {

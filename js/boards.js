@@ -72,7 +72,7 @@
   const S3R = ["G", 43, 44, 1, 2, 42, 41, 40, 39, 38, 37, 36, 35, 0, 45, 48, 47, 21, 20, 19, "G", "G"];
 
   const ESP32_S3 = {
-    id: "esp32-s3-devkitc-1",
+    id: "esp32-s3-devkitc-1", photo: { src: "sch/esp32-s3-devkitc-1-board.jpg", box: [-0.55, -2.19, 26.71, 70.98], credit: "Ảnh board: Espressif – ESP32-S3-DevKitC-1 v1.1 Pin Layout" },
     arch: { core: "ESP32-S3-WROOM-1", coreSub: "SoC + Flash + PSRAM (Octal) + anten PCB", blocks: [
       { side: "L", n: "Cổng Micro-USB UART", s: "5V + D+/D−", k: "usb", bus: "USB" },
       { side: "L", n: "USB-UART Bridge", s: "CP2102N / CH343", k: "comm", bus: "UART0 IO43/IO44" },
@@ -85,7 +85,7 @@
     elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", p => p.flags.includes("spi") && p.gpio <= 14 ? "IO MUX (FSPI) hoặc GPIO matrix" : "Qua GPIO matrix"]], tag: "S3",
     oem: { by: "Espressif Systems", file: "SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", url: "https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", pages: [["sch/esp32-s3-devkitc-1-1.png", "Sơ đồ khối"], ["sch/esp32-s3-devkitc-1-2.png", "Mạch chi tiết"]] }, name: "ESP32-S3-DevKitC-1", vendor: "Espressif", chip: "ESP32-S3 (WROOM-1)", family: "ESP32",
     summary: "Xtensa LX7 2 nhân 240 MHz, Wi-Fi 4 + BLE 5, USB OTG native.",
-    w: 25.9, h: 63, pcb: "green", logic: "3.3 V",
+    w: 25.4, h: 63, pcb: "green", logic: "3.3 V",
     facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định, tối đa 40 mA"], ["ADC", "2 × SAR 12-bit, 20 kênh (ADC1: IO1–IO10)"], ["Nguồn vào", "5V qua USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102/CH343) hoặc USB native"]],
     docs: [
       ["datasheet", "ESP32-S3 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf"],
@@ -107,7 +107,7 @@
     ],
     headers: [
       { id: "J1", side: "L", at: -1.6, pins: vcol(1.27, 6.2, S3L.map(s3mk)) },
-      { id: "J3", side: "R", at: 27.5, pins: vcol(24.63, 6.2, S3R.map(s3mk)) }
+      { id: "J3", side: "R", at: 27, pins: vcol(24.13, 6.2, S3R.map(s3mk)) }
     ]
   };
 
@@ -309,7 +309,7 @@
   ];
   const UPy = [27.94, 30.48, 33.02, 35.56, 38.1, 40.64, 43.18, 45.72, 50.8, 53.34, 55.88, 58.42, 60.96, 63.5];
   const UNO = {
-    id: "arduino-uno-r3",
+    id: "arduino-uno-r3", photo: { src: "sch/arduino-uno-r3-board.jpg", box: [-0.38, -7.0, 54.1, 75.74], credit: "Ảnh board: Arduino – Uno R3 Full Pinout (CC BY-SA 4.0)" },
     arch: { core: "ATmega328P", coreSub: "AVR 8-bit 16 MHz, DIP-28", blocks: [
       { side: "L", n: "Cổng USB-B", s: "5V + D+/D−", k: "usb", bus: "USB" },
       { side: "L", n: "ATmega16U2", s: "USB ↔ Serial", k: "comm", bus: "D0 RX · D1 TX" },
@@ -433,7 +433,7 @@
   const TDR = [gnd(), gnd(), s3b(43), s3b(44), s3b(18, ["I2C SDA (bản Touch)"], { flags: ["adc", "i2c"] }), s3b(17, ["I2C SCL (bản Touch)"], { flags: ["adc", "i2c"] }),
     s3b(21, ["Touch RES (bản Touch)"]), s3b(16, ["Touch INT (bản Touch)"]), nc(), gnd(), gnd(), pw("3V3", "Ngõ ra 3.3 V", "Ngõ ra LDO 3.3 V của board.")];
   const TDISPLAY = {
-    id: "lilygo-t-display-s3", tag: "TDS", name: "LilyGO T-Display-S3", vendor: "LilyGO", chip: "ESP32-S3R8 + LCD 1.9\"", family: "ESP32",
+    id: "lilygo-t-display-s3", photo: { src: "sch/lilygo-t-display-s3-board.jpg", box: [-0.02, 2.02, 26.04, 62.2], credit: "Ảnh board: LilyGO – T-Display-S3 pinout (GitHub)" }, tag: "TDS", name: "LilyGO T-Display-S3", vendor: "LilyGO", chip: "ESP32-S3R8 + LCD 1.9\"", family: "ESP32",
     elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", "Qua GPIO matrix"]],
     arch: { core: "ESP32-S3R8", coreSub: "8 MB PSRAM + 16 MB flash", blocks: [
       { side: "L", n: "Cổng USB-C", s: "USB native", k: "usb", bus: "GPIO19 D− · GPIO20 D+" },
@@ -512,7 +512,7 @@
 
   /* ---------------- Raspberry Pi Pico 2 (RP2350, không Wi-Fi) ---------------- */
   const PICO2 = {
-    ...PICO2W, id: "pico-2", tag: "P2", photo: null, name: "Raspberry Pi Pico 2", chip: "RP2350A", oem: null,
+    ...PICO2W, id: "pico-2", tag: "P2", photo: { src: "sch/pico-2-board.jpg", box: [0.06, -2.21, 20.89, 53.33], credit: "Ảnh board: Raspberry Pi Ltd – Pico 2 Pinout" }, name: "Raspberry Pi Pico 2", chip: "RP2350A", oem: null,
     summary: "2 × Cortex-M33 / Hazard3 RISC-V 150 MHz, 520 KB SRAM, 4 MB flash. Cùng chân với Pico 2 W nhưng không có Wi-Fi.",
     facts: [["Logic", "3.3 V (GPIO thường chịu 5 V khi có IOVDD)"], ["Kích thước", "51 × 21 mm, 40 chân bước 2.54 mm"], ["ADC", "12-bit, 3 kênh ra ngoài (GP26–28)"], ["Nội bộ", "GP23 chế độ nguồn SMPS, GP24 dò VBUS, GP25 LED, GP29 đo VSYS/3"], ["PIO", "3 khối PIO × 4 state machine"]],
     docs: [
