@@ -72,7 +72,7 @@
   const S3R = ["G", 43, 44, 1, 2, 42, 41, 40, 39, 38, 37, 36, 35, 0, 45, 48, 47, 21, 20, 19, "G", "G"];
 
   const ESP32_S3 = {
-    id: "esp32-s3-devkitc-1", photo: { src: "sch/esp32-s3-devkitc-1-board.jpg", box: [-0.55, -2.19, 26.71, 70.98], credit: "Ảnh board: Espressif – ESP32-S3-DevKitC-1 v1.1 Pin Layout" },
+    id: "esp32-s3-devkitc-1",
     arch: { core: "ESP32-S3-WROOM-1", coreSub: "SoC + Flash + PSRAM (Octal) + anten PCB", blocks: [
       { side: "L", n: "Cổng Micro-USB UART", s: "5V + D+/D−", k: "usb", bus: "USB" },
       { side: "L", n: "USB-UART Bridge", s: "CP2102N / CH343", k: "comm", bus: "UART0 IO43/IO44" },
@@ -85,7 +85,7 @@
     elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", p => p.flags.includes("spi") && p.gpio <= 14 ? "IO MUX (FSPI) hoặc GPIO matrix" : "Qua GPIO matrix"]], tag: "S3",
     oem: { by: "Espressif Systems", file: "SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", url: "https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", pages: [["sch/esp32-s3-devkitc-1-1.png", "Sơ đồ khối"], ["sch/esp32-s3-devkitc-1-2.png", "Mạch chi tiết"]] }, name: "ESP32-S3-DevKitC-1", vendor: "Espressif", chip: "ESP32-S3 (WROOM-1)", family: "ESP32",
     summary: "Xtensa LX7 2 nhân 240 MHz, Wi-Fi 4 + BLE 5, USB OTG native.",
-    w: 25.4, h: 63, pcb: "green", logic: "3.3 V",
+    w: 25.3, h: 62.7, pcb: "black", logic: "3.3 V",
     facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định, tối đa 40 mA"], ["ADC", "2 × SAR 12-bit, 20 kênh (ADC1: IO1–IO10)"], ["Nguồn vào", "5V qua USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102/CH343) hoặc USB native"]],
     docs: [
       ["datasheet", "ESP32-S3 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf"],
@@ -96,18 +96,19 @@
     ],
     src: "ESP32-S3 Datasheet chương 2, DevKitC-1 schematic",
     parts: [
-      { t: "module", x: 3.95, y: 0, w: 18, h: 25.5, label: "ESP32-S3", sub: "WROOM-1", ant: 6.5 },
-      { t: "chip", x: 9.2, y: 33, w: 7.5, h: 4.5, label: "LDO" },
-      { t: "chip", x: 8.7, y: 41, w: 8.5, h: 5, label: "USB-UART" },
-      { t: "btn", x: 4.5, y: 51.5, w: 4, h: 3.2, label: "BOOT" },
-      { t: "btn", x: 17.4, y: 51.5, w: 4, h: 3.2, label: "RST" },
-      { t: "led", x: 12.2, y: 49, w: 1.6, h: 1.6, color: "#ff3fd0", label: "RGB" },
-      { t: "usb", x: 4.4, y: 57.5, w: 7.6, h: 6.5, label: "UART" },
-      { t: "usb", x: 13.9, y: 57.5, w: 7.6, h: 6.5, label: "USB" }
+      // vị trí đo từ ảnh pin layout v1.1 của Espressif (≈9.3 px/mm)
+      { t: "module", x: 3.1, y: -6.5, w: 18.4, h: 25.8, label: "ESP32-S3", sub: "WROOM-1", ant: 6.2 },
+      { t: "chip", x: 8.4, y: 22.6, w: 6.2, h: 7, label: "LDO" },
+      { t: "led", x: 5.4, y: 30.9, w: 3.8, h: 4.8, color: "#f4f2e6", label: "RGB" },
+      { t: "chip", x: 11.1, y: 39.6, w: 4.8, h: 4.8, label: "CP2102", small: true },
+      { t: "btn", x: 5, y: 47, w: 4.9, h: 3.2, label: "BOOT" },
+      { t: "btn", x: 15.4, y: 47, w: 4.9, h: 3.2, label: "RST" },
+      { t: "usb", x: 2, y: 56.2, w: 7.5, h: 7, label: "UART" },
+      { t: "usb", x: 15.4, y: 56.2, w: 7.5, h: 7, label: "USB" }
     ],
     headers: [
-      { id: "J1", side: "L", at: -1.6, pins: vcol(1.27, 6.2, S3L.map(s3mk)) },
-      { id: "J3", side: "R", at: 27, pins: vcol(24.13, 6.2, S3R.map(s3mk)) }
+      { id: "J1", side: "L", at: -1.6, pins: vcol(1.18, 1.18, S3L.map(s3mk)) },
+      { id: "J3", side: "R", at: 26.9, pins: vcol(24.04, 1.18, S3R.map(s3mk)) }
     ]
   };
 
