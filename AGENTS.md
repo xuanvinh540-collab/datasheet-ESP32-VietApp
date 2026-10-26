@@ -90,7 +90,10 @@ git add -A && git commit -m "..." && git push origin main       # Cloudflare t�
 - Cloudflare Pages không cho tạo dự án bằng `wrangler pages` trên tài khoản này (lỗi 500); dự án `pindex` tạo tay trên dashboard và nối GitHub.
 
 ## 9. SEO & phân phối
-- Mỗi board có 2 trang tĩnh (VI + `/en/`) với `<title>`, description, canonical, hreflang, Open Graph, JSON-LD, bảng chân viết sẵn trong HTML; app vẽ lại bảng khi đổi board.
+- Mỗi board có 2 trang tĩnh (VI + `/en/`) với `<title>`, description, canonical, hreflang, Open Graph + Twitter card, JSON-LD (TechArticle/WebSite + BreadcrumbList, trang chủ thêm ItemList), **bảng chân viết sẵn trong HTML**; `renderSeoTable()` trong app.js vẽ lại đúng cấu trúc đó khi đổi board.
+- Mục "Tất cả board" ở cuối trang là **link nội bộ** tới trang board (để Google đi tiếp), kèm link "Mua" Shopee riêng mang `rel="noopener sponsored nofollow"`. Đừng biến link nội bộ thành link Shopee.
+- Trang chủ còn liệt kê "Sơ đồ chân linh kiện" theo `MOD_CATS`; linh kiện chỉ có URL hash `#mod-<mã>`, không có trang tĩnh riêng.
+- Song ngữ: chạy `node tools/check-i18n.js` (hoặc script tương đương) sau khi thêm chữ tiếng Việt; hiện **0 câu chưa dịch**.
 - Android: chưa lên Play Store (người dùng chưa có phí 25 USD). Dùng PWA; có thể đóng gói APK bằng PWABuilder. iOS cần tài khoản Apple Developer + máy Mac.
 - Bài PR soạn sẵn: `W:\AI\Pindex-bai-dang-PR.md`. Video quảng bá: `W:\AI\pindex-video\` (dự án HyperFrames riêng, không nằm trong repo này).
 

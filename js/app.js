@@ -322,7 +322,8 @@
     $("#viewSch").setAttribute("aria-pressed", state.view === "sch");
     $("#bTitle").textContent = state.b.name;
     renderSeoTable();
-    document.title = document.documentElement.lang === "en" ? `${state.b.name} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${state.b.name} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
+    const en = document.documentElement.lang === "en", bn = en ? (window.EN_DATA || {})[state.b.name] || state.b.name : state.b.name;
+    document.title = en ? `${bn} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${bn} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
     $("#bSub").textContent = state.b.mod ? `Linh kiện · ${state.b.chip} · nguồn ${state.b.logic}` : `${state.b.vendor} · ${state.b.chip} · logic ${state.b.logic}`;
     const note = [state.b.note, state.view === "pcb" && state.b.photo ? state.b.photo.credit : ""].filter(Boolean).join(" · ");
     $("#bNote").textContent = note; $("#bNote").hidden = !note;
@@ -410,18 +411,25 @@
   function renderSeoTable() {
     const box = document.querySelector(".seo"); if (!box) return;
     const b = state.b, en = document.documentElement.lang === "en", shop = window.SHOPEE_LINKS || {};
-    const docs = b.docs.map(([, label, url]) => `<li><a href="${esc(url)}" rel="noopener" target="_blank">${esc(label)}</a></li>`).join("");
     const links = BOARDS.map(x => {
-      const sUrl = shop[x.id] || x.shopee || ("https://shopee.vn/search?keyword=" + encodeURIComponent(x.name));
-      return `<li><a href="${esc(sUrl)}" target="_blank" rel="noopener sponsored">${esc(x.name)}</a> <span class="muted small">${esc(x.chip)}</span></li>`;
+      const href = (en ? "en/" : "") + x.id + "/";
+      const sUrl = shop[x.id] || ("https://shopee.vn/search?keyword=" + encodeURIComponent(x.name));
+      return `<li><a href="${href}"${x.id === b.id ? ' aria-current="page"' : ""}>${esc(x.name)}</a> <span class="muted small">${esc(x.chip)}</span> <a class="buy" href="${esc(sUrl)}" target="_blank" rel="noopener sponsored nofollow">${en ? "Buy" : "Mua"} ↗</a></li>`;
     }).join("");
-    box.innerHTML = `<h2>${en ? "Pinout reference for microcontroller boards" : "Tra cứu sơ đồ chân vi điều khiển"}</h2>
-      <p class="muted">${en ? "Pin functions, warnings, electrical specs and companion parts taken from the manufacturers' datasheets, for ESP32, Raspberry Pi Pico, Raspberry Pi and Arduino boards." : "Chức năng từng chân, cảnh báo, thông số điện và linh kiện đi kèm, lấy từ datasheet của hãng, cho các board ESP32, Raspberry Pi Pico, Raspberry Pi và Arduino."}</p>
-      ${docs ? `<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3>
-      <ul class="seo-links">${docs}</ul>` : ""}
-      <h3>${en ? "All boards" : "Tất cả board"}</h3>
-      <ul class="seo-links">${links}</ul>`;
+    const nav = `<h3>${en ? "All boards" : "Tất cả board"}</h3><ul class="seo-links">${links}</ul>`;
+    if (b.mod) {   // trang linh kiện: không có bảng chân tĩnh, chỉ danh sách board
+      box.innerHTML = `<h2>${esc(b.name)}</h2><p class="muted">${esc(b.summary)}</p>${nav}`;
+      return;
+    }
+    const rows = pins.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.hdr)}-${p.pn}</td><td>${p.gpio != null ? p.gpio : "–"}</td><td>${esc(CATS[p.cat].label)}</td><td>${esc(p.fn.join(", "))}</td><td>${esc(p.warn || "")}</td></tr>`).join("");
+    const docs = b.docs.map(([, label, url]) => `<li><a href="${esc(url)}" rel="noopener" target="_blank">${esc(label)}</a></li>`).join("");
+    box.innerHTML = `<h2>${en ? `${esc(b.name)} pinout table` : `Bảng chân ${esc(b.name)}`}</h2>
+      <p class="muted">${esc(b.summary)}</p>
+      <dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+      <div class="tw"><table><thead><tr><th>${en ? "Pin" : "Chân"}</th><th>${en ? "Header" : "Vị trí"}</th><th>GPIO</th><th>${en ? "Type" : "Loại"}</th><th>${en ? "Functions" : "Chức năng"}</th><th>${en ? "Notes" : "Lưu ý"}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${docs ? `<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3><ul class="seo-links">${docs}</ul>` : ""}${nav}`;
   }
+
 
   /* ---------- Thông số chip ---------- */
   function renderSpec(i = 0) {
@@ -524,7 +532,7 @@
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
     if (!window.MODULES) await loadJs("js/modules.js?v=58");
-    if (!window.BUILD) await loadJs("js/build.js?v=62");
+    if (!window.BUILD) await loadJs("js/build.js?v=63");
     setTab("build"); BUILD.open(h);
   }
   window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };

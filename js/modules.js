@@ -219,4 +219,4 @@ window.PIN_DOC = {
   "ldr.DO": ["Digital Out: ra 0 hoặc 1 khi độ sáng vượt ngưỡng chỉnh bằng biến trở trên module.", "Nối GPIO đặt INPUT và đọc bằng digitalRead()."],
   "dht22.SDA": ["Dây dữ liệu 1 dây riêng của DHT (không phải I2C dù in chữ SDA). Gửi nhiệt độ và độ ẩm theo xung thời gian.", "Nối một GPIO, có điện trở kéo lên 4.7–10 kΩ lên VCC; dùng thư viện DHT."]
 };
-for (const s of "ABCDEFG") PIN_DOC["sevseg." + s] = [`Đoạn ${s} của LED 7 đoạn (đặt tên theo chiều kim đồng hồ từ A ở trên cùng, G ở giữa).`, "Nối GPIO qua điện trở 220–330 Ω; HIGH = đoạn sáng (loại Cathode chung)."];
+for (const s of "ABCDEFG") window.PIN_DOC["sevseg." + s] = [`Đoạn ${s} của LED 7 đoạn (đặt tên theo chiều kim đồng hồ từ A ở trên cùng, G ở giữa).`, "Nối GPIO qua điện trở 220–330 Ω; HIGH = đoạn sáng (loại Cathode chung)."];

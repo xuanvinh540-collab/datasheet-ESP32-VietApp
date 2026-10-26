@@ -39,7 +39,21 @@
   };
   const RX = [
     [/^(\d+)\/(\d+) chân khớp$/, "$1/$2 pins match"], [/^(\d+) chân$/, "$1 pins"], [/^Chân trên (.+) \((\d+)\)$/, "Pins on $1 ($2)"],
-    [/^Kiến thức · (.+)$/, "Learn · $1"], [/^Xem tất cả (\d+) linh kiện$/, "Show all $1 components"], [/^Đã xoá dây (.+)$/, "Removed wire $1"], [/^Đã xoá (.+)$/, "Removed $1"], [/^Linh kiện · (.+) · nguồn (.+)$/, "Component · $1 · power $2"], [/^📄 Nguồn: /, "📄 Source: "], [/^Nguồn: /, "Source: "], [/^Ảnh board: /, "Board photo: "]
+    [/^Kiến thức · (.+)$/, "Learn · $1"], [/^Xem tất cả (\d+) linh kiện$/, "Show all $1 components"], [/^Đã xoá dây (.+)$/, "Removed wire $1"], [/^Đã xoá nối dây (.+)$/, "Unwired $1"], [/^Đã xoá hết nối dây$/, "Unwired everything"], [/^Đã xoá (.+)$/, "Removed $1"], [/^Đã gỡ dây (.+)$/, "Wire removed: $1"], [/^Đã tự nối chân (.+)$/, "Auto-wired $1"], [/^Đã nối lại (.+) → (.+)$/, "Re-wired $1 → $2"], [/^Đã chuyển dây sang (.+)$/, "Wire moved to $1"], [/^Linh kiện · (.+) · nguồn (.+)$/, "Component · $1 · power $2"], [/^📄 Nguồn: /, "📄 Source: "], [/^Nguồn: /, "Source: "], [/^Ảnh board: /, "Board photo: "],
+
+    [/^(.+) · (.+) \(kéo để nối\)$/, "$1 · $2 (drag to wire)"],
+    [/^🧩 Linh kiện \((\d+)\/(\d+)\)$/, "🧩 Components ($1/$2)"],
+    [/^(.+): chưa nối\.$/, "$1: not wired."],
+    [/^(.+) ra mức 5 V: thêm cầu chia áp 1 kΩ \+ 2 kΩ trước (.+)\.$/, "$1 outputs 5 V: add a 1 kΩ + 2 kΩ divider before $2."],
+    [/^(.+) → (.+): chân này không làm được (.+)\.$/, "$1 → $2: this pin cannot do $3."],
+    [/^(.+) bị dùng 2 lần: (.+)\.$/, "$1 is used twice: $2."],
+    [/^Dòng thực (.+) mA · công suất R (.+) mW$/, "Actual current $1 mA · resistor power $2 mW"],
+    [/^· hệ số nhân ×(.+) · dòng (.+) µA$/, "· ratio ×$1 · current $2 µA"],
+    [/^· lên 63% sau 1τ, ~99% sau 5τ \((.+) ms\)$/, "· 63% after 1τ, ~99% after 5τ ($1 ms)"],
+    [/^\(> 20 mA: dùng transistor\/MOSFET\)$/, "(> 20 mA: use a transistor/MOSFET)"],
+    [/^Cần Vnguồn > Vf và dòng > 0$/, "Supply must exceed Vf and current must be > 0"],
+    [/^Cần Vin max > V ADC max$/, "Vin max must exceed the ADC max"],
+    [/^Không có giá trị hợp lệ: giảm điện dung bus hoặc giảm tốc độ$/, "No valid value: reduce bus capacitance or speed"]
   ];
   let lang = "vi";
   try { lang = localStorage.getItem("lang") || "vi"; } catch (e) { }
@@ -50,6 +64,9 @@
     const k = s.trim(); if (!k) return null;
     const d = D(k); if (d != null) return s.replace(k, d);
     const m = k.match(/^📄 Nguồn: (.+?)( ·)?$/); if (m) return s.replace(k, "📄 Source: " + (D(m[1]) ?? m[1]) + (m[2] || ""));
+    // chuỗi mở đầu bằng biểu tượng (ℹ ⚠ ⛔ ○ …): dịch phần chữ phía sau
+    const ic = k.match(/^([ℹ⚠⛔○✓✅⚡🧩🔌✨🗑↔🔀🧲]+\s*)(.+)$/);
+    if (ic) { const t = tr(ic[2]); if (t != null) return s.replace(k, ic[1] + t.trim()); }
     for (const [r, v] of RX) if (r.test(k)) return s.replace(k, k.replace(r, v));
     // chuỗi ghép "a · b · c": dịch từng đoạn nếu có
     if (k.includes(" · ")) { const parts = k.split(" · "), out = parts.map(x => D(x) ?? x); if (out.some((x, i) => x !== parts[i])) return s.replace(k, out.join(" · ")); }

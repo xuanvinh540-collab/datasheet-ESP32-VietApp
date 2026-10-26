@@ -503,3 +503,6 @@ main { padding-top: 12px; }
 .fv.two { grid-template-columns: repeat(3, auto); justify-content: start; gap: 4px 18px; }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) #bsvg .wlabel { fill: #4a524e !important; stroke: rgba(255,255,255,.8); } }
 .btitle { font: 700 15px var(--mono); color: var(--fg); padding: 4px 2px; }
+.seo-links .buy { font: 600 11px var(--mono); color: var(--muted); text-decoration: none; }
+.seo-links .buy:hover { color: var(--accent); }
+.seo-links li { line-height: 1.7; }
