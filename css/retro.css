@@ -1,0 +1,92 @@
+/* Theme 8-bit: bảng màu PICO-8, khối vuông, bóng đổ cứng, font pixel.
+   Press Start 2P chỉ dùng cho chữ ASCII (logo, tên chân, nhãn); VT323 có dấu tiếng Việt cho tiêu đề/nút. */
+:root {
+  --px: "Press Start 2P", monospace; --vt: "VT323", var(--mono);
+  --bg: #fff1e8; --surface: #fffaf5; --surface2: #ffe7d4; --fg: #1d2b53; --muted: #6b5f7a; --line: #1d2b53;
+  --accent: #ff004d; --accent-fg: #fff1e8; --hard: #1d2b53;
+  --c-power: #ff004d; --c-gnd: #5f574f; --c-gpio: #00b543; --c-adc: #7e57c2; --c-comm: #29adff;
+  --c-usb: #ffa300; --c-strap: #ffec27; --c-ban: #a7a1b0; --c-ctl: #83769c;
+  --ok: #008751; --warn: #c27c00; --ban: #ff004d; --info: #83769c; --canvas: #ffe7d4;
+  --r: 0px; --shadow: 4px 4px 0 var(--hard);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12101f; --surface: #1d1b2e; --surface2: #262340; --fg: #fff1e8; --muted: #a59bbf; --line: #3b3660;
+  --accent: #ff004d; --accent-fg: #fff1e8; --hard: #000; --canvas: #0d0b18; --c-gnd: #6b6375; --c-ban: #514a63;
+  --ok: #00e436; --warn: #ffa300; --info: #a59bbf; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12101f; --surface: #1d1b2e; --surface2: #262340; --fg: #fff1e8; --muted: #a59bbf; --line: #3b3660;
+  --accent: #ff004d; --accent-fg: #fff1e8; --hard: #000; --canvas: #0d0b18; --c-gnd: #6b6375; --c-ban: #514a63;
+  --ok: #00e436; --warn: #ffa300; --info: #a59bbf; color-scheme: dark; }
+
+/* Khối pixel: viền 2px, góc vuông, bóng đổ cứng */
+.card, .board-card, .icon-btn, .chip, .stab, .seg, .tabbar, .search, .docs a, .pp, .kv div, .pcard, .out, .f3 input, .f3 select, .oem-img, .status, .warn, .fns span, .badge, .st, .bc-icon {
+  border-radius: 0 !important; }
+.card { border: 2px solid var(--line); box-shadow: var(--shadow); }
+:root[data-theme="dark"] .card, :root:not([data-theme="light"]) .card { }
+.board-card, .icon-btn, .chip, .stab, .docs a { border: 2px solid var(--line); box-shadow: 3px 3px 0 var(--hard); transition: transform .06s steps(1), box-shadow .06s steps(1); }
+.board-card:active, .icon-btn:active, .chip:active, .stab:active, .docs a:active, .seg button:active, .tabbar button:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--hard); }
+.board-card:hover, .chip:hover, .stab:hover, .docs a:hover { background: var(--surface2); }
+.board-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent); }
+
+/* Chữ: pixel cho tiêu đề và nhãn */
+.brand b { font: 12px var(--px); letter-spacing: 0; }
+.brand span { font: 16px var(--vt); }
+.stage-head h1, .spec h2, .card h3, .d-head h2 { font-family: var(--vt); font-weight: 400; letter-spacing: .02em; }
+.stage-head h1 { font-size: 30px; line-height: 1; }
+.d-head h2 { font-family: var(--px); font-size: 18px; line-height: 1.4; }
+.spec h2 { font-size: 26px; } .card h3 { font-size: 22px; }
+.tabbar button, .seg button, .stab, .chip { font-family: var(--vt); font-size: 19px; font-weight: 400; line-height: 1; }
+.d-sec, .d-kicker, .lg, #count { font-family: var(--vt); font-size: 17px; letter-spacing: .04em; }
+.bc-name { font-family: var(--vt); font-size: 18px !important; font-weight: 400 !important; line-height: 1.05 !important; }
+.bc-icon b, .dk, .tag, .src, .badge { font-family: var(--px) !important; font-size: 7px !important; font-weight: 400 !important; padding: 3px 4px !important; }
+.status { font-family: var(--vt); font-size: 20px; font-weight: 400; border-left-width: 6px; }
+.kv b { font-family: var(--vt); font-size: 26px; font-weight: 400; }
+
+/* Thanh trên + tab */
+.appbar { border-bottom: 2px solid var(--line); background: var(--surface); backdrop-filter: none; }
+.tabbar, .seg { border: 2px solid var(--line); padding: 2px; background: var(--surface2); }
+.tabbar button, .seg button { border-radius: 0; padding: 7px 12px; }
+.tabbar button[aria-selected="true"], .seg button[aria-pressed="true"], .stab[aria-pressed="true"], .chip[aria-pressed="true"] {
+  background: var(--accent); color: var(--accent-fg); border-color: var(--line); box-shadow: inset -3px -3px 0 rgba(0,0,0,.25), inset 3px 3px 0 rgba(255,255,255,.25); }
+.search { border: 2px solid var(--line); }
+.search input { font-family: var(--vt); font-size: 20px; }
+
+/* Icon board kiểu sprite */
+.bc-icon { border: 2px solid var(--line) !important; image-rendering: pixelated; }
+.bc-icon b { bottom: -7px; border: 2px solid var(--line); }
+
+/* Khung hình: lưới pixel + scanline nhẹ */
+.canvas { border: 2px solid var(--line); border-radius: 0; position: relative;
+  background-color: var(--canvas); background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 16px 16px; background-position: -1px -1px; }
+:root:not([data-theme="light"]) .canvas { background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); }
+.canvas::after { content: ""; position: sticky; display: block; pointer-events: none; }
+
+/* SVG: chữ pixel trên nhãn chân, chân đang chọn nhấp nháy */
+#svg .tl { font-family: var(--px); font-size: .95px; }
+#svg .alt, #svg .pnum, #svg .buslbl { font-family: var(--vt); font-size: 1.7px; }
+#svg .symtitle { font-family: var(--vt); }
+#svg .tab { rx: 0; ry: 0; }
+#svg .pin.sel .tab { stroke: var(--fg); stroke-width: .4; animation: blink .8s steps(2) infinite; }
+#svg .pin.sel .ring { stroke: var(--accent); stroke-width: .5; }
+@keyframes blink { 50% { filter: brightness(1.6); } }
+#svg.sch .symbox, #svg.sch .mcu { stroke-width: .4; rx: 0; }
+
+/* Panel chi tiết */
+.detail { border: 2px solid var(--line); }
+.pp { border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--hard); }
+.fns span { border: 2px solid var(--line); font-family: var(--vt); font-size: 17px; }
+.elec dd { font-family: var(--vt); font-size: 19px; }
+.grab { border-radius: 0; background: var(--accent) !important; height: 4px; }
+@media (max-width: 899px) { .detail { border-radius: 0; box-shadow: 0 -4px 0 var(--hard); } }
+
+/* Bảng thông số */
+.spec th { font-family: var(--vt); font-size: 16px; }
+.spec td:nth-child(2), .spec td.num { font-family: var(--vt); font-size: 19px; }
+.bar { border-radius: 0; height: 10px; background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,.25) 6px 8px); }
+.out b { font-family: var(--vt); font-size: 20px; font-weight: 400; color: var(--accent); }
+
+/* Popup ảnh */
+.lb-bar .icon-btn { border: 2px solid #fff1e8; box-shadow: 3px 3px 0 #000; }
+
+@media (prefers-reduced-motion: reduce) { #svg .pin.sel .tab { animation: none; } }
