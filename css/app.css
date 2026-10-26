@@ -308,3 +308,4 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
 main { padding-top: 12px; }
 .stage { padding: 12px; }
 .toolbar { margin: 10px 0 6px; }
+#svg.sch { cursor: zoom-in; }

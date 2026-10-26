@@ -94,7 +94,7 @@
   }
 
   /* ---------- Vẽ PCB ---------- */
-  const TW = 10.5, TH = 2.1, AW = 13, FS = 1.32;
+  const TW = 11.5, TH = 2.3, AW = 13, FS = 1.55;
   const showAlt = () => innerWidth >= 600 || state.zoom > 1;
   function short(p) {
     if (!showAlt() || ["power", "gnd", "ctl", "nc"].includes(p.cat)) return "";
@@ -367,6 +367,15 @@
   const lbOpen = (src, cap) => { lbImg.src = src; $("#lbCap").textContent = cap; Object.assign(V, { s: 1, x: 0, y: 0 }); lbApply(); lb.hidden = false; document.body.style.overflow = "hidden"; };
   const lbClose = () => { lb.hidden = true; document.body.style.overflow = ""; };
   $("#oem").addEventListener("click", e => { const im = e.target.closest("img"); if (im) lbOpen(im.src, im.alt); });
+  // Sơ đồ kiến trúc: chép style tính toán vào từng phần tử rồi xuất SVG thành ảnh để zoom
+  $("#svg").addEventListener("click", () => {
+    if (state.view !== "sch") return;
+    const src = $("#svg"), cl = src.cloneNode(true), a = src.querySelectorAll("*"), b = cl.querySelectorAll("*");
+    a.forEach((n, i) => { const cs = getComputedStyle(n); b[i].setAttribute("style", ["fill", "stroke", "stroke-width", "font-family", "font-size", "font-weight", "opacity"].map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
+    const vb = src.viewBox.baseVal; cl.setAttribute("width", vb.width * 40); cl.setAttribute("height", vb.height * 40);
+    cl.setAttribute("style", "background:" + getComputedStyle(document.body).backgroundColor);
+    lbOpen("data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(cl)), state.b.name + " – Kiến trúc");
+  });
   $("#lbClose").onclick = lbClose; $("#lbIn").onclick = () => lbZoom(1.6); $("#lbOut").onclick = () => lbZoom(1 / 1.6);
   addEventListener("keydown", e => { if (!lb.hidden && e.key === "Escape") lbClose(); });
   const stg = $("#lbStage");

@@ -418,7 +418,128 @@
     ]
   };
 
-  window.BOARDS = [ESP32_C3_SM, ESP32_S3, PICO2W, UNO, RPI];
+
+  /* ---------------- LilyGO T-Display-S3 (nhìn mặt sau, như pinout của LilyGO) ---------------- */
+  // s3() có ghi chú riêng của DevKitC-1 (RGB LED, chân Arduino) → bỏ đi cho board khác
+  const s3b = (n, extra = [], o = {}) => {
+    const p = s3(n);
+    p.fn = p.fn.filter(f => !/RGB LED|^Arduino/.test(f)).concat(extra);
+    p.flags = p.flags.filter(f => f !== "led");
+    return Object.assign(p, o);
+  };
+  const nc = () => pin("NC", { cat: "nc", fn: ["Không kết nối"] });
+  const TDL = [pw("3V3", "Ngõ ra 3.3 V", "Ngõ ra LDO 3.3 V của board."), s3b(1), s3b(2), s3b(3), s3b(10), s3b(11), s3b(12), s3b(13), nc(), nc(), gnd(),
+    pw("5V", "5 V từ USB-C / ngõ vào 5 V", "Cấp 5 V vào đây thì phải kéo GPIO15 (LCD_Power_On) lên HIGH để board chạy.")];
+  const TDR = [gnd(), gnd(), s3b(43), s3b(44), s3b(18, ["I2C SDA (bản Touch)"], { flags: ["adc", "i2c"] }), s3b(17, ["I2C SCL (bản Touch)"], { flags: ["adc", "i2c"] }),
+    s3b(21, ["Touch RES (bản Touch)"]), s3b(16, ["Touch INT (bản Touch)"]), nc(), gnd(), gnd(), pw("3V3", "Ngõ ra 3.3 V", "Ngõ ra LDO 3.3 V của board.")];
+  const TDISPLAY = {
+    id: "lilygo-t-display-s3", tag: "TDS", name: "LilyGO T-Display-S3", vendor: "LilyGO", chip: "ESP32-S3R8 + LCD 1.9\"", family: "ESP32",
+    elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", "Qua GPIO matrix"]],
+    arch: { core: "ESP32-S3R8", coreSub: "8 MB PSRAM + 16 MB flash", blocks: [
+      { side: "L", n: "Cổng USB-C", s: "USB native", k: "usb", bus: "GPIO19 D− · GPIO20 D+" },
+      { side: "L", n: "Sạc pin Li-Po", s: "đo áp pin", k: "power", bus: "GPIO4 (ADC)" },
+      { side: "L", n: "LDO 3.3 V", s: "bật bằng GPIO15", k: "power", bus: "GPIO15 Power On" },
+      { side: "L", n: "Nút BOOT / KEY", s: "2 nút cạnh USB", k: "ctl", bus: "GPIO0 · GPIO14" },
+      { side: "R", n: "LCD 1.9\" ST7789", s: "170×320, song song 8-bit", k: "comm", bus: "D0–D7: GPIO39–42, 45–48" },
+      { side: "R", n: "Điều khiển LCD", s: "WR · RD · DC · CS · RES", k: "comm", bus: "GPIO8 · 9 · 7 · 6 · 5" },
+      { side: "R", n: "Đèn nền LCD", s: "PWM", k: "io", bus: "GPIO38" },
+      { side: "R", n: "Header 2 × 12", s: "14 GPIO ra ngoài", k: "io", bus: "GPIO" }] },
+    summary: "ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm.",
+    w: 26, h: 62, pcb: "black", logic: "3.3 V",
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Màn hình", "1.9\" ST7789, giao tiếp song song 8-bit"], ["Nguồn", "USB-C 5 V hoặc pin Li-Po 3.7 V"], ["Lưu ý", "Chạy bằng pin/5V header phải set GPIO15 = HIGH"], ["Pin", "Đo áp pin ở GPIO4 (chỉ khi rút USB)"]],
+    docs: [
+      ["code", "GitHub LilyGO T-Display-S3 (pinout, ví dụ)", "https://github.com/Xinyuan-LilyGO/T-Display-S3"],
+      ["schematic", "Schematic T-Display-S3", "https://github.com/Xinyuan-LilyGO/T-Display-S3/blob/main/schematic/T_Display_S3.pdf"],
+      ["datasheet", "ESP32-S3 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf"],
+      ["datasheet", "Thư mục datasheet linh kiện (LilyGO)", "https://github.com/Xinyuan-LilyGO/T-Display-S3/tree/main/datasheet"]
+    ],
+    src: "LilyGO T-Display-S3 pinout & README (GitHub), ESP32-S3 Datasheet",
+    note: "Hình nhìn từ MẶT SAU (mặt không có màn hình), giống ảnh pinout của LilyGO. Vị trí linh kiện vẽ gần đúng.",
+    parts: [
+      { t: "hole", x: 3, y: 3, r: 1.1 }, { t: "hole", x: 23, y: 3, r: 1.1 },
+      { t: "ant", x: 4, y: 1, w: 18, h: 6, label: "ANT" },
+      { t: "chip", x: 9, y: 15, w: 8, h: 8, label: "S3R8" },
+      { t: "chip", x: 10, y: 33, w: 6, h: 5, label: "FLASH", small: true },
+      { t: "btn", x: 20.5, y: 50, w: 3, h: 4, label: "RST" },
+      { t: "usb", x: 8.5, y: 56, w: 9, h: 7, label: "USB-C" },
+      { t: "jack", x: 18.5, y: 56, w: 6, h: 5, label: "BAT" }
+    ],
+    headers: [
+      { id: "P2", side: "L", at: -1.6, pins: vcol(1.57, 11, TDL) },
+      { id: "P1", side: "R", at: 27.6, pins: vcol(24.43, 11, TDR) }
+    ]
+  };
+
+  /* ---------------- M5Stack AtomS3 ---------------- */
+  const ATL = [pw("3V3", "Ngõ ra 3.3 V", "Ngõ ra 3.3 V (DC-DC SY8089)."), s3b(5), s3b(6), s3b(7), s3b(8)];
+  const ATR = [s3b(39, ["IMU SCL (MPU6886)"], { flags: ["i2c", "jtag"], warn: "Dùng chung bus I2C với IMU MPU6886 (0x68) trên board." }),
+    s3b(38, ["IMU SDA (MPU6886)"], { flags: ["i2c"], warn: "Dùng chung bus I2C với IMU MPU6886 (0x68) trên board." }),
+    pw("5V", "5 V vào/ra", "Nối 5 V USB-C. Không đưa 5 V vào GPIO."), gnd()];
+  const ATG = [gnd(), pw("5V", "5 V Grove", "Nguồn 5 V cho module Grove."), s3b(2, ["Grove (vàng)"]), s3b(1, ["Grove (trắng)"])];
+  const ATOMS3 = {
+    id: "m5stack-atoms3", tag: "AS3", name: "M5Stack AtomS3", vendor: "M5Stack", chip: "ESP32-S3FN8 + LCD 0.85\"", family: "ESP32",
+    elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", "Qua GPIO matrix"]],
+    arch: { core: "ESP32-S3FN8", coreSub: "8 MB flash trong chip", blocks: [
+      { side: "L", n: "Cổng USB-C", s: "USB native", k: "usb", bus: "GPIO19 · GPIO20" },
+      { side: "L", n: "DC-DC SY8089", s: "5 V → 3.3 V", k: "power", bus: "3V3" },
+      { side: "L", n: "Cổng Grove HY2.0", s: "GND · 5V · G2 · G1", k: "io", bus: "GPIO2 · GPIO1" },
+      { side: "L", n: "Phát hồng ngoại", s: "IR LED", k: "io", bus: "GPIO4" },
+      { side: "R", n: "LCD 0.85\" GC9107", s: "128×128, SPI", k: "comm", bus: "G21 MOSI · G17 SCK · G15 CS" },
+      { side: "R", n: "Điều khiển LCD", s: "RS · RST · đèn nền", k: "comm", bus: "G33 · G34 · G16" },
+      { side: "R", n: "IMU MPU6886", s: "6 trục, I2C 0x68", k: "comm", bus: "G38 SDA · G39 SCL" },
+      { side: "R", n: "Nút bấm (mặt màn)", s: "nhấn cả màn hình", k: "ctl", bus: "GPIO41" }] },
+    summary: "Module 24×24 mm: ESP32-S3, màn hình 0.85 inch, IMU 6 trục, IR, cổng Grove.",
+    w: 24, h: 24, pcb: "black", logic: "3.3 V",
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Kích thước", "24 × 24 × 13 mm"], ["Màn hình", "0.85\" GC9107 128×128 (SPI)"], ["Nút", "Nhấn mặt màn hình = GPIO41"], ["Grove", "G1/G2 (vàng = G2, trắng = G1)"]],
+    docs: [
+      ["guide", "M5Stack AtomS3 Docs", "https://docs.m5stack.com/en/core/AtomS3"],
+      ["schematic", "AtomS3 Schematic", "https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/472/Sch_M5_AtomS3_v1.0.pdf"],
+      ["datasheet", "ESP32-S3 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf"],
+      ["datasheet", "MPU6886 Datasheet", "https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/docs/datasheet/core/MPU-6886-000193%2Bv1.1_GHIC_en.pdf"]
+    ],
+    src: "M5Stack AtomS3 Docs (PinMap), ESP32-S3 Datasheet",
+    note: "Header 2 bên là hàng chân cạnh hông; cổng Grove ở cạnh dưới. Hình nhìn mặt trước, vị trí linh kiện gần đúng.",
+    parts: [
+      { t: "chip", x: 5, y: 2.5, w: 14, h: 14, label: "LCD", sub: "0.85\"" },
+      { t: "jack", x: 6.5, y: 19, w: 11, h: 4.2, label: "GROVE" }
+    ],
+    headers: [
+      { id: "L", side: "L", at: -1.6, pins: vcol(0.9, 6, ATL) },
+      { id: "R", side: "R", at: 25.6, pins: vcol(23.1, 8.54, ATR) },
+      { id: "GROVE", side: "B", at: 25.4, pins: ATG.map((p, i) => ({ ...p, x: 8 + i * 2.7, y: 22.6 })) }
+    ]
+  };
+
+  /* ---------------- Raspberry Pi Pico 2 (RP2350, không Wi-Fi) ---------------- */
+  const PICO2 = {
+    ...PICO2W, id: "pico-2", tag: "P2", name: "Raspberry Pi Pico 2", chip: "RP2350A", oem: null,
+    summary: "2 × Cortex-M33 / Hazard3 RISC-V 150 MHz, 520 KB SRAM, 4 MB flash. Cùng chân với Pico 2 W nhưng không có Wi-Fi.",
+    facts: [["Logic", "3.3 V (GPIO thường chịu 5 V khi có IOVDD)"], ["Kích thước", "51 × 21 mm, 40 chân bước 2.54 mm"], ["ADC", "12-bit, 3 kênh ra ngoài (GP26–28)"], ["Nội bộ", "GP23 chế độ nguồn SMPS, GP24 dò VBUS, GP25 LED, GP29 đo VSYS/3"], ["PIO", "3 khối PIO × 4 state machine"]],
+    docs: [
+      ["datasheet", "Pico 2 Datasheet", "https://datasheets.raspberrypi.com/pico/pico-2-datasheet.pdf"],
+      ["datasheet", "RP2350 Datasheet", "https://datasheets.raspberrypi.com/rp2350/rp2350-datasheet.pdf"],
+      ["pinout", "Pico 2 Pinout (PDF)", "https://datasheets.raspberrypi.com/pico/pico-2-pinout.pdf"],
+      ["guide", "Hardware design with RP2350", "https://datasheets.raspberrypi.com/rp2350/hardware-design-with-rp2350.pdf"]
+    ],
+    src: "Pico 2 Datasheet, RP2350 Datasheet bảng GPIO function",
+    arch: { core: "RP2350A", coreSub: "2 × Cortex-M33 / Hazard3, 520 KB SRAM", blocks: [
+      { side: "L", n: "Cổng Micro-USB", s: "USB 1.1 device/host", k: "usb", bus: "USB_DP/DM" },
+      { side: "L", n: "Buck-boost RT6154", s: "VSYS 1.8–5.5 V → 3V3", k: "power", bus: "GP23 chế độ PS" },
+      { side: "L", n: "QSPI Flash 4 MB", s: "W25Q32", k: "mem", bus: "QSPI" },
+      { side: "L", n: "Đo VBUS / VSYS", s: "phát hiện USB, đo áp", k: "power", bus: "GP24 · GP29 (ADC3)" },
+      { side: "R", n: "LED onboard", s: "xanh lá", k: "io", bus: "GP25" },
+      { side: "R", n: "Nút BOOTSEL", s: "vào chế độ nạp UF2", k: "ctl", bus: "QSPI_SS" },
+      { side: "R", n: "Debug SWD", s: "SWCLK / SWDIO", k: "ctl", bus: "SWD" },
+      { side: "R", n: "Header 2 × 20", s: "26 GPIO, 3 ADC", k: "io", bus: "GP0–22, 26–28" }] },
+    parts: PICO2W.parts.filter(p => p.t !== "shield" && p.t !== "ant").concat([{ t: "led", x: 4, y: 3.5, w: 1.6, h: 1, color: "#3ddc6a", label: "25" }]),
+    headers: [
+      { id: "J1", side: "L", at: -1.6, pins: PICO2W.headers[0].pins.map(p => ({ ...p })) },
+      { id: "J2", side: "R", at: 22.6, pins: PICO2W.headers[1].pins.map(p => ({ ...p })) },
+      { id: "SWD", side: "B", at: 52.6, pins: PICO2W.headers[2].pins.map(p => ({ ...p })) }
+    ]
+  };
+
+  window.BOARDS = [ESP32_C3_SM, ESP32_S3, TDISPLAY, ATOMS3, PICO2W, PICO2, RPI, UNO];
   window.CATS = {
     power: { label: "Nguồn", c: "--c-power" }, gnd: { label: "GND", c: "--c-gnd" }, gpio: { label: "GPIO", c: "--c-gpio" },
     adc: { label: "Analog", c: "--c-adc" }, comm: { label: "UART/I2C", c: "--c-comm" }, usb: { label: "USB", c: "--c-usb" },
