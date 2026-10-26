@@ -1,1 +1,59 @@
-{"name":"Pindex – Thông tin chân & datasheet board","short_name":"Pindex","start_url":"./","display":"standalone","background_color":"#0c1210","theme_color":"#0f1714","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+ "id": "/",
+ "name": "Pindex – Thông tin chân & datasheet board",
+ "short_name": "Pindex",
+ "description": "Tra cứu sơ đồ chân ESP32, Raspberry Pi Pico, Arduino, Raspberry Pi theo datasheet hãng – tiếng Việt & English.",
+ "lang": "vi",
+ "start_url": "/",
+ "scope": "/",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#0b2a33",
+ "theme_color": "#4e6a3a",
+ "categories": [
+  "education",
+  "utilities",
+  "productivity"
+ ],
+ "icons": [
+  {
+   "src": "/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icon-maskable-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "/icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  }
+ ],
+ "screenshots": [
+  {
+   "src": "/og/home.png",
+   "sizes": "1200x630",
+   "type": "image/png",
+   "form_factor": "wide",
+   "label": "Pindex"
+  }
+ ]
+}
