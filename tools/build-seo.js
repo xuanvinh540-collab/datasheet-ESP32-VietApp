@@ -46,14 +46,12 @@ ${list ? `<script type="application/ld+json">${JSON.stringify(list)}</script>\n`
 }
 
 function body(board, en, base) {
-  const shop = window.SHOPEE_LINKS || {};
   const root = base || "";
   // Danh sách board: link nội bộ tới trang board (cho Google đi tiếp) + link mua riêng
   const links = BOARDS.map(x => {
     const href = root + (en ? "en/" : "") + x.id + "/";
-    const sUrl = shop[x.id] || ("https://shopee.vn/search?keyword=" + encodeURIComponent(x.name));
     const cur = board && x.id === board.id;
-    return `<li><a href="${href}"${cur ? ' aria-current="page"' : ""}>${esc(T(x.name, en))}</a> <span class="muted small">${esc(x.chip)}</span> <a class="buy" href="${esc(sUrl)}" target="_blank" rel="noopener sponsored nofollow">${en ? "Buy" : "Mua"} ↗</a></li>`;
+    return `<li><a href="${href}"${cur ? ' aria-current="page"' : ""}>${esc(T(x.name, en))}</a> <span class="muted small">${esc(x.chip)}</span></li>`;
   }).join("");
   const nav = `<h3>${en ? "All boards" : "Tất cả board"}</h3><ul class="seo-links">${links}</ul>`;
 

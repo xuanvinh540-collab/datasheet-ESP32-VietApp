@@ -26,7 +26,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=63">
+<link rel="stylesheet" href="css/app.css?v=66">
 <link rel="stylesheet" href="css/retro.css?v=43" id="skin-8bit" disabled>
 <link rel="stylesheet" href="css/pinout.css?v=43" id="skin-pinout">
 <link rel="stylesheet" href="css/amber.css?v=43" id="skin-amber" disabled>
@@ -68,9 +68,13 @@
       </div>
       <aside class="detail card" id="detail"><div class="grab" aria-hidden="true"></div><div id="detailBody"></div></aside>
     </div>
+    <section class="card buy" id="buyBox" hidden>
+      <div class="buy-h"><h2>Mua board</h2><p class="muted small">Link tiếp thị liên kết tới Shopee. Bạn trả đúng giá niêm yết; Pindex có thể nhận hoa hồng từ người bán. Pindex không bán hàng và không bảo hành sản phẩm.</p></div>
+      <div class="buy-row" id="buyRow"></div>
+    </section>
     <!--SEOBODY--><section class="card spec seo"><h2>Tra cứu sơ đồ chân vi điều khiển</h2>
 <p class="muted">Chức năng từng chân, cảnh báo, thông số điện và linh kiện đi kèm, lấy từ datasheet của hãng, cho các board ESP32, Raspberry Pi Pico, Raspberry Pi và Arduino.</p>
-<h3>Tất cả board</h3><ul class="seo-links"><li><a href="esp32-c3-devkitm-1/">ESP32-C3-DevKitM-1</a> <span class="muted small">ESP32-C3 (MINI-1)</span> <a class="buy" href="https://shopee.vn/search?keyword=ESP32-C3-DevKitM-1" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li><li><a href="esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span> <a class="buy" href="https://shopee.vn/search?keyword=ESP32-C3%20Super%20Mini" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li><li><a href="esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span> <a class="buy" href="https://shopee.vn/search?keyword=ESP32-S3-DevKitC-1" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li><li><a href="lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span> <a class="buy" href="https://shopee.vn/search?keyword=LilyGO%20T-Display-S3" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li><li><a href="pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span> <a class="buy" href="https://shopee.vn/search?keyword=Raspberry%20Pi%20Pico%202%20W" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li><li><a href="pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span> <a class="buy" href="https://shopee.vn/search?keyword=Raspberry%20Pi%20Pico%202" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li><li><a href="raspberry-pi-40pin/">Raspberry Pi 4 / 5 (GPIO 40 chân)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span> <a class="buy" href="https://shopee.vn/search?keyword=Raspberry%20Pi%205" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li><li><a href="arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span> <a class="buy" href="https://shopee.vn/search?keyword=Arduino%20Uno%20R3" target="_blank" rel="noopener sponsored nofollow">Mua ↗</a></li></ul><h3>Sơ đồ chân linh kiện</h3><ul class="seo-links"><li><b>Màn hình &amp; Hiển thị:</b> OLED 0.96&quot;, ST7789, LED 7 đoạn, WS2812</li><li><b>Cảm biến:</b> HC-SR04, VL53L0X, MPU6050, DHT22, Ánh sáng LDR</li><li><b>Âm thanh &amp; Còi:</b> Buzzer, MAX98357A, INMP441</li><li><b>Điều khiển &amp; Cơ bản:</b> Nút bấm, Đèn LED</li></ul></section><!--/SEOBODY-->
+<h3>Tất cả board</h3><ul class="seo-links"><li><a href="esp32-c3-devkitm-1/">ESP32-C3-DevKitM-1</a> <span class="muted small">ESP32-C3 (MINI-1)</span></li><li><a href="esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span></li><li><a href="esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="raspberry-pi-40pin/">Raspberry Pi 4 / 5 (GPIO 40 chân)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li></ul><h3>Sơ đồ chân linh kiện</h3><ul class="seo-links"><li><b>Màn hình &amp; Hiển thị:</b> OLED 0.96&quot;, ST7789, LED 7 đoạn, WS2812</li><li><b>Cảm biến:</b> HC-SR04, VL53L0X, MPU6050, DHT22, Ánh sáng LDR</li><li><b>Âm thanh &amp; Còi:</b> Buzzer, MAX98357A, INMP441</li><li><b>Điều khiển &amp; Cơ bản:</b> Nút bấm, Đèn LED</li></ul></section><!--/SEOBODY-->
     <section class="card spec" id="spec" hidden>
       <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
       <div class="chips" id="specTabs" role="tablist"></div>
@@ -123,12 +127,12 @@
   <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
   <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
 </div>
-<script src="js/i18n-data.js?v=64"></script>
+<script src="js/i18n-data.js?v=65"></script>
 <script src="js/i18n.js?v=64"></script>
-<script src="js/boards.js?v=55"></script>
+<script src="js/boards.js?v=65"></script>
 <script src="js/specs.js?v=43"></script>
 <script src="js/learn.js?v=43"></script>
 <script src="js/modules.js?v=63"></script>
-<script src="js/app.js?v=64"></script>
+<script src="js/app.js?v=65"></script>
 </body>
 </html>

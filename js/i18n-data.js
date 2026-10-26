@@ -814,5 +814,7 @@ window.EN_DATA = {
 "File này của board khác.": "This file belongs to a different board.",
 "Link Connect không hợp lệ.": "That Connect link is not valid.",
 "Đã copy": "Copied",
-"Đã copy link Connect": "Connect link copied"
+"Đã copy link Connect": "Connect link copied",
+"Mua board": "Buy a board",
+"Link tiếp thị liên kết tới Shopee. Bạn trả đúng giá niêm yết; Pindex có thể nhận hoa hồng từ người bán. Pindex không bán hàng và không bảo hành sản phẩm.": "Affiliate links to Shopee. You pay the listed price; Pindex may earn a commission from the seller. Pindex does not sell these boards and offers no warranty on them."
 };

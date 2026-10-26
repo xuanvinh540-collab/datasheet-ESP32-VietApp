@@ -196,8 +196,8 @@ main { max-width: 1320px; margin: 0 auto; padding: 14px max(16px, env(safe-area-
 /* Danh sách board xếp thành cột bên trái (iPad ngang/desktop), lưới 2 cột trên điện thoại */
 @media (min-width: 900px) {
   section[data-panel="pins"] { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 14px; align-items: start; }
-  section[data-panel="pins"] > .boards { grid-row: 1 / span 4; position: sticky; top: 76px; flex-direction: column; overflow: visible; padding: 0; margin: 0; }
-  section[data-panel="pins"] > .spec { grid-column: 2; margin-top: 0; }
+  section[data-panel="pins"] > .boards { grid-row: 1 / span 5; position: sticky; top: 76px; flex-direction: column; overflow: visible; padding: 0; margin: 0; }
+  section[data-panel="pins"] > .spec, section[data-panel="pins"] > .buy { grid-column: 2; margin-top: 0; }
   .board-card { min-width: 0; width: 100%; }
   .layout { grid-template-columns: minmax(0, 1fr) 340px; }
 }
@@ -506,3 +506,27 @@ main { padding-top: 12px; }
 .seo-links .buy { font: 600 11px var(--mono); color: var(--muted); text-decoration: none; }
 .seo-links .buy:hover { color: var(--accent); }
 .seo-links li { line-height: 1.7; }
+
+/* Thẻ "Mua board" ngay dưới khung xem board: ảnh thật (hoặc icon vẽ từ dữ liệu PCB) + link tiếp thị liên kết */
+.buy { margin-top: 12px; padding: 14px; }
+.buy-h h2 { margin: 0 0 2px; font-size: 17px; }
+.buy-h p { margin: 0 0 10px; }
+.buy-row { display: grid; grid-auto-flow: column; grid-auto-columns: 182px; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+.buy-card { display: grid; grid-template-columns: 46px minmax(0, 1fr); grid-template-rows: auto auto; gap: 2px 10px; align-items: center; scroll-snap-align: start;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); color: var(--fg); text-decoration: none; }
+.buy-card:hover { border-color: var(--accent); }
+.buy-card.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.buy-pic { grid-row: 1 / 3; width: 46px; height: 46px; display: grid; place-items: center; overflow: hidden; border-radius: 8px; background: var(--canvas); }
+.buy-pic img, .buy-pic svg { width: 100%; height: 100%; object-fit: contain; display: block; }
+.buy-txt { min-width: 0; display: grid; }
+.buy-txt b { font-size: 12.5px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buy-txt .small { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buy-go { grid-column: 2; justify-self: start; font: 600 11px var(--mono); color: var(--accent); }
+@media (max-width: 560px) { .buy-row { grid-auto-columns: 164px; } }
+
+/* Bảng chân ở khối SEO: cuộn trong khung ~6 dòng, tiêu đề cột dính trên */
+.seo .tw { max-height: 268px; overflow-y: auto; scrollbar-width: thin; border: 1px solid var(--line); border-radius: 10px; }
+.seo .tw table { margin: 0; min-width: 620px; }
+.seo .tw td, .seo .tw th { white-space: normal; }
+.seo .tw td:nth-child(-n+4) { white-space: nowrap; }
+.seo .tw thead th { position: sticky; top: 0; z-index: 1; background: var(--surface2); }

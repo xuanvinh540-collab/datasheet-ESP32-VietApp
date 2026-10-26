@@ -321,7 +321,7 @@
     $("#viewPcb").setAttribute("aria-pressed", state.view === "pcb");
     $("#viewSch").setAttribute("aria-pressed", state.view === "sch");
     $("#bTitle").textContent = state.b.name;
-    renderSeoTable();
+    renderSeoTable(); renderBuy();
     const en = document.documentElement.lang === "en", bn = en ? (window.EN_DATA || {})[state.b.name] || state.b.name : state.b.name;
     document.title = en ? `${bn} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${bn} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
     $("#bSub").textContent = state.b.mod ? `Linh kiện · ${state.b.chip} · nguồn ${state.b.logic}` : `${state.b.vendor} · ${state.b.chip} · logic ${state.b.logic}`;
@@ -410,11 +410,10 @@
   /* Khung bên dưới: Tra cứu sơ đồ chân vi điều khiển + Tài liệu hãng + Tất cả board (link Shopee Affiliate) */
   function renderSeoTable() {
     const box = document.querySelector(".seo"); if (!box) return;
-    const b = state.b, en = document.documentElement.lang === "en", shop = window.SHOPEE_LINKS || {};
+    const b = state.b, en = document.documentElement.lang === "en";
     const links = BOARDS.map(x => {
       const href = (en ? "en/" : "") + x.id + "/";
-      const sUrl = shop[x.id] || ("https://shopee.vn/search?keyword=" + encodeURIComponent(x.name));
-      return `<li><a href="${href}"${x.id === b.id ? ' aria-current="page"' : ""}>${esc(x.name)}</a> <span class="muted small">${esc(x.chip)}</span> <a class="buy" href="${esc(sUrl)}" target="_blank" rel="noopener sponsored nofollow">${en ? "Buy" : "Mua"} ↗</a></li>`;
+      return `<li><a href="${href}"${x.id === b.id ? ' aria-current="page"' : ""}>${esc(x.name)}</a> <span class="muted small">${esc(x.chip)}</span></li>`;
     }).join("");
     const nav = `<h3>${en ? "All boards" : "Tất cả board"}</h3><ul class="seo-links">${links}</ul>`;
     if (b.mod) {   // trang linh kiện: không có bảng chân tĩnh, chỉ danh sách board
@@ -430,6 +429,25 @@
       ${docs ? `<h3>${en ? "Manufacturer documents" : "Tài liệu hãng"}</h3><ul class="seo-links">${docs}</ul>` : ""}${nav}`;
   }
 
+
+  /* ---------- Thẻ mua board (tiếp thị liên kết) ---------- */
+  function renderBuy() {
+    const box = $("#buyBox"), row = $("#buyRow"); if (!box) return;
+    const shop = window.SHOPEE_LINKS || {}, ph = window.BOARD_PHOTOS || {};
+    box.hidden = !!state.b.mod;                       // trang linh kiện: chưa có link mua
+    if (box.hidden) return;
+    const en = document.documentElement.lang === "en";
+    // board đang xem đứng đầu, phần còn lại giữ nguyên thứ tự
+    const list = [state.b, ...BOARDS.filter(b => b !== state.b)];
+    row.innerHTML = list.map(b => {
+      const url = shop[b.id] || ("https://shopee.vn/search?keyword=" + encodeURIComponent(b.name));
+      const pic = ph[b.id] ? `<img src="${esc(ph[b.id])}" alt="" loading="lazy" decoding="async">` : boardIcon(b);
+      return `<a class="buy-card${b === state.b ? " on" : ""}" href="${esc(url)}" target="_blank" rel="noopener sponsored nofollow">
+        <span class="buy-pic">${pic}</span>
+        <span class="buy-txt"><b>${esc(b.name)}</b><span class="muted small">${esc(b.chip)}</span></span>
+        <span class="buy-go">${en ? "Buy" : "Mua"} ↗</span></a>`;
+    }).join("");
+  }
 
   /* ---------- Thông số chip ---------- */
   function renderSpec(i = 0) {
