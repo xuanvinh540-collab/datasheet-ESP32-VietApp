@@ -146,3 +146,21 @@
 .daynight button[aria-pressed="true"] { background: #f4f2dc; color: #2a3110; }
 .appbar .skin { border-radius: 0; border: 2px solid #000; background: rgba(0,0,0,.25); color: #f4f2dc; font: 18px var(--vt); }
 .appbar .skin option { color: #000; }
+
+/* 8-bit tông "đại dương retro": xanh biển sâu, cam san hô, vàng tiêu đề, xanh ngọc bọt nước */
+:root { --olive: #1f6f7a; --olive-hi: #7fd1c4; --olive-fg: #fff6dc; --accent: #e8672a; --accent-fg: #fff6dc;
+  --bg: #e6f2ee; --surface: #f6fbf8; --surface2: #cfe7e2; --canvas: #d7ece8; --line: #0d2f3a; --hard: #0d2f3a; --fg: #0d2f3a; --muted: #3f6670;
+  --c-gpio: #2fa37c; --c-strap: #f5d63d; --c-usb: #f28b3c; --c-power: #e2442f; --c-comm: #2f8fd6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --olive: #1f6f7a; --olive-hi: #7fd1c4; --accent: #e8672a;
+  --bg: #071c24; --surface: #0d2c37; --surface2: #133a47; --canvas: #062029; --line: #1f5563; --hard: #000; --fg: #e9f6f1; --muted: #8fb7bb; } }
+:root[data-theme="dark"] { --olive: #1f6f7a; --olive-hi: #7fd1c4; --accent: #e8672a;
+  --bg: #071c24; --surface: #0d2c37; --surface2: #133a47; --canvas: #062029; --line: #1f5563; --hard: #000; --fg: #e9f6f1; --muted: #8fb7bb; }
+.appbar { background: linear-gradient(180deg, #0f4a59, #0b3542); }
+.brand b { color: #f5d63d; text-shadow: 2px 2px 0 #000; }
+.appbar .tabbar button[aria-selected="true"], .daynight button[aria-pressed="true"] { background: #f5d63d; color: #0d2f3a; }
+.stage-head h1, .spec h2, .d-head h2 { color: #f5d63d; text-shadow: 2px 2px 0 rgba(0,0,0,.45); }
+:root[data-theme="light"] .stage-head h1, :root[data-theme="light"] .spec h2, :root[data-theme="light"] .d-head h2 { color: #c4511e; text-shadow: none; }
+.seg button[aria-pressed="true"], .stab[aria-pressed="true"], .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.board-card[aria-pressed="true"] { border-color: #e8672a; box-shadow: 3px 3px 0 #e8672a; }
+.code { background: #04161c; color: #7fd1c4; }

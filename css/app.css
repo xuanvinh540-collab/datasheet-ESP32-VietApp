@@ -309,3 +309,6 @@ main { padding-top: 12px; }
 .stage { padding: 12px; }
 .toolbar { margin: 10px 0 6px; }
 #svg.sch { cursor: zoom-in; }
+
+/* Bỏ lưới nền trong khung hình board (mọi giao diện) */
+.canvas, :root:not([data-theme="light"]) .canvas { background-image: none !important; }
