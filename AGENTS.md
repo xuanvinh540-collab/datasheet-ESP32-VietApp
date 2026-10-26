@@ -38,7 +38,7 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
    link tiếp thị liên kết lấy từ `js/affiliates.js` theo **vùng** (`vn` Shopee / `intl` AliExpress).
    Vùng đoán theo múi giờ rồi ngôn ngữ, người dùng đổi được và lưu vào `localStorage.region`.
    Link luôn mang `rel="noopener sponsored nofollow"` và có dòng công khai là link tiếp thị.
-10. **Trang admin** (`js/admin.js`, chỉ tải khi mở bằng Ctrl+Shift+E hoặc `?edit` qua đoạn nạp inline trong `index.html`).
+10. **Trang admin** (`js/admin.js`, chỉ tải khi mở bằng Ctrl+Shift+E, `?edit` hoặc bấm logo 5 lần, qua đoạn nạp inline trong `index.html`; đoạn nạp phải đứng TRƯỚC `app.js` vì app xoá `?edit` khỏi URL ngay khi khởi động).
    Đăng nhập: `js/admin-auth.js` chứa `{salt, iter, hash}` PBKDF2-SHA256; `null` = chưa đặt, lần đầu mở sẽ hỏi đặt mật khẩu.
    Tab "Link mua hàng" ghi `js/affiliates.js`; tab "Giao diện" (token màu ngày/đêm, font, cỡ chữ) và chế độ "Sửa trực tiếp"
    (nhấp phải vào phần tử) ghi `css/custom.css`; thay thumbnail Mua board ghi `js/images.js` + `img/uploads/`.

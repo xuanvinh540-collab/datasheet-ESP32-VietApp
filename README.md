@@ -32,7 +32,7 @@ Chi tiết dành cho người (hoặc AI) sửa code nằm trong [AGENTS.md](AGE
 
 ## Trang admin
 
-Không cần máy chủ. Mở trang **trên máy có thư mục dự án** (Chrome hoặc Edge), bấm **Ctrl + Shift + E** hoặc thêm `?edit` vào URL.
+Không cần máy chủ. Mở trang **trên máy có thư mục dự án** (Chrome hoặc Edge), mở admin bằng một trong ba cách: **Ctrl + Shift + E**, thêm `?edit` vào URL, hoặc **bấm logo 5 lần liền** (cách này dùng được cả trên điện thoại).
 
 - **Lần đầu** trang hỏi đặt mật khẩu (từ 10 ký tự). Mật khẩu được băm PBKDF2 rồi lưu vào `js/admin-auth.js`, không lưu mật khẩu thật.
 - **Link mua hàng:** sửa link tiếp thị cho từng board, từng vùng (Việt Nam / Quốc tế).

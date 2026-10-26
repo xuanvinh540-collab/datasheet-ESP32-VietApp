@@ -550,8 +550,8 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=95");
-    if (!window.BUILD) await loadJs("js/build.js?v=95");
+    if (!window.MODULES) await loadJs("js/modules.js?v=96");
+    if (!window.BUILD) await loadJs("js/build.js?v=96");
     setTab("build"); BUILD.open(h);
   }
   document.addEventListener("click", e => {
