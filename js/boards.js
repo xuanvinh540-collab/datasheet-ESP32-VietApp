@@ -232,7 +232,7 @@
     ctl("SWDIO", "Debug SWD data", "Cổng debug SWD.")
   ];
   const PICO2W = {
-    id: "pico-2-w",
+    id: "pico-2-w", photo: { src: "sch/pico-2-w-board.jpg", credit: "Ảnh board: Raspberry Pi Ltd – Pico 2 W Pinout" },
     arch: { core: "RP2350A", coreSub: "2 × Cortex-M33 / Hazard3, 520 KB SRAM", blocks: [
       { side: "L", n: "Cổng Micro-USB", s: "USB 1.1 device/host", k: "usb", bus: "USB_DP/DM" },
       { side: "L", n: "Buck-boost RT6154", s: "VSYS 1.8–5.5 V → 3V3", k: "power", bus: "3V3" },
@@ -266,7 +266,7 @@
     headers: [
       { id: "J1", side: "L", at: -1.6, pins: vcol(1.61, 1.37, PL) },
       { id: "J2", side: "R", at: 22.6, pins: vcol(19.39, 1.37, PR) },
-      { id: "SWD", side: "B", at: 52.6, pins: PD.map((p, i) => ({ ...p, x: 7.96 + i * 2.54, y: 49.6 })) }
+      { id: "SWD", side: "B", at: 52.6, pins: PD.map((p, i) => ({ ...p, x: 10.7 + i * 2.65, y: 31.3 })) }
     ]
   };
 
@@ -512,7 +512,7 @@
 
   /* ---------------- Raspberry Pi Pico 2 (RP2350, không Wi-Fi) ---------------- */
   const PICO2 = {
-    ...PICO2W, id: "pico-2", tag: "P2", name: "Raspberry Pi Pico 2", chip: "RP2350A", oem: null,
+    ...PICO2W, id: "pico-2", tag: "P2", photo: null, name: "Raspberry Pi Pico 2", chip: "RP2350A", oem: null,
     summary: "2 × Cortex-M33 / Hazard3 RISC-V 150 MHz, 520 KB SRAM, 4 MB flash. Cùng chân với Pico 2 W nhưng không có Wi-Fi.",
     facts: [["Logic", "3.3 V (GPIO thường chịu 5 V khi có IOVDD)"], ["Kích thước", "51 × 21 mm, 40 chân bước 2.54 mm"], ["ADC", "12-bit, 3 kênh ra ngoài (GP26–28)"], ["Nội bộ", "GP23 chế độ nguồn SMPS, GP24 dò VBUS, GP25 LED, GP29 đo VSYS/3"], ["PIO", "3 khối PIO × 4 state machine"]],
     docs: [
@@ -535,7 +535,7 @@
     headers: [
       { id: "J1", side: "L", at: -1.6, pins: PICO2W.headers[0].pins.map(p => ({ ...p })) },
       { id: "J2", side: "R", at: 22.6, pins: PICO2W.headers[1].pins.map(p => ({ ...p })) },
-      { id: "SWD", side: "B", at: 52.6, pins: PICO2W.headers[2].pins.map(p => ({ ...p })) }
+      { id: "SWD", side: "B", at: 52.6, pins: PICO2W.headers[2].pins.map((p, i) => ({ ...p, x: 7.96 + i * 2.54, y: 49.6 })) }
     ]
   };
 

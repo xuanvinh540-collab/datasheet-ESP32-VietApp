@@ -116,7 +116,9 @@
     const board = el("g", { class: "board" }, svg);
     el("rect", { x: 0, y: 0, width: b.w, height: b.h, rx: 1.2, fill, stroke: edge, "stroke-width": .5 }, board);
     el("rect", { x: .6, y: .6, width: b.w - 1.2, height: b.h - 1.2, rx: .8, fill: "none", stroke: "rgba(255,255,255,.07)", "stroke-width": .25 }, board);
-    b.parts.forEach(pt => drawPart(board, pt));
+    // Có ảnh board chính thức thì dùng ảnh làm nền (đã cắt khớp toạ độ chân), không vẽ linh kiện giả
+    if (b.photo) el("image", { href: b.photo.src, x: 0, y: 0, width: b.w, height: b.h, preserveAspectRatio: "none" }, board);
+    else b.parts.forEach(pt => drawPart(board, pt));
 
     b.headers.forEach(hd => {
       const lead = el("g", { class: "leads" }, svg);
@@ -243,8 +245,8 @@
     $("#viewSch").setAttribute("aria-pressed", state.view === "sch");
     $("#bTitle").textContent = state.b.name;
     $("#bSub").textContent = `${state.b.vendor} · ${state.b.chip} · logic ${state.b.logic}`;
-    $("#bNote").textContent = state.b.note || "";
-    $("#bNote").hidden = !state.b.note;
+    const note = [state.b.note, state.view === "pcb" && state.b.photo ? state.b.photo.credit : ""].filter(Boolean).join(" · ");
+    $("#bNote").textContent = note; $("#bNote").hidden = !note;
     applyDim();
   }
 
