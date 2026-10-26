@@ -393,12 +393,15 @@
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });
   $("#q").oninput = e => { state.q = e.target.value; applyDim(); };
   document.querySelectorAll("#calc input, #calc select").forEach(i => i.addEventListener("input", calc));
-  $("#theme").onclick = () => {
-    const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    r.dataset.theme = dark ? "light" : "dark";
-    try { localStorage.setItem("theme", r.dataset.theme); } catch (e) { }
+  // Mặt trời = sáng, mặt trăng = tối; chưa chọn thì theo hệ điều hành
+  const setTheme = t => {
+    document.documentElement.dataset.theme = t;
+    $("#tLight").setAttribute("aria-pressed", t === "light"); $("#tDark").setAttribute("aria-pressed", t === "dark");
+    try { localStorage.setItem("theme", t); } catch (e) { }
   };
-  try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) { }
+  $("#tLight").onclick = () => setTheme("light"); $("#tDark").onclick = () => setTheme("dark");
+  { let t = null; try { t = localStorage.getItem("theme"); } catch (e) { }
+    setTheme(t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")); }
   // Chọn bộ giao diện: bật/tắt file CSS tương ứng; SVG vẽ lại để nhận font mới
   const setSkin = k => {
     $("#skin-8bit").disabled = k !== "8bit"; $("#skin-pinout").disabled = k !== "pinout" && k !== "amber"; $("#skin-amber").disabled = k !== "amber";

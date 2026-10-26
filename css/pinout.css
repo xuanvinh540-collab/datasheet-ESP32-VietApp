@@ -54,3 +54,6 @@ body { font-family: var(--sans); }
 #svg .pad { fill: var(--navy); stroke: #c9b76a; stroke-width: .25; }
 #svg .tab { rx: .3; }
 #svg .pin.sel .ring { stroke: #f4f2e6; stroke-width: .45; }
+.daynight { border: 0; background: rgba(0,0,0,.2); border-radius: 4px; }
+.daynight button { color: #e3eadb; }
+.daynight button[aria-pressed="true"] { background: #f4f2e6; color: var(--leaf); }
