@@ -543,3 +543,8 @@ main { padding-top: 12px; }
 .adm-row a { text-decoration: none; }
 .adm-note { color: var(--muted); font-size: 13px; }
 @media (max-width: 620px) { .adm-row { grid-template-columns: 1fr auto; } .adm-row span { grid-column: 1 / -1; } }
+/* Nền tối: quầng trắng mờ lan quanh logo cho nổi khối */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar .brand img {
+  filter: drop-shadow(0 0 3px rgba(255,255,255,.95)) drop-shadow(0 0 9px rgba(255,255,255,.6)) drop-shadow(0 0 20px rgba(255,255,255,.3)); } }
+:root[data-theme="dark"] .appbar .brand img {
+  filter: drop-shadow(0 0 3px rgba(255,255,255,.95)) drop-shadow(0 0 9px rgba(255,255,255,.6)) drop-shadow(0 0 20px rgba(255,255,255,.3)); }
