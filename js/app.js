@@ -38,7 +38,7 @@
     pins = state.b.headers.flatMap(hd => hd.pins);
     state.sel = pinName ? pins.find(p => p.name === pinName) || null : null;
     state.flag = null; state.q = ""; $("#q").value = "";
-    renderBoardList(); renderFilters(); draw(); renderDetail(); renderDocs(); syncHash();
+    renderBoardList(); renderFilters(); draw(); renderDetail(); renderDocs(); renderSpec(); syncHash();
     const active = $("#boards [aria-pressed=true]"); if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
   }
   function syncHash() {
@@ -274,6 +274,18 @@
   const docList = docs => `<ul class="docs">${docs.map(([k, label, url]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener"><span class="dk">${KIND[k] || k}</span><span>${esc(label)}</span><span class="ext">↗</span></a></li>`).join("")}</ul>`;
   function renderDocs() {
     $("#docsAll").innerHTML = BOARDS.map(b => `<section class="card"><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.chip)} · ${esc(b.vendor)}</p>${docList(b.docs)}</section>`).join("");
+  }
+
+  /* ---------- Thông số chip ---------- */
+  function renderSpec(i = 0) {
+    const sp = (window.SPECS || {})[state.b.id];
+    $("#spec").hidden = !sp; $("#ref").hidden = !(sp && sp.ref);
+    if (!sp) return;
+    $("#specNote").textContent = sp.note || "";
+    const tabs = $("#specTabs"); tabs.innerHTML = "";
+    sp.tabs.forEach(([t], k) => { const c = h("button", "chip", esc(t)); c.setAttribute("aria-pressed", k === i); c.onclick = () => renderSpec(k); tabs.appendChild(c); });
+    $("#specBody").innerHTML = sp.tabs[i][1];
+    if (sp.ref) $("#refBody").innerHTML = sp.ref;
   }
 
   /* ---------- Tính toán ---------- */

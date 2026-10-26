@@ -1,6 +1,6 @@
 // Cache để mở offline: mạng trước, lỗi mạng thì lấy cache
-const C = "pin-explorer-v1";
-self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(["./", "index.html", "css/app.css", "js/boards.js", "js/app.js", "icon.svg"]))); });
+const C = "pin-explorer-v2";
+self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(["./", "index.html", "css/app.css", "js/boards.js", "js/app.js", "js/specs.js", "icon.svg"]))); });
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
