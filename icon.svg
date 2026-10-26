@@ -1,1 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#157a50"/><rect x="20" y="14" width="24" height="36" rx="3" fill="#0d2a1d"/><g fill="#e2c46a"><circle cx="14" cy="20" r="3"/><circle cx="14" cy="32" r="3"/><circle cx="14" cy="44" r="3"/><circle cx="50" cy="20" r="3"/><circle cx="50" cy="32" r="3"/><circle cx="50" cy="44" r="3"/></g><rect x="26" y="22" width="12" height="12" rx="1.5" fill="#e9f2ec"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 193 193" width="193" height="193">
+  <defs>
+    <linearGradient id="nv" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#062B5B"/><stop offset="100%" stop-color="#041E42"/></linearGradient>
+    <linearGradient id="nb" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#064273"/><stop offset="100%" stop-color="#052952"/></linearGradient>
+    <linearGradient id="cy" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00A8E8"/><stop offset="100%" stop-color="#00C2F7"/></linearGradient>
+    <linearGradient id="bn" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0093E9"/><stop offset="100%" stop-color="#007ADF"/></linearGradient>
+  </defs>
+  <!-- Biểu tượng PX kiểu mạch in: chữ P navy + hệ mạch chéo cyan -->
+  <g transform="translate(-5, 23)">
+    <path fill="url(#nb)" d="M 14 55.2 L 32 55.2 L 32 91 L 14 109 Z"/>
+    <rect fill="#00C2F7" x="14" y="53.4" width="18" height="1.8"/>
+    <path fill="url(#nv)" d="M 14 10 L 70 10 Q 74 10 76.8 12.8 L 101.5 37.5 Q 105.5 41.5 101.5 45.5 L 76.8 70.2 Q 73.5 73.5 68.5 73.5 L 67 73.5 L 67 56 L 80.5 42.5 L 66 28 L 32 28 L 32 53.4 L 14 53.4 Z"/>
+    <polygon fill="#00A6D6" points="78.5,44.5 81.2,41.8 93.8,54.4 91.1,57.1"/>
+    <rect fill="url(#cy)" x="42" y="56" width="25" height="17.5"/>
+    <g transform="translate(109.5, 58.5) rotate(-45)">
+      <path fill="url(#nv)" d="M -7.25 11.5 L 7.25 11.5 L 7.25 43.5 A 7.25 7.25 0 0 1 -7.25 43.5 Z"/>
+      <g fill="url(#cy)">
+        <rect x="-40.5" y="-7.25" width="29" height="14.5" rx="1"/>
+        <rect x="-46.5" y="-3.8" width="8" height="7.6"/>
+        <circle cx="-54.5" cy="0" r="10.5"/>
+      </g>
+      <circle cx="-54.5" cy="0" r="4.3" fill="#fff"/>
+      <g fill="url(#cy)">
+        <rect x="7.25" y="-7.25" width="30.25" height="14.5" rx="1"/>
+        <rect x="35.5" y="-3.8" width="8" height="7.6"/>
+        <circle cx="51.5" cy="0" r="10.5"/>
+      </g>
+      <circle cx="51.5" cy="0" r="4.3" fill="#fff"/>
+      <rect fill="url(#bn)" x="-7.25" y="-7.25" width="14.5" height="14.5"/>
+    </g>
+  </g>
+</svg>

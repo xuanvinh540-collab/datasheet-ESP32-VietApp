@@ -1,7 +1,7 @@
 /* Layout: appbar → danh sách board cuộn ngang → hình (trái) + panel chi tiết (phải, iPad/desktop) hoặc bottom sheet (điện thoại) */
 :root {
   --bg: #eef1ef; --surface: #fff; --surface2: #f5f7f6; --fg: #14201a; --muted: #5d6b63; --line: #d6ded9;
-  --accent: #157a50; --accent-fg: #fff;
+  --accent: #0a4d8c; --accent-fg: #fff;
   --c-power: #d33b3b; --c-gnd: #3f4542; --c-gpio: #23945a; --c-adc: #8655d4; --c-comm: #2b78d0;
   --c-usb: #e07b1f; --c-strap: #e2ad00; --c-ban: #9aa39e; --c-ctl: #64748b;
   --ok: #1d8a52; --warn: #b77900; --ban: #c03636; --info: #5b6b78;
@@ -13,11 +13,11 @@
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0c1210; --surface: #141c18; --surface2: #18221d; --fg: #e3ebe6; --muted: #92a399; --line: #26332c;
-  --accent: #46c08a; --accent-fg: #06120c; --c-gnd: #59615c; --c-ban: #5f6964; --canvas: #0f1613;
+  --accent: #00AEEF; --accent-fg: #042038; --c-gnd: #59615c; --c-ban: #5f6964; --canvas: #0f1613;
   --shadow: none; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #0c1210; --surface: #141c18; --surface2: #18221d; --fg: #e3ebe6; --muted: #92a399; --line: #26332c;
-  --accent: #46c08a; --accent-fg: #06120c; --c-gnd: #59615c; --c-ban: #5f6964; --canvas: #0f1613;
+  --accent: #00AEEF; --accent-fg: #042038; --c-gnd: #59615c; --c-ban: #5f6964; --canvas: #0f1613;
   --shadow: none; color-scheme: dark; }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -507,3 +507,12 @@ main { padding-top: 12px; }
 .seo .tw td, .seo .tw th { white-space: normal; }
 .seo .tw td:nth-child(-n+4) { white-space: nowrap; }
 .seo .tw thead th { position: sticky; top: 0; z-index: 1; background: var(--surface2); }
+
+/* Wordmark PINDEXIO: PIN và IO navy, DEX cyan (trên nền đậm thì PIN/IO dùng màu sáng cho đọc được) */
+/* Logo lockup: nền trắng để navy + cyan của thương hiệu hiện đúng màu trên mọi giao diện */
+.appbar .brand { background: #fff; padding: 5px 12px 5px 6px; border-radius: 12px; }
+.brand .wm span { display: inline; font: inherit; color: inherit; }
+.brand .wm { display: block; white-space: nowrap; font: 800 17px/1.15 var(--sans); letter-spacing: .04em; }
+.brand .wm .wm-n { color: #041E42; }
+.brand .wm .wm-c { color: #00AEEF; }
+.appbar .brand span { color: #52708c; }
