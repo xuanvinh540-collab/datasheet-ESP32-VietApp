@@ -1,20 +1,33 @@
-/* Theme "Pindex": tông navy + cyan theo logo, font Ubuntu */
+/* Theme "Pindex" – hai vùng rõ rệt:
+   ☀ Ban ngày: navy + cyan sáng theo logo
+   ☾ Ban đêm: xanh ô liu tối pha chút xanh lá, để mắt dễ chịu và phân biệt hẳn với ban ngày */
 :root {
   --sans: "Ubuntu", system-ui, sans-serif; --mono: "Ubuntu Mono", ui-monospace, monospace;
-  --bg: #eef3f8; --surface: #ffffff; --surface2: #e3ecf5; --fg: #0b1f38; --muted: #526984; --line: #c5d5e4;
+  --bg: #e9f1f7; --surface: #f8fbfd; --surface2: #dde9f3; --fg: #06264a; --muted: #4d6c8c; --line: #bbd4e6;
   --navy: #041E42; --navy-2: #064273; --cyan: #00AEEF; --cyan-2: #00C2F7;
-  --accent: #0a4d8c; --accent-fg: #fff;
-  --c-power: #e0312f; --c-gnd: #3c4a5a; --c-gpio: #0a9b6e; --c-adc: #7a5fb5; --c-comm: #00AEEF;
-  --c-usb: #e07b1f; --c-strap: #d9a400; --c-ban: #93a3b3; --c-ctl: #5c6e82;
-  --ok: #0a7d58; --warn: #a77d00; --ban: #c42a28; --info: #526984; --canvas: #dde7f1;
-  --r: 4px; --shadow: 0 1px 0 rgba(4,30,66,.1); color-scheme: light;
+  --accent: #0b93cf; --accent-fg: #fff;
+  --c-power: #e8392f; --c-gnd: #46586b; --c-gpio: #00a37a; --c-adc: #8257e0; --c-comm: #00AEEF;
+  --c-usb: #f08a1c; --c-strap: #e0ad00; --c-ban: #9db4c7; --c-ctl: #5f7b96;
+  --ok: #0a8f63; --warn: #b08400; --ban: #d13229; --info: #4d6c8c; --canvas: #d6e6f2;
+  --r: 4px; --shadow: 0 1px 0 rgba(4,30,66,.08); color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #061626; --surface: #0c2139; --surface2: #123050; --fg: #e3edf7; --muted: #92a9c2; --line: #1d3b5c; --canvas: #04101d;
-  --accent: #00AEEF; --accent-fg: #042038; --c-gnd: #5a6d80; --c-ban: #5f7d99; color-scheme: dark; } }
+  --bg: #11170f; --surface: #1a2217; --surface2: #222c1d; --fg: #e6ecdd; --muted: #a2b093; --line: #313d28; --canvas: #0d120b;
+  --accent: #a3c955; --accent-fg: #141a0e; --cyan: #a3c955;
+  --c-power: #e0564c; --c-gnd: #5f6b55; --c-gpio: #7fc06a; --c-adc: #a98fe0; --c-comm: #5fb8d8;
+  --c-usb: #e0954a; --c-strap: #d9bb4a; --c-ban: #697560; --c-ctl: #74836a;
+  --ok: #7fc06a; --warn: #d9bb4a; --ban: #e0564c; --info: #a2b093;
+  color-scheme: dark; } }
 :root[data-theme="dark"] {
-  --bg: #061626; --surface: #0c2139; --surface2: #123050; --fg: #e3edf7; --muted: #92a9c2; --line: #1d3b5c; --canvas: #04101d;
-  --accent: #00AEEF; --accent-fg: #042038; --c-gnd: #5a6d80; --c-ban: #5f7d99; color-scheme: dark; }
+  --bg: #11170f; --surface: #1a2217; --surface2: #222c1d; --fg: #e6ecdd; --muted: #a2b093; --line: #313d28; --canvas: #0d120b;
+  --accent: #a3c955; --accent-fg: #141a0e; --cyan: #a3c955;
+  --c-power: #e0564c; --c-gnd: #5f6b55; --c-gpio: #7fc06a; --c-adc: #a98fe0; --c-comm: #5fb8d8;
+  --c-usb: #e0954a; --c-strap: #d9bb4a; --c-ban: #697560; --c-ctl: #74836a;
+  --ok: #7fc06a; --warn: #d9bb4a; --ban: #e0564c; --info: #a2b093;
+  color-scheme: dark; }
+/* Thanh tiêu đề: ban ngày navy, ban đêm ô liu đậm */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --navy: #202a1a; } }
+:root[data-theme="dark"] { --navy: #202a1a; }
 
 body { font-family: var(--sans); }
 .appbar { background: var(--navy); border-bottom: 0; backdrop-filter: none; }

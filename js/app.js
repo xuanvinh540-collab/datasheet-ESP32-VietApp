@@ -537,8 +537,8 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=77");
-    if (!window.BUILD) await loadJs("js/build.js?v=77");
+    if (!window.MODULES) await loadJs("js/modules.js?v=78");
+    if (!window.BUILD) await loadJs("js/build.js?v=78");
     setTab("build"); BUILD.open(h);
   }
   window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
