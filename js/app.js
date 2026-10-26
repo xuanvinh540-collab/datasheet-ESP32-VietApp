@@ -419,23 +419,34 @@
 
 
   /* ---------- Thẻ mua board (tiếp thị liên kết) ---------- */
+  // Vùng mua hàng: nhớ lựa chọn của người dùng, nếu chưa chọn thì đoán theo múi giờ / ngôn ngữ
+  function region() {
+    try { const o = localStorage.getItem("region"); if (o && (window.AFFILIATE || {})[o]) return o; } catch (e) { }
+    try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; if (/Ho_Chi_Minh|Saigon|Bangkok/.test(tz)) return "vn"; } catch (e) { }
+    return /^vi/i.test(navigator.language || "") ? "vn" : "intl";
+  }
   function renderBuy() {
     const box = $("#buyBox"), row = $("#buyRow"); if (!box) return;
-    const shop = window.SHOPEE_LINKS || {}, ph = window.BOARD_PHOTOS || {};
-    box.hidden = !!state.b.mod;                       // trang linh kiện: chưa có link mua
+    const A = window.AFFILIATE || {}, ph = window.BOARD_PHOTOS || {};
+    box.hidden = !!state.b.mod || !Object.keys(A).length;   // trang linh kiện: chưa có link mua
     if (box.hidden) return;
-    const en = document.documentElement.lang === "en";
-    // board đang xem đứng đầu, phần còn lại giữ nguyên thứ tự
+    const en = document.documentElement.lang === "en", r = region(), cur = A[r] || Object.values(A)[0];
+    const shop = $("#buyShop");
+    if (shop) shop.innerHTML = Object.entries(A).map(([k, v]) =>
+      `<button data-r="${k}" aria-pressed="${k === r}">${esc(en && k === "vn" ? "Vietnam" : en && k === "intl" ? "International" : v.label)}</button>`).join("");
     const list = [state.b, ...BOARDS.filter(b => b !== state.b)];
     row.innerHTML = list.map(b => {
-      const url = shop[b.id] || ("https://shopee.vn/search?keyword=" + encodeURIComponent(b.name));
+      const url = (cur.links || {})[b.id];
       const pic = ph[b.id] ? `<img src="${esc(ph[b.id])}" alt="" loading="lazy" decoding="async">` : boardIcon(b);
-      return `<a class="buy-card${b === state.b ? " on" : ""}" href="${esc(url)}" target="_blank" rel="noopener sponsored nofollow">
-        <span class="buy-pic">${pic}</span>
+      const inner = `<span class="buy-pic">${pic}</span>
         <span class="buy-txt"><b>${esc(b.name)}</b><span class="muted small">${esc(b.chip)}</span></span>
-        <span class="buy-go">${en ? "Buy" : "Mua"} ↗</span></a>`;
+        <span class="buy-go">${url ? (en ? "Buy on " : "Mua trên ") + esc(cur.shop || "") + " ↗" : (en ? "No link yet" : "Chưa có link")}</span>`;
+      return url
+        ? `<a class="buy-card${b === state.b ? " on" : ""}" href="${esc(url)}" target="_blank" rel="noopener sponsored nofollow">${inner}</a>`
+        : `<span class="buy-card off${b === state.b ? " on" : ""}">${inner}</span>`;
     }).join("");
   }
+
 
   /* ---------- Thông số chip ---------- */
   function renderSpec(i = 0) {
@@ -537,11 +548,16 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=78");
-    if (!window.BUILD) await loadJs("js/build.js?v=78");
+    if (!window.MODULES) await loadJs("js/modules.js?v=81");
+    if (!window.BUILD) await loadJs("js/build.js?v=81");
     setTab("build"); BUILD.open(h);
   }
-  window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
+  document.addEventListener("click", e => {
+    const r = e.target.closest("#buyShop [data-r]"); if (!r) return;
+    try { localStorage.setItem("region", r.dataset.r); } catch (err) { }
+    renderBuy();
+  });
+  window.APP = { state, get pins() { return pins; }, redrawBuy: renderBuy, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });

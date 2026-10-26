@@ -509,10 +509,37 @@ main { padding-top: 12px; }
 .seo .tw thead th { position: sticky; top: 0; z-index: 1; background: var(--surface2); }
 
 /* Wordmark PINDEXIO: PIN và IO navy, DEX cyan (trên nền đậm thì PIN/IO dùng màu sáng cho đọc được) */
-/* Logo lockup: nền trắng để navy + cyan của thương hiệu hiện đúng màu trên mọi giao diện */
-.appbar .brand { background: #fff; padding: 5px 12px 5px 6px; border-radius: 12px; }
+/* Logo đứng trực tiếp trên thanh tiêu đề, không cần nền riêng */
+.appbar .brand { gap: 8px; }
+.appbar .brand img { width: 60px; height: 60px; }
 .brand .wm span { display: inline; font: inherit; color: inherit; }
-.brand .wm { display: block; white-space: nowrap; font: 800 17px/1.15 var(--sans); letter-spacing: .04em; }
+.brand .wm { display: block; white-space: nowrap; font: 800 23px/1.1 var(--sans); letter-spacing: .03em; }
 .brand .wm .wm-n { color: #041E42; }
 .brand .wm .wm-c { color: #00AEEF; }
-.appbar .brand span { color: #52708c; }
+.appbar .brand span { color: var(--muted); }
+
+/* Nút chọn vùng mua hàng */
+.buy-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.buy-h h2 { flex: none; }
+.buy-shop { display: flex; gap: 4px; }
+.buy-shop button { padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface2); color: var(--muted); font: 600 11.5px var(--mono); }
+.buy-shop button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.buy-h p { flex-basis: 100%; }
+.buy-card.off { opacity: .55; cursor: default; }
+.buy-card.off .buy-go { color: var(--muted); }
+
+/* Bảng admin sửa link tiếp thị liên kết */
+.adm { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: var(--bg); }
+.adm-bar { display: flex; align-items: center; gap: 10px; padding: 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--surface); }
+.adm-bar b { flex: none; } .adm-st { flex: 1; color: var(--muted); font: 12px var(--mono); }
+.adm-bar button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface2); color: var(--fg); font-weight: 600; }
+.adm-bar .adm-save { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.adm-body { flex: 1; overflow: auto; padding: 14px max(16px, env(safe-area-inset-left, 0px)) 24px; display: grid; gap: 18px; max-width: 900px; width: 100%; margin: 0 auto; }
+.adm-body h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 15px; }
+.adm-shop { width: 140px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); font: 12px var(--mono); }
+.adm-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 0; }
+.adm-row span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-row input { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); font: 12px var(--mono); }
+.adm-row a { text-decoration: none; }
+.adm-note { color: var(--muted); font-size: 13px; }
+@media (max-width: 620px) { .adm-row { grid-template-columns: 1fr auto; } .adm-row span { grid-column: 1 / -1; } }

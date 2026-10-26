@@ -43,6 +43,10 @@ js/app.js               Vẽ SVG (PCB/kiến trúc), panel chân, bộ lọc, po
 js/seo-body.js          Khối chữ cuối trang Sơ đồ chân (bảng chân + tài liệu + danh sách board) – DÙNG CHUNG
                         cho app.js (vẽ lại khi đổi board) và tools/build-seo.js (trang tĩnh). Chỉ sửa ở đây.
 js/build.js, modules.js Tab Build + thư viện module
+js/affiliates.js        Link tiếp thị liên kết theo vùng (vn / intl) – trang admin ghi đè nguyên file này
+js/admin.js             Trang admin: Ctrl+Shift+E hoặc ?edit, mật khẩu "pindex" (đổi bằng adminHash trong Console).
+                        Lưu bằng File System Access API, ghi thẳng js/affiliates.js vào thư mục dự án (Chrome/Edge).
+                        Không có máy chủ: sửa xong vẫn phải commit & push.
 js/specs.js             Thông số chip theo board id (HTML chuỗi)
 js/learn.js             Bài giải thích ADC/PWM/I2C/SPI/UART/Touch/USB/Strapping/JTAG/LED
 js/i18n.js, i18n-data.js Dịch EN: từ điển {câu tiếng Việt → tiếng Anh}

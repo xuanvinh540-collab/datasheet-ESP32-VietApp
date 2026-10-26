@@ -3,12 +3,12 @@
    ☾ Ban đêm: xanh ô liu tối pha chút xanh lá, để mắt dễ chịu và phân biệt hẳn với ban ngày */
 :root {
   --sans: "Ubuntu", system-ui, sans-serif; --mono: "Ubuntu Mono", ui-monospace, monospace;
-  --bg: #e9f1f7; --surface: #f8fbfd; --surface2: #dde9f3; --fg: #06264a; --muted: #4d6c8c; --line: #bbd4e6;
+  --bg: #ccdeee; --surface: #e6f0f8; --surface2: #d3e3f0; --fg: #04213f; --muted: #3f6c96; --line: #9fc2de;
   --navy: #041E42; --navy-2: #064273; --cyan: #00AEEF; --cyan-2: #00C2F7;
-  --accent: #0b93cf; --accent-fg: #fff;
+  --accent: #0772a8; --accent-fg: #fff;
   --c-power: #e8392f; --c-gnd: #46586b; --c-gpio: #00a37a; --c-adc: #8257e0; --c-comm: #00AEEF;
   --c-usb: #f08a1c; --c-strap: #e0ad00; --c-ban: #9db4c7; --c-ctl: #5f7b96;
-  --ok: #0a8f63; --warn: #b08400; --ban: #d13229; --info: #4d6c8c; --canvas: #d6e6f2;
+  --ok: #08795a; --warn: #9a7200; --ban: #c22a21; --info: #3f6c96; --canvas: #bcd4e8;
   --r: 4px; --shadow: 0 1px 0 rgba(4,30,66,.08); color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -28,17 +28,20 @@
 /* Thanh tiêu đề: ban ngày navy, ban đêm ô liu đậm */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --navy: #202a1a; } }
 :root[data-theme="dark"] { --navy: #202a1a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar { background: #1a2217; border-bottom-color: #313d28; } }
+:root[data-theme="dark"] .appbar { background: #1a2217; border-bottom-color: #313d28; }
 
 body { font-family: var(--sans); }
-.appbar { background: var(--navy); border-bottom: 0; backdrop-filter: none; }
+.appbar { background: #fff; border-bottom: 1px solid var(--line); backdrop-filter: none; }
+.appbar .tabbar button[aria-selected="true"] { background: var(--navy) !important; color: #fff !important; }
 .brand b { font: 500 18px var(--sans); }
 
 .brand img { filter: none; }
-.appbar .tabbar { background: rgba(0,0,0,.2); border: 0; }
-.appbar .tabbar button { color: #e3eadb; border-radius: 4px; }
-.appbar .tabbar button[aria-selected="true"] { background: #f4f2e6; color: var(--navy); box-shadow: none; }
-.appbar .icon-btn, .appbar .skin { background: rgba(0,0,0,.2); border: 0; color: #fff; }
-.appbar .skin option { color: #000; }
+.appbar .tabbar { background: var(--surface2); border: 0; }
+.appbar .tabbar button { color: var(--muted); border-radius: 4px; }
+
+.appbar .icon-btn, .appbar .skin { background: var(--surface2); border: 1px solid var(--line); color: var(--fg); }
+
 .card { border-radius: 4px; }
 .stage-head h1 { font: 500 22px var(--sans); }
 .seg { border-radius: 4px; } .seg button { border-radius: 3px; }
