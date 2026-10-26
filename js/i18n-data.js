@@ -114,7 +114,7 @@ window.EN_DATA = {
 "1.9\" ST7789, giao tiếp song song 8-bit": "1.9\" ST7789, 8-bit parallel interface",
 "Nguồn": "Power",
 "USB-C 5 V hoặc pin Li-Po 3.7 V": "USB-C 5 V or 3.7 V Li-Po battery",
-"Lưu ý": "Note",
+"Lưu ý": "Notes",
 "Chạy bằng pin/5V header phải set GPIO15 = HIGH": "On battery/5V header you must set GPIO15 = HIGH",
 "Đo áp pin ở GPIO4 (chỉ khi rút USB)": "Battery voltage on GPIO4 (only with USB unplugged)",
 "GitHub LilyGO T-Display-S3 (pinout, ví dụ)": "LilyGO T-Display-S3 GitHub (pinout, examples)",
@@ -481,7 +481,7 @@ window.EN_DATA = {
 "là số trong datasheet;": "means values from the datasheet;",
 "Thông lệ": "Common practice",
 "là cách làm phổ biến, không phải số của Espressif.": "means a common approach, not an Espressif figure.",
-"Vị trí": "Location",
+"Vị trí": "Header",
 "Đầu vào 3.3V": "3.3V input",
 "Nguồn ≥500 mA": "Supply ≥500 mA",
 "Sát chân": "Close to the pin",
@@ -637,5 +637,13 @@ window.EN_DATA = {
 "UART0 TX: chip in log ROM ra chân này lúc khởi động. Super Mini nạp qua USB-C nên vẫn dùng được làm GPIO/TX.": "UART0 TX: the chip prints its ROM log here at boot. The Super Mini flashes over USB-C, so it is still usable as GPIO/TX.",
 "Nối VBUS của cổng USB-C. Cấp 5V ngoài vào đây thì đừng cắm USB cùng lúc.": "Connected to the USB-C VBUS. If you feed external 5V here, don't plug USB in at the same time.",
 "Ngõ ra LDO onboard. Chip cần nguồn ≥ 0.5 A; giữ tải ngoài nhỏ.": "Onboard LDO output. The chip needs a ≥ 0.5 A supply; keep external load small.",
-"Dành cho mạch dùng chip hoặc module trực tiếp. Board Super Mini đã có sẵn phần lớn các linh kiện này. Nhãn": "For designs using the chip or module directly. The Super Mini board already has most of these parts. The"
+"Dành cho mạch dùng chip hoặc module trực tiếp. Board Super Mini đã có sẵn phần lớn các linh kiện này. Nhãn": "For designs using the chip or module directly. The Super Mini board already has most of these parts. The",
+"Chân Arduino mặc định": "Default Arduino pins",
+"Board do bên thứ ba sản xuất, không có datasheet/schematic chính thức. Chức năng chân theo datasheet ESP32-C3 của Espressif; vị trí chân và linh kiện theo ảnh pinout nhà bán. Nhãn SDA/SCL/MOSI/MISO theo chân mặc định của arduino-esp32 (nologo_esp32c3_super_mini); một số ảnh nhà bán ghi khác.": "Made by third parties, with no official datasheet/schematic. Pin functions follow Espressif's ESP32-C3 datasheet; pin and component positions follow sellers' pinout images. SDA/SCL/MOSI/MISO labels follow arduino-esp32's default pins (nologo_esp32c3_super_mini); some seller images label them differently.",
+"20 mA mặc định (IO17/IO18: 10 mA, IO19/IO20: 40 mA), tối đa 40 mA": "20 mA default (IO17/IO18: 10 mA, IO19/IO20: 40 mA), 40 mA max",
+"5V qua cổng USB hoặc chân 5V, hoặc 3.3V qua chân 3V3": "5V via the USB port or the 5V pin, or 3.3V via the 3V3 pin",
+"Bảng chân": "Pinout table",
+"Loại": "Type",
+"Chức năng": "Functions",
+"Tất cả board": "All boards"
 };

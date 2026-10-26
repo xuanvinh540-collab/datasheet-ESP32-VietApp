@@ -102,8 +102,9 @@
   const showAlt = () => innerWidth >= 600 || state.zoom > 1;
   function short(p) {
     if (!showAlt() || ["power", "gnd", "ctl", "nc"].includes(p.cat)) return "";
-    const f = p.fn.find(x => !/^Arduino|^PIO|^Ground|^GPIO\d/.test(x));
-    return f ? f.replace(/ \(.*\)$/, "").replace(" · ", "·").slice(0, 16) : "";
+    const f = p.fn.find(x => !/^Arduino|^PIO|^Ground|^GPIO\d|^IO\d/.test(x)), a = p.fn.find(x => /^Arduino (SDA|SCL|MOSI|MISO|SCK|SS)$/.test(x));
+    const main = f ? f.replace(/ \(.*\)$/, "").replace(" · ", "·") : "";
+    return (a ? a.slice(8) + (main ? " · " + main : "") : main).slice(0, 20);
   }
   function labelColors(p) { return { bg: cv(CATS[p.cat].c), fg: ["strap", "nc"].includes(p.cat) ? "#1a1a1a" : "#fff" }; }
 
@@ -248,6 +249,7 @@
     $("#viewPcb").setAttribute("aria-pressed", state.view === "pcb");
     $("#viewSch").setAttribute("aria-pressed", state.view === "sch");
     $("#bTitle").textContent = state.b.name;
+    renderSeoTable();
     document.title = document.documentElement.lang === "en" ? `${state.b.name} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${state.b.name} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
     $("#bSub").textContent = `${state.b.vendor} · ${state.b.chip} · logic ${state.b.logic}`;
     const note = [state.b.note, state.view === "pcb" && state.b.photo ? state.b.photo.credit : ""].filter(Boolean).join(" · ");
@@ -309,6 +311,17 @@
   const docList = docs => `<ul class="docs">${docs.map(([k, label, url]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener"><span class="dk">${KIND[k] || k}</span><span>${esc(label)}</span><span class="ext">↗</span></a></li>`).join("")}</ul>`;
   function renderDocs() {
     $("#docsAll").innerHTML = BOARDS.map(b => `<section class="card"><h3>${esc(b.name)}</h3><p class="muted small">${esc(b.chip)} · ${esc(b.vendor)}</p>${docList(b.docs)}</section>`).join("");
+  }
+
+  /* Bảng chân dạng chữ (trang tĩnh viết sẵn cho SEO); khi đổi board trong app thì vẽ lại theo board đang chọn */
+  function renderSeoTable() {
+    const box = document.querySelector(".seo"); if (!box || !window.PAGE_BOARD && !box.dataset.dyn) { if (!box || !window.PAGE_BOARD) return; }
+    if (state.b.id === window.PAGE_BOARD && !box.dataset.dyn) return;
+    const b = state.b;
+    const rows = pins.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.hdr)}-${p.pn}</td><td>${p.gpio != null ? p.gpio : "–"}</td><td>${esc(CATS[p.cat].label)}</td><td>${esc(p.fn.join(", "))}</td><td>${esc(p.warn || "")}</td></tr>`).join("");
+    box.dataset.dyn = 1;
+    box.innerHTML = `<h2>Bảng chân ${esc(b.name)}</h2><p class="muted">${esc(b.summary)}</p><dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+      <div class="tw"><table><thead><tr><th>Chân</th><th>Vị trí</th><th>GPIO</th><th>Loại</th><th>Chức năng</th><th>Lưu ý</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   /* ---------- Thông số chip ---------- */

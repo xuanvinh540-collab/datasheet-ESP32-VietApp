@@ -86,7 +86,7 @@
     oem: { by: "Espressif Systems", file: "SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", url: "https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", pages: [["sch/esp32-s3-devkitc-1-1.png", "Sơ đồ khối"], ["sch/esp32-s3-devkitc-1-2.png", "Mạch chi tiết"]] }, name: "ESP32-S3-DevKitC-1", vendor: "Espressif", chip: "ESP32-S3 (WROOM-1)", family: "ESP32",
     summary: "Xtensa LX7 2 nhân 240 MHz, Wi-Fi 4 + BLE 5, USB OTG native.",
     w: 25.3, h: 62.7, pcb: "black", logic: "3.3 V",
-    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định, tối đa 40 mA"], ["ADC", "2 × SAR 12-bit, 20 kênh (ADC1: IO1–IO10)"], ["Nguồn vào", "5V qua USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102/CH343) hoặc USB native"]],
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định (IO17/IO18: 10 mA, IO19/IO20: 40 mA), tối đa 40 mA"], ["ADC", "2 × SAR 12-bit, 20 kênh (ADC1: IO1–IO10)"], ["Nguồn vào", "5V qua cổng USB hoặc chân 5V, hoặc 3.3V qua chân 3V3"], ["Nạp", "USB-UART (CP2102/CH343) hoặc USB native"], ["Chân Arduino mặc định", "SDA IO8 · SCL IO9 · MOSI IO11 · MISO IO13 · SCK IO12 · SS IO10 (arduino-esp32, esp32s3)"]],
     docs: [
       ["datasheet", "ESP32-S3 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf"],
       ["datasheet", "ESP32-S3-WROOM-1 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf"],
@@ -125,6 +125,8 @@
     if (n >= 4 && n <= 7) { p.flags.push("jtag"); p.notes.push("Lúc reset chân này mặc định là tín hiệu JTAG (" + ["MTMS", "MTDI", "MTCK", "MTDO"][n - 4] + "); phần mềm chuyển sang GPIO khi cần."); }
     if ([2, 4, 5, 6, 7, 10].includes(n)) p.flags.push("spi");
     if (n === 18 || n === 19) p.flags.push("usb");
+    const ARD = { 4: "SCK", 5: "MISO", 6: "MOSI", 7: "SS", 8: "SDA", 9: "SCL" };
+    if (ARD[n]) { p.fn.push("Arduino " + ARD[n]); p.flags.push(n >= 8 ? "i2c" : "spi"); }
     if (n === 20 || n === 21) { p.flags.push("uart"); p.name = n === 20 ? "RX" : "TX"; p.fn.push("IO" + n); }
     if ([2, 8, 9].includes(n)) p.flags.push("strap");
     if (n === 8) { p.fn.push(sm ? "LED xanh onboard (LOW = sáng)" : "RGB LED (WS2812)"); p.flags.push("led"); }
@@ -185,14 +187,14 @@
       { side: "R", n: "Header 2 × 8", s: "13 GPIO + nguồn", k: "io", bus: "GPIO" }] },
     summary: "Board tí hon 22.5 × 18 mm: ESP32-C3FH4 (RISC-V 160 MHz, 4 MB flash trong chip), Wi-Fi 4 + BLE 5, USB-C nối thẳng USB Serial/JTAG.",
     w: 18, h: 22.52, pcb: "black", logic: "3.3 V",
-    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Kích thước", "22.52 × 18 mm, 2 hàng × 8 chân, bước 2.54 mm"], ["ADC", "ADC1: IO0–IO4 (5 kênh) · ADC2: IO5"], ["USB", "USB-C nối USB Serial/JTAG (IO18/IO19, không ra header)"], ["Nút", "BOOT = IO9, RST = CHIP_EN"], ["Tên Arduino", "Mỗi nhà bán ghi khác nhau (vd. SDA = IO8 hoặc IO6). Hãy dùng số GPIO."]],
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Kích thước", "22.52 × 18 mm, 2 hàng × 8 chân, bước 2.54 mm"], ["ADC", "ADC1: IO0–IO4 (5 kênh) · ADC2: IO5"], ["USB", "USB-C nối USB Serial/JTAG (IO18/IO19, không ra header)"], ["Nút", "BOOT = IO9, RST = CHIP_EN"], ["Chân Arduino mặc định", "SDA IO8 · SCL IO9 · MOSI IO6 · MISO IO5 · SCK IO4 · SS IO7 · LED IO8 (arduino-esp32, nologo_esp32c3_super_mini)"]],
     docs: [
       ["datasheet", "ESP32-C3 Series Datasheet v2.4", "https://documentation.espressif.com/esp32-c3_datasheet_en.pdf"],
       ["guide", "ESP32-C3 Hardware Design Guidelines", "https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32c3/index.html"],
       ["manual", "ESP32-C3 Technical Reference Manual", "https://www.espressif.com/sites/default/files/documentation/esp32-c3_technical_reference_manual_en.pdf"],
       ["errata", "ESP32-C3 Errata", "https://www.espressif.com/sites/default/files/documentation/esp32-c3_errata_en.pdf"]
     ],
-    note: "Board do bên thứ ba sản xuất, không có datasheet/schematic chính thức. Chức năng chân theo datasheet ESP32-C3 của Espressif; vị trí chân và linh kiện theo ảnh pinout nhà bán. Tên Arduino (A0, D3, SDA…) khác nhau giữa các nhà bán nên không ghi.",
+    note: "Board do bên thứ ba sản xuất, không có datasheet/schematic chính thức. Chức năng chân theo datasheet ESP32-C3 của Espressif; vị trí chân và linh kiện theo ảnh pinout nhà bán. Nhãn SDA/SCL/MOSI/MISO theo chân mặc định của arduino-esp32 (nologo_esp32c3_super_mini); một số ảnh nhà bán ghi khác.",
     src: "ESP32-C3 Series Datasheet v2.4 chương 2–3, ảnh pinout nhà bán",
     parts: [
       { t: "usb", x: 4.8, y: -2.4, w: 7.4, h: 6.5, label: "USB-C" },
@@ -224,7 +226,7 @@
       { side: "R", n: "Header J1 + J3", s: "2 × 15 chân", k: "io", bus: "GPIO" }] },
     summary: "RISC-V 1 nhân 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG.",
     w: 25, h: 39, pcb: "black", logic: "3.3 V",
-    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định (IO2–IO5: 10 mA), tối đa 40 mA"], ["ADC", "2 × SAR 12-bit: ADC1 5 kênh (IO0–IO4, đã hiệu chỉnh), ADC2 1 kênh (IO5)"], ["Nguồn vào", "5V qua Micro-USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102N) hoặc USB Serial/JTAG (IO18/IO19)"]],
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Dòng mỗi chân", "20 mA mặc định (IO2–IO5: 10 mA), tối đa 40 mA"], ["ADC", "2 × SAR 12-bit: ADC1 5 kênh (IO0–IO4, đã hiệu chỉnh), ADC2 1 kênh (IO5)"], ["Nguồn vào", "5V qua Micro-USB hoặc chân 5V"], ["Nạp", "USB-UART (CP2102N) hoặc USB Serial/JTAG (IO18/IO19)"], ["Chân Arduino mặc định", "SDA IO8 · SCL IO9 · MOSI IO6 · MISO IO5 · SCK IO4 · SS IO7 (arduino-esp32, esp32c3)"]],
     docs: [
       ["datasheet", "ESP32-C3 Series Datasheet v2.4", "https://documentation.espressif.com/esp32-c3_datasheet_en.pdf"],
       ["datasheet", "ESP32-C3-MINI-1 Datasheet", "https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf"],
@@ -484,7 +486,8 @@
   // s3() có ghi chú riêng của DevKitC-1 (RGB LED, chân Arduino) → bỏ đi cho board khác
   const s3b = (n, extra = [], o = {}) => {
     const p = s3(n);
-    p.fn = p.fn.filter(f => !/RGB LED|^Arduino/.test(f)).concat(extra);
+    const TDA = { 10: "SS", 11: "MOSI", 12: "SCK", 13: "MISO", 17: "SCL", 18: "SDA" };
+    p.fn = p.fn.filter(f => !/RGB LED|^Arduino/.test(f)).concat(extra, TDA[n] ? ["Arduino " + TDA[n]] : []);
     p.flags = p.flags.filter(f => f !== "led");
     return Object.assign(p, o);
   };
@@ -507,7 +510,7 @@
       { side: "R", n: "Header 2 × 12", s: "14 GPIO ra ngoài", k: "io", bus: "GPIO" }] },
     summary: "ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm.",
     w: 26, h: 62, pcb: "black", logic: "3.3 V",
-    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Màn hình", "1.9\" ST7789, giao tiếp song song 8-bit"], ["Nguồn", "USB-C 5 V hoặc pin Li-Po 3.7 V"], ["Lưu ý", "Chạy bằng pin/5V header phải set GPIO15 = HIGH"], ["Pin", "Đo áp pin ở GPIO4 (chỉ khi rút USB)"]],
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Màn hình", "1.9\" ST7789, giao tiếp song song 8-bit"], ["Nguồn", "USB-C 5 V hoặc pin Li-Po 3.7 V"], ["Lưu ý", "Chạy bằng pin/5V header phải set GPIO15 = HIGH"], ["Pin", "Đo áp pin ở GPIO4 (chỉ khi rút USB)"], ["Chân Arduino mặc định", "SDA IO18 · SCL IO17 · MOSI IO11 · MISO IO13 · SCK IO12 · SS IO10 (arduino-esp32, lilygo_t_display_s3)"]],
     docs: [
       ["code", "GitHub LilyGO T-Display-S3 (pinout, ví dụ)", "https://github.com/Xinyuan-LilyGO/T-Display-S3"],
       ["schematic", "Schematic T-Display-S3", "https://github.com/Xinyuan-LilyGO/T-Display-S3/blob/main/schematic/T_Display_S3.pdf"],
