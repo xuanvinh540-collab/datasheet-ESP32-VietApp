@@ -3,7 +3,7 @@
    từng chân/board vẫn giữ tiếng Việt. Thêm câu mới: thêm cặp "tiếng Việt": "English" vào EN. */
 (function () {
   const EN = {
-    "Thông tin chân & datasheet board": "Pin info & board datasheets", "⤴ Chia sẻ board này": "⤴ Share this board", "Ghép module": "Build with modules", "Module": "Modules", "Copy #define": "Copy #define",
+    "Thông tin chân & datasheet board": "Pin info & board datasheets", "⤴ Chia sẻ board này": "⤴ Share this board", "Ghép module": "Build with modules", "Tín hiệu ra": "Output", "Tín hiệu vào": "Input", "I2S data": "I2S data", "Module": "Modules", "Copy #define": "Copy #define",
     "⬇ Ảnh PNG": "⬇ PNG image", "⬇ File .json": "⬇ .json file", "🔗 Link": "🔗 Link", "⬆ Mở .json": "⬆ Open .json",
     "Chọn module: app tự gán chân an toàn (✓). Đổi chân bằng danh sách, hoặc bấm ☝ rồi chạm chân trên board (vòng xanh = an toàn, cam = có lưu ý).": "Pick modules: the app assigns safe pins (✓). Change a pin from the list, or press ☝ then tap a board pin (green ring = safe, orange = caution).",
     "Board chạy logic 3.3 V: không nối thẳng tín hiệu 5 V vào GPIO.": "This board uses 3.3 V logic: never wire 5 V signals straight into a GPIO.",

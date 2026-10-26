@@ -4,6 +4,12 @@
 (function () {
   const A = window.APP, M = window.MODULES, esc = A.esc, el = A.el, $ = s => document.querySelector(s);
   const SHARED = ["spi.sck", "spi.mosi", "spi.miso", "i2c.sda", "i2c.scl"];
+  const POWER = ["pwr.3v3", "pwr.5v", "gnd"];                       // nhiều module dùng chung một pad nguồn
+  const COLOR = { "pwr.3v3": "#e2442f", "pwr.5v": "#ff7a45", gnd: "#9aa0a6", "i2c.sda": "#29adff", "i2c.scl": "#f5d63d", "spi.sck": "#ff8a00", "spi.mosi": "#b26bff",
+    "spi.miso": "#2fd6c3", "spi.cs": "#ff4fa3", "i2s.bclk": "#ff8a00", "i2s.ws": "#f5d63d", "i2s.dout": "#2fd36b", "i2s.din": "#2fd36b", out: "#7fd1c4", in: "#c3e88d", pwm: "#e879f9", adc: "#a78bfa" };
+  const LEGEND = [["pwr.3v3", "VCC 3V3"], ["pwr.5v", "VCC 5V"], ["gnd", "GND"], ["i2c.sda", "SDA"], ["i2c.scl", "SCL"], ["spi.sck", "SCK / BCLK"], ["spi.mosi", "MOSI"], ["spi.miso", "MISO"], ["spi.cs", "CS"], ["i2s.dout", "I2S data"], ["out", "Tín hiệu ra"], ["in", "Tín hiệu vào"], ["pwm", "PWM"]];
+  // thêm VCC/GND vào đầu danh sách chân của mỗi module (một lần)
+  for (const d of Object.values(M)) if (!d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
   const B = { boardId: null, bus: {}, mods: [], tab: "mods", cam: null, arm: null };
   const pinByName = n => A.pins.find(p => p.name === n);
   const board = () => A.state.b;
@@ -19,6 +25,9 @@
   };
   const PICO_DEF = { "spi.sck": 18, "spi.mosi": 19, "spi.miso": 16, "i2c.sda": 4, "i2c.scl": 5 };
   function score(p, role, b) {
+    if (role === "gnd") return p.cat === "gnd" && p.name !== "AGND" ? 100 : -1e9;
+    if (role === "pwr.3v3") return p.cat === "power" && /^(3V3|3\.3V)$/.test(p.name) ? 100 : -1e9;
+    if (role === "pwr.5v") return p.cat === "power" && /^(5V|VBUS)$/.test(p.name) ? 100 : -1e9;
     if (!usable(p)) return -1e9;
     const fn = p.fn.join(" "), re = (RE[b.family] || {})[role];
     if (b.family !== "ESP32" && re && !re.test(fn)) return -1e9;          // RP2/AVR: bus phần cứng bắt buộc đúng chân
@@ -38,11 +47,11 @@
     if (b.family === "RP2" && /ADC\d/.test(fn) && role !== "adc") s -= 10;
     return s;
   }
-  const used = () => new Set([...Object.values(B.bus), ...B.mods.flatMap(m => Object.values(m.pins))].filter(Boolean));
+  const used = () => new Set([...Object.values(B.bus), ...B.mods.flatMap(m => Object.entries(m.pins).filter(([l]) => !POWER.includes(roleOf(m, l))).map(x => x[1]))].filter(Boolean));
   const roleOf = (m, label) => M[m.type].pins.find(x => x[0] === label)[1];
   const getPin = (m, label) => { const r = roleOf(m, label); return SHARED.includes(r) ? B.bus[r] : m.pins[label]; };
   function setPin(m, label, name) { const r = roleOf(m, label); if (SHARED.includes(r)) { if (name) B.bus[r] = name; else delete B.bus[r]; } else if (name) m.pins[label] = name; else delete m.pins[label]; }
-  function best(role, b, taken) { let top = null, ts = -1e8; for (const p of A.pins) { if (taken.has(p.name)) continue; const s = score(p, role, b); if (s > ts) { ts = s; top = p; } } return top; }
+  function best(role, b, taken) { let top = null, ts = -1e8; for (const p of A.pins) { if (taken.has(p.name) && !POWER.includes(role)) continue; const s = score(p, role, b); if (s > ts) { ts = s; top = p; } } return top; }
   function autoAssign(m) {
     const b = board(), taken = used();
     for (const [label, role] of M[m.type].pins) {
@@ -64,16 +73,17 @@
       for (const [label, role, v5] of d.pins) {
         const n = getPin(m, label), p = n && pinByName(n);
         if (!p) { out.push(["todo", `${d.short} ${label}: chưa nối.`]); continue; }
-        if (!SHARED.includes(role)) (busy[n] = busy[n] || []).push(d.short + " " + label);
+        if (!SHARED.includes(role) && !POWER.includes(role)) (busy[n] = busy[n] || []).push(d.short + " " + label);
         const s = score(p, role, b);
         if (s <= -1e8) out.push(["ban", `${d.short} ${label} → ${p.name}: chân này không làm được ${label}.`]);
         else if (s < 60 && p.warn) out.push(["warn", `${d.short} ${label} → ${p.name}: ${p.warn}`]);
         if (v5 && b.logic !== "5 V") out.push(["warn", `${d.short} ${label} ra mức 5 V: thêm cầu chia áp 1 kΩ + 2 kΩ trước ${p.name}.`]);
       }
       if (m.type === "ws2812" && b.logic !== "5 V") out.push(["info", "WS2812 cấp 5 V: tín hiệu 3.3 V thường chạy được với dây ngắn; dải dài nên thêm IC chuyển mức (74AHCT125)."]);
-      if (b.family === "RP2" && /^i2s/.test(d.pins[0][1])) {
-        const bc = pinByName(getPin(m, d.pins[0][0]) || ""), ws = pinByName(getPin(m, d.pins[1][0]) || "");
-        if (bc && ws && ws.gpio !== bc.gpio + 1) out.push(["warn", `${d.short}: trên Pico chân ${d.pins[1][0]} phải là GP${bc.gpio + 1} (BCLK + 1).`]);
+      const ib = d.pins.find(x => x[1] === "i2s.bclk"), iw = d.pins.find(x => x[1] === "i2s.ws");
+      if (b.family === "RP2" && ib && iw) {
+        const bc = pinByName(getPin(m, ib[0]) || ""), ws = pinByName(getPin(m, iw[0]) || "");
+        if (bc && ws && ws.gpio !== bc.gpio + 1) out.push(["warn", `${d.short}: trên Pico chân ${iw[0]} phải là GP${bc.gpio + 1} (BCLK + 1).`]);
       }
     }
     for (const n in busy) if (busy[n].length > 1) out.push(["ban", `${n} bị dùng 2 lần: ${busy[n].join(", ")}.`]);
@@ -104,7 +114,7 @@
     for (const m of B.mods) {
       const d = M[m.type], p = PFX[m.type], g = l => `${p}_${l}`;
       L.push("", `// ${d.name} – thư viện: ${d.lib}`);
-      for (const [label] of d.pins.filter(x => !SHARED.includes(x[1]))) L.push(`#define ${(p + "_" + label.replace(/\W/g, "")).padEnd(10)} ${val(m.pins[label])}`);
+      for (const [label] of d.pins.filter(x => !SHARED.includes(x[1]) && !POWER.includes(x[1]))) L.push(`#define ${(p + "_" + label.replace(/\W/g, "")).padEnd(10)} ${val(m.pins[label])}`);
       if (m.type === "ws2812") L.push("#define LED_COUNT  8");
       if (m.type === "max98357a") L.push(f === "ESP32" ? `// setup(): i2s.setPins(${g("BCLK")}, ${g("LRC")}, ${g("DIN")});` : `// setup(): i2s.setBCLK(${g("BCLK")}); i2s.setDATA(${g("DIN")});   // LRC = BCLK + 1`);
       if (m.type === "inmp441") L.push(f === "ESP32" ? `// setup(): mic.setPins(${g("SCK")}, ${g("WS")}, -1, ${g("SD")});` : `// setup(): mic.setBCLK(${g("SCK")}); mic.setDATA(${g("SD")});   // WS = SCK + 1`);
@@ -146,9 +156,11 @@
     let lane = 0;
     for (const [mi, m] of B.mods.entries()) {
       const d = M[m.type], h = HH + d.pins.length * RH;
-      d.pins.forEach(([label], k) => { const p = pinByName(getPin(m, label) || ""); if (!p) return;
-        el("path", { d: route(sockPos(m, k), p, lane++), stroke: d.color, class: "bwire" }, wires);
-        el("circle", { cx: p.x, cy: p.y, r: 1.55, fill: "none", stroke: d.color, "stroke-width": .5 }, wires); });
+      d.pins.forEach(([label, role], k) => { const p = pinByName(getPin(m, label) || ""); if (!p) return;
+        const c = COLOR[role] || d.color;
+        el("path", { d: route(sockPos(m, k), p, lane++), stroke: c, class: "bwire" }, wires);
+        const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: c, "fill-opacity": .35, stroke: c, "stroke-width": .5, class: "wend" }, wires);
+        end.addEventListener("pointerdown", e => startWire(e, mi, label, true)); });
       const g = el("g", { class: "bnode", "data-m": mi }, nodes);
       el("rect", { x: m.pos.x, y: m.pos.y, width: NW, height: h, rx: 1, class: "modbox", stroke: d.color }, g);
       const head = el("g", { class: "bhead", "data-m": mi }, g);
@@ -159,7 +171,8 @@
         const a = sockPos(m, k), n = getPin(m, label), armed = B.arm && B.arm.m === mi && B.arm.label === label;
         el("text", { x: a.x + 2, y: a.y, "dominant-baseline": "central", "font-size": 1.25, class: "mptxt" }, g, label);
         el("text", { x: a.x + NW - 1, y: a.y, "text-anchor": "end", "dominant-baseline": "central", "font-size": 1.1, class: "mpval" }, g, n || "kéo ●");
-        const so = el("circle", { cx: a.x, cy: a.y, r: .95, fill: n ? d.color : "var(--surface)", stroke: d.color, "stroke-width": .45, class: "sock" + (armed ? " armed" : ""), "data-m": mi, "data-l": label }, g);
+        const rc = COLOR[d.pins[k][1]] || d.color;
+        const so = el("circle", { cx: a.x, cy: a.y, r: .95, fill: n ? rc : "var(--surface)", stroke: rc, "stroke-width": .45, class: "sock" + (armed ? " armed" : ""), "data-m": mi, "data-l": label }, g);
         so.addEventListener("pointerdown", e => startWire(e, mi, label));
       });
       head.addEventListener("pointerdown", e => startNode(e, mi));
@@ -186,17 +199,20 @@
     if (score(p, roleOf(m, label), board()) <= -1e8) { A.toast(`${p.name} không dùng được cho ${label}.`); return false; }
     setPin(m, label, p.name); save(); return true;
   }
-  function startWire(e, mi, label) {
+  function startWire(e, mi, label, fromEnd) {
     e.stopPropagation(); e.preventDefault();
     const m = B.mods[mi], k = M[m.type].pins.findIndex(x => x[0] === label), a = sockPos(m, k), s = svg();
     showGlow(m, label);
-    const tmp = el("path", { d: "", stroke: M[m.type].color, class: "bwire tmp" }, $("#wires"));
+    if (fromEnd) $("#wires").querySelectorAll("path,circle").forEach(x => x.style.opacity = .25);   // làm mờ dây khác khi đang nắm đầu dây
+    const tmp = el("path", { d: "", stroke: COLOR[M[m.type].pins[k][1]] || M[m.type].color, class: "bwire tmp" }, $("#wires"));
     let moved = false;
     const mv = ev => { moved = true; const pt = toSvg(ev), near = nearestPad(pt); tmp.setAttribute("d", wirePath(a, near ? { x: near.x, y: near.y } : pt)); };
     const up = ev => {
       s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up);
       if (!moved) { B.arm = B.arm && B.arm.m === mi && B.arm.label === label ? null : { m: mi, label }; return refresh(); }   // chạm (không kéo) = chọn rồi chạm pad
-      const p = nearestPad(toSvg(ev)); if (p) connect(m, label, p); B.arm = null; refresh();
+      const p = nearestPad(toSvg(ev));
+      if (p) connect(m, label, p); else if (getPin(m, label)) { setPin(m, label, null); save(); A.toast("Đã gỡ dây " + label); }
+      B.arm = null; refresh();
     };
     s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
   }
@@ -236,8 +252,9 @@
       <table class="btbl">${d.pins.map(([label]) => { const n = getPin(m, label); return `<tr><th>${esc(label)}</th><td>${n ? `<b>${esc(n)}</b>` : '<span class="muted">chưa nối</span>'}</td><td>${n ? `<button class="tap" data-un="${i}" data-l="${esc(label)}" title="Gỡ dây">✕</button>` : ""}</td></tr>`; }).join("")}</table>
       <p class="small muted">${esc(d.note)}</p></div>`; }).join("");
     box.innerHTML = `<div class="seg btabs"><button data-tab="mods" aria-pressed="${B.tab === "mods"}">Module</button><button data-tab="code" aria-pressed="${B.tab === "code"}">Code</button></div>
-      ${B.tab === "mods" ? `<p class="hint">Thêm module, rồi nhấn giữ chấm ● ở chân module và kéo tới pad trên board: pad xanh = an toàn, cam = có lưu ý. Trên điện thoại có thể chạm ● rồi chạm pad.</p>
-        <div class="bchips">${chips}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Gợi ý tự động các chân chưa nối</button>` : ""}
+      ${B.tab === "mods" ? `<p class="hint">Thêm module, rồi nhấn giữ chấm ● ở chân module và kéo tới pad trên board: pad xanh = an toàn, cam = có lưu ý. Nắm đầu dây ở pad kéo sang pad khác để đổi, thả ra ngoài để gỡ. Trên điện thoại có thể chạm ● rồi chạm pad.</p>
+        <div class="bchips">${chips}</div>
+        <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Gợi ý tự động các chân chưa nối</button>` : ""}
         ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
       : `<pre class="code bcode">${esc(code())}</pre><button class="btn-share" data-copy>Copy #define</button>`}
       <div class="bexp"><button data-exp="png">⬇ Ảnh PNG</button><button data-exp="json">⬇ File .json</button><button data-exp="link">🔗 Link</button><label>⬆ Mở .json<input type="file" accept=".json,application/json" hidden></label></div>`;
