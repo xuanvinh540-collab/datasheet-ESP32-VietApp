@@ -166,6 +166,7 @@
 
   function drawPart(g, pt) {
     const t = pt.t;
+    if (t === "text") { el("text", { x: pt.x, y: pt.y, "text-anchor": "middle", "dominant-baseline": "central", "font-size": pt.size || 1.2, class: "silk" }, g, pt.label); return; }
     if (t === "hole") { el("circle", { cx: pt.x, cy: pt.y, r: pt.r + .7, fill: "#c9a94a" }, g); el("circle", { cx: pt.x, cy: pt.y, r: pt.r, class: "drill" }, g); return; }
     const r = { x: pt.x, y: pt.y, width: pt.w, height: pt.h };
     const cx = pt.x + pt.w / 2, cy = pt.y + pt.h / 2;

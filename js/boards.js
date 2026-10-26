@@ -576,7 +576,7 @@
 
   /* ---------------- Raspberry Pi Pico 2 (RP2350, không Wi-Fi) ---------------- */
   const PICO2 = {
-    ...PICO2W, id: "pico-2", tag: "P2", photo: { src: "sch/pico-2-board.jpg", box: [0.06, -2.21, 20.89, 53.33], credit: "Ảnh board: Raspberry Pi Ltd – Pico 2 Pinout" }, name: "Raspberry Pi Pico 2", chip: "RP2350A", oem: null,
+    ...PICO2W, id: "pico-2", tag: "P2", photo: null, name: "Raspberry Pi Pico 2", chip: "RP2350A", oem: null,
     summary: "2 × Cortex-M33 / Hazard3 RISC-V 150 MHz, 520 KB SRAM, 4 MB flash. Cùng chân với Pico 2 W nhưng không có Wi-Fi.",
     facts: [["Logic", "3.3 V (GPIO thường chịu 5 V khi có IOVDD)"], ["Kích thước", "51 × 21 mm, 40 chân bước 2.54 mm"], ["ADC", "12-bit, 3 kênh ra ngoài (GP26–28)"], ["Nội bộ", "GP23 chế độ nguồn SMPS, GP24 dò VBUS, GP25 LED, GP29 đo VSYS/3"], ["PIO", "3 khối PIO × 4 state machine"]],
     docs: [
@@ -595,7 +595,18 @@
       { side: "R", n: "Nút BOOTSEL", s: "vào chế độ nạp UF2", k: "ctl", bus: "QSPI_SS" },
       { side: "R", n: "Debug SWD", s: "SWCLK / SWDIO", k: "ctl", bus: "SWD" },
       { side: "R", n: "Header 2 × 20", s: "26 GPIO, 3 ADC", k: "io", bus: "GP0–22, 26–28" }] },
-    parts: PICO2W.parts.filter(p => p.t !== "shield" && p.t !== "ant").concat([{ t: "led", x: 4, y: 3.5, w: 1.6, h: 1, color: "#3ddc6a", label: "25" }]),
+    // vẽ theo ảnh Pico 2 pinout chính thức (≈11.5 px/mm): lỗ bắt vít, LED GP25, BOOTSEL, flash, RP2350, thạch anh
+    parts: [
+      { t: "usb", x: 6.9, y: -2, w: 7.1, h: 5.9, label: "µUSB" },
+      { t: "hole", x: 4.75, y: 1.9, r: 1.05 }, { t: "hole", x: 16.2, y: 1.9, r: 1.05 }, { t: "hole", x: 4.75, y: 49.1, r: 1.05 }, { t: "hole", x: 16.2, y: 49.1, r: 1.05 },
+      { t: "led", x: 4.2, y: 4.3, w: 1.2, h: 0.8, color: "#3ddc6a", label: "LED" },
+      { t: "btn", x: 5.4, y: 9.6, w: 3.5, h: 4.8, label: "BOOTSEL" },
+      { t: "chip", x: 12.1, y: 9.6, w: 2.8, h: 2.6, label: "FLASH", small: true },
+      { t: "chip", x: 6.9, y: 22.5, w: 6.9, h: 7.1, label: "RP2350" },
+      { t: "chip", x: 6, y: 31.7, w: 3.2, h: 2.4, label: "XTAL", small: true },
+      { t: "text", x: 10.5, y: 36.5, size: 2.4, label: "Pico 2" },
+      { t: "text", x: 10.5, y: 47.3, size: 0.9, label: "DEBUG" }
+    ],
     headers: [
       { id: "J1", side: "L", at: -1.6, pins: PICO2W.headers[0].pins.map(p => ({ ...p })) },
       { id: "J2", side: "R", at: 22.6, pins: PICO2W.headers[1].pins.map(p => ({ ...p })) },
