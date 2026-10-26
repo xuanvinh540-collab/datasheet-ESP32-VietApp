@@ -3,13 +3,13 @@
    ☾ Ban đêm: xanh ô liu tối pha chút xanh lá, để mắt dễ chịu và phân biệt hẳn với ban ngày */
 :root {
   --sans: "Ubuntu", system-ui, sans-serif; --mono: "Ubuntu Mono", ui-monospace, monospace;
-  --bg: #ccdeee; --surface: #e6f0f8; --surface2: #d3e3f0; --fg: #04213f; --muted: #3f6c96; --line: #9fc2de;
+  --bg: #a8c8e6; --surface: #d9e9f7; --surface2: #bcd7ee; --fg: #021a35; --muted: #2a568a; --line: #76a5cd;
   --navy: #041E42; --navy-2: #064273; --cyan: #00AEEF; --cyan-2: #00C2F7;
-  --accent: #0772a8; --accent-fg: #fff;
+  --accent: #0098da; --accent-fg: #fff;
   --c-power: #e8392f; --c-gnd: #46586b; --c-gpio: #00a37a; --c-adc: #8257e0; --c-comm: #00AEEF;
   --c-usb: #f08a1c; --c-strap: #e0ad00; --c-ban: #9db4c7; --c-ctl: #5f7b96;
-  --ok: #08795a; --warn: #9a7200; --ban: #c22a21; --info: #3f6c96; --canvas: #bcd4e8;
-  --label: #0a4d8c; --pad: #041E42;
+  --ok: #076b50; --warn: #8a6600; --ban: #b5251d; --info: #2a568a; --canvas: #96bbdc;
+  --label: #06478a; --pad: #041E42;
   --r: 4px; --shadow: 0 1px 0 rgba(4,30,66,.08); color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -36,7 +36,7 @@
 :root[data-theme="dark"] { --navy: #38491f; }
 
 body { font-family: var(--sans); }
-.appbar { background: #fff; border-bottom: 1px solid var(--line); backdrop-filter: none; }
+.appbar { background: #fff; border-bottom: 3px solid var(--navy); backdrop-filter: none; }
 .appbar .tabbar button[aria-selected="true"] { background: var(--navy) !important; color: #fff !important; }
 .brand b { font: 500 18px var(--sans); }
 

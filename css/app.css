@@ -543,8 +543,18 @@ main { padding-top: 12px; }
 .adm-row a { text-decoration: none; }
 .adm-note { color: var(--muted); font-size: 13px; }
 @media (max-width: 620px) { .adm-row { grid-template-columns: 1fr auto; } .adm-row span { grid-column: 1 / -1; } }
-/* Nền tối: quầng trắng mờ lan quanh logo cho nổi khối */
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar .brand img {
-  filter: drop-shadow(0 0 3px rgba(255,255,255,.95)) drop-shadow(0 0 9px rgba(255,255,255,.6)) drop-shadow(0 0 20px rgba(255,255,255,.3)); } }
-:root[data-theme="dark"] .appbar .brand img {
-  filter: drop-shadow(0 0 3px rgba(255,255,255,.95)) drop-shadow(0 0 9px rgba(255,255,255,.6)) drop-shadow(0 0 20px rgba(255,255,255,.3)); }
+/* Nền tối: mảng trắng mềm trùm cả logo lẫn chữ Pindexio, mép loang dần ra ngoài */
+.appbar .brand { position: relative; }
+.appbar .brand > * { position: relative; z-index: 1; }
+.brand-glow { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --brand-glow: 1; } }
+:root[data-theme="dark"] { --brand-glow: 1; }
+@supports (color: rgb(0 0 0 / 1)) {
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar .brand::before { content: ""; position: absolute; inset: -20px -90px -20px -30px; z-index: 0; border-radius: 999px; background: radial-gradient(70% 120% at 32% 50%, rgb(255 255 255 / .98) 0%, rgb(255 255 255 / .94) 38%, rgb(255 255 255 / .7) 62%, rgb(255 255 255 / .28) 82%, rgb(255 255 255 / 0) 100%); pointer-events: none; } }
+  :root[data-theme="dark"] .appbar .brand::before { content: ""; position: absolute; inset: -20px -90px -20px -30px; z-index: 0; border-radius: 999px; background: radial-gradient(70% 120% at 32% 50%, rgb(255 255 255 / .98) 0%, rgb(255 255 255 / .94) 38%, rgb(255 255 255 / .7) 62%, rgb(255 255 255 / .28) 82%, rgb(255 255 255 / 0) 100%); pointer-events: none; }
+}
+/* chữ trên mảng trắng phải là navy, không theo màu chữ của nền tối */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .appbar .brand .wm-n { color: #041E42; }
+  :root:not([data-theme="light"]) .appbar .brand span { color: #4a6b88; } }
+:root[data-theme="dark"] .appbar .brand .wm-n { color: #041E42; }
+:root[data-theme="dark"] .appbar .brand span { color: #4a6b88; }
