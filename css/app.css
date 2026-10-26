@@ -318,3 +318,10 @@ main { padding-top: 12px; }
 .langsw button[aria-pressed="true"] { opacity: 1; background: rgba(255,255,255,.18) !important; }
 .langsw svg { display: block; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
 @media (max-width: 560px) { .langsw { margin-left: auto; } .langsw + .daynight { margin-left: 0; } }
+
+/* Khối nội dung tĩnh cho SEO (bảng chân + liên kết board) */
+.seo table { font-size: 13px; }
+.seo-links { display: flex; flex-wrap: wrap; gap: 6px 16px; padding-left: 18px; margin: 6px 0 0; }
+.seo-links li { min-width: 220px; }
+.seo h3 { margin: 16px 0 4px; }
+@media (min-width: 900px) { section[data-panel="pins"] > .seo { grid-column: 2; } }

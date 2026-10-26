@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi" data-theme="dark" data-skin="pinout">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO--><title>Sơ đồ chân Arduino Uno R3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex</title>
+<meta name="description" content="Sơ đồ chân Arduino Uno R3: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet Arduino. AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V.">
+<base href="../">
+<link rel="canonical" href="https://pindex.pages.dev/arduino-uno-r3/">
+<link rel="alternate" hreflang="vi" href="https://pindex.pages.dev/arduino-uno-r3/"><link rel="alternate" hreflang="en" href="https://pindex.pages.dev/en/arduino-uno-r3/"><link rel="alternate" hreflang="x-default" href="https://pindex.pages.dev/arduino-uno-r3/">
+<meta property="og:type" content="article"><meta property="og:site_name" content="Pindex">
+<meta property="og:title" content="Sơ đồ chân Arduino Uno R3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex"><meta property="og:description" content="Sơ đồ chân Arduino Uno R3: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet Arduino. AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V.">
+<meta property="og:url" content="https://pindex.pages.dev/arduino-uno-r3/"><meta property="og:image" content="https://pindex.pages.dev/og/arduino-uno-r3.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:locale" content="vi_VN"><meta name="twitter:card" content="summary_large_image">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Sơ đồ chân Arduino Uno R3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex","name":"Sơ đồ chân Arduino Uno R3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex","description":"Sơ đồ chân Arduino Uno R3: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet Arduino. AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V.","url":"https://pindex.pages.dev/arduino-uno-r3/","inLanguage":"vi","image":"https://pindex.pages.dev/og/arduino-uno-r3.png","publisher":{"@type":"Organization","name":"Pindex"},"dateModified":"2026-10-26","about":{"@type":"Product","name":"Arduino Uno R3","brand":{"@type":"Brand","name":"Arduino"},"description":"AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V."}}</script>
+<script>window.PAGE_BOARD="arduino-uno-r3";window.PAGE_LANG="vi";</script><!--/SEO-->
+<meta name="theme-color" content="#4b5a14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/app.css?v=25">
+<link rel="stylesheet" href="css/retro.css?v=25" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=25" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=25" id="skin-amber" disabled>
+</head>
+<body>
+<header class="appbar">
+  <div class="brand"><img src="icon.svg" alt="" width="28" height="28"><div><b>Pindex</b><span>Thông tin chân &amp; datasheet board</span></div></div>
+  <nav class="tabbar" role="tablist">
+    <button data-tab="pins" role="tab">Sơ đồ chân</button>
+    <button data-tab="calc" role="tab">Tính toán</button>
+    <button data-tab="docs" role="tab">Tài liệu</button>
+  </nav>
+  <div class="daynight langsw" id="langSw" role="group" aria-label="Ngôn ngữ"><button data-l="vi" title="Tiếng Việt"><svg viewBox="0 0 30 20" width="22" height="15" aria-hidden="true"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.2,8.3 20.7,8.3 17.1,10.9 18.4,15.2 15,12.6 11.6,15.2 12.9,10.9 9.3,8.3 13.8,8.3" fill="#ff0"/></svg></button><button data-l="en" title="English"><svg viewBox="0 0 60 30" width="22" height="15" aria-hidden="true"><clipPath id="gbc"><rect width="60" height="30"/></clipPath><g clip-path="url(#gbc)"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" stroke="#c8102e" stroke-width="2.4"/><path d="M30,0V30M0,15H60" stroke="#fff" stroke-width="10"/><path d="M30,0V30M0,15H60" stroke="#c8102e" stroke-width="6"/></g></svg></button></div>
+  <div class="daynight" role="group" aria-label="Sáng / tối"><button id="tLight" aria-label="Giao diện sáng">☀</button><button id="tDark" aria-label="Giao diện tối">☾</button></div>
+  <select id="skin" class="skin" aria-label="Chọn giao diện"><option value="pinout">Pindex</option><option value="8bit">8-bit</option><option value="amber">Hổ phách</option><option value="clean">Simple</option></select>
+</header>
+
+<main>
+  <section data-panel="pins">
+    <div class="boards" id="boards" aria-label="Chọn board"></div>
+    <div class="layout">
+      <div class="stage card">
+        <div class="stage-head">
+          <div><h1 id="bTitle">Arduino Uno R3</h1><p id="bSub" class="muted small"></p></div>
+          <div class="seg" role="group" aria-label="Kiểu hình">
+            <button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Tìm chân: 8, ADC, SDA, TX…" autocomplete="off"></label>
+          <div class="zoom"><button class="icon-btn" id="zout" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="zin" aria-label="Phóng to">+</button></div>
+        </div>
+        <div class="chips" id="filters"></div>
+        <div class="oem" id="oem" hidden></div>
+        <div class="canvas" id="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ chân board"></svg></div>
+        <div class="stage-foot"><div class="legend" id="legend"></div><span id="count" class="muted small"></span></div>
+        <p id="bNote" class="note small"></p>
+      </div>
+      <aside class="detail card" id="detail"><div class="grab" aria-hidden="true"></div><div id="detailBody"></div></aside>
+    </div>
+    <!--SEOBODY--><section class="card spec seo"><h2>Bảng chân Arduino Uno R3</h2>
+<p class="muted">AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V.</p><dl class="facts"><dt>Logic</dt><dd>5 V</dd><dt>Dòng mỗi chân</dt><dd>≤ 20 mA khuyến nghị, 40 mA tối đa</dd><dt>ADC</dt><dd>10-bit, 6 kênh A0–A5</dd><dt>PWM</dt><dd>D3, D5, D6, D9, D10, D11</dd><dt>Nguồn</dt><dd>USB 5 V hoặc jack/VIN 7–12 V</dd></dl>
+<div class="tw"><table><thead><tr><th>Chân</th><th>Vị trí</th><th>GPIO</th><th>Loại</th><th>Chức năng</th><th>Lưu ý</th></tr></thead><tbody><tr><td><b>NC</b></td><td>POWER/ANALOG-1</td><td>–</td><td>NC</td><td>Không kết nối</td><td></td></tr><tr><td><b>IOREF</b></td><td>POWER/ANALOG-2</td><td>–</td><td>Nguồn</td><td>Báo mức logic (5 V)</td><td>Shield đọc chân này để biết board chạy logic 5 V.</td></tr><tr><td><b>RESET</b></td><td>POWER/ANALOG-3</td><td>–</td><td>Điều khiển</td><td>Reset ATmega328P</td><td>Kéo LOW để reset.</td></tr><tr><td><b>3.3V</b></td><td>POWER/ANALOG-4</td><td>–</td><td>Nguồn</td><td>Ngõ ra 3.3 V</td><td>Từ LDO nhỏ, tối đa ~50 mA.</td></tr><tr><td><b>5V</b></td><td>POWER/ANALOG-5</td><td>–</td><td>Nguồn</td><td>Ngõ ra/vào 5 V</td><td>5V ổn áp từ USB hoặc từ jack DC qua LDO. Đừng cấp nguồn ngoài vào đây khi đang cắm USB/jack.</td></tr><tr><td><b>GND</b></td><td>POWER/ANALOG-6</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GND</b></td><td>POWER/ANALOG-7</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>VIN</b></td><td>POWER/ANALOG-8</td><td>–</td><td>Nguồn</td><td>Ngõ vào 7–12 V</td><td>Cùng nguồn với jack DC (sau diode). Khuyến nghị 7–12 V.</td></tr><tr><td><b>A0</b></td><td>POWER/ANALOG-9</td><td>14</td><td>Analog</td><td>ADC0, PC0, D14</td><td></td></tr><tr><td><b>A1</b></td><td>POWER/ANALOG-10</td><td>15</td><td>Analog</td><td>ADC1, PC1, D15</td><td></td></tr><tr><td><b>A2</b></td><td>POWER/ANALOG-11</td><td>16</td><td>Analog</td><td>ADC2, PC2, D16</td><td></td></tr><tr><td><b>A3</b></td><td>POWER/ANALOG-12</td><td>17</td><td>Analog</td><td>ADC3, PC3, D17</td><td></td></tr><tr><td><b>A4</b></td><td>POWER/ANALOG-13</td><td>18</td><td>Analog</td><td>ADC4, PC4, D18, I2C SDA</td><td></td></tr><tr><td><b>A5</b></td><td>POWER/ANALOG-14</td><td>19</td><td>Analog</td><td>ADC5, PC5, D19, I2C SCL</td><td></td></tr><tr><td><b>SCL</b></td><td>DIGITAL-1</td><td>–</td><td>UART/I2C</td><td>I2C SCL (nối chung A5), PC5</td><td></td></tr><tr><td><b>SDA</b></td><td>DIGITAL-2</td><td>–</td><td>UART/I2C</td><td>I2C SDA (nối chung A4), PC4</td><td></td></tr><tr><td><b>AREF</b></td><td>DIGITAL-3</td><td>–</td><td>Analog</td><td>Tham chiếu ADC ngoài</td><td>Chỉ cấp 0–5 V và gọi analogReference(EXTERNAL) trước khi đo. Cấp sai có thể hỏng chip.</td></tr><tr><td><b>GND</b></td><td>DIGITAL-4</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>D13</b></td><td>DIGITAL-5</td><td>13</td><td>GPIO</td><td>PB5, SPI SCK, LED L onboard</td><td></td></tr><tr><td><b>D12</b></td><td>DIGITAL-6</td><td>12</td><td>GPIO</td><td>PB4, SPI MISO</td><td></td></tr><tr><td><b>D11</b></td><td>DIGITAL-7</td><td>11</td><td>GPIO</td><td>PB3, SPI MOSI, PWM</td><td></td></tr><tr><td><b>D10</b></td><td>DIGITAL-8</td><td>10</td><td>GPIO</td><td>PB2, SPI SS, PWM</td><td></td></tr><tr><td><b>D9</b></td><td>DIGITAL-9</td><td>9</td><td>GPIO</td><td>PB1, PWM</td><td></td></tr><tr><td><b>D8</b></td><td>DIGITAL-10</td><td>8</td><td>GPIO</td><td>PB0</td><td></td></tr><tr><td><b>D7</b></td><td>DIGITAL-11</td><td>7</td><td>GPIO</td><td>PD7</td><td></td></tr><tr><td><b>D6</b></td><td>DIGITAL-12</td><td>6</td><td>GPIO</td><td>PD6, PWM</td><td></td></tr><tr><td><b>D5</b></td><td>DIGITAL-13</td><td>5</td><td>GPIO</td><td>PD5, PWM</td><td></td></tr><tr><td><b>D4</b></td><td>DIGITAL-14</td><td>4</td><td>GPIO</td><td>PD4</td><td></td></tr><tr><td><b>D3</b></td><td>DIGITAL-15</td><td>3</td><td>GPIO</td><td>PD3, INT1, PWM</td><td></td></tr><tr><td><b>D2</b></td><td>DIGITAL-16</td><td>2</td><td>GPIO</td><td>PD2, INT0</td><td></td></tr><tr><td><b>D1/TX</b></td><td>DIGITAL-17</td><td>1</td><td>UART/I2C</td><td>PD1, Serial TX</td><td>Dùng chung với USB-Serial (nạp code &amp; Serial Monitor). Tránh dùng khi đang nạp.</td></tr><tr><td><b>D0/RX</b></td><td>DIGITAL-18</td><td>0</td><td>UART/I2C</td><td>PD0, Serial RX</td><td>Dùng chung với USB-Serial. Mạch ngoài trên RX có thể làm nạp code thất bại.</td></tr></tbody></table></div>
+<h3>Tài liệu hãng</h3><ul class="seo-links"><li><a href="https://docs.arduino.cc/resources/datasheets/A000066-datasheet.pdf" rel="noopener" target="_blank">Arduino Uno R3 Datasheet</a></li><li><a href="https://docs.arduino.cc/resources/schematics/A000066-schematics.pdf" rel="noopener" target="_blank">Uno R3 Schematic</a></li><li><a href="https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf" rel="noopener" target="_blank">ATmega328P Datasheet (Microchip)</a></li><li><a href="https://docs.arduino.cc/resources/pinouts/A000066-full-pinout.pdf" rel="noopener" target="_blank">Uno R3 Pinout (PDF)</a></li></ul><h3>Tất cả board</h3><ul class="seo-links"><li><a href="esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span></li><li><a href="esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="m5stack-atoms3/">M5Stack AtomS3</a> <span class="muted small">ESP32-S3FN8 + LCD 0.85&quot;</span></li><li><a href="pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="raspberry-pi-40pin/">Raspberry Pi 4 / 5 (GPIO 40 chân)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li></ul></section><!--/SEOBODY-->
+    <section class="card spec" id="spec" hidden>
+      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
+      <div class="chips" id="specTabs" role="tablist"></div>
+      <div id="specBody"></div>
+    </section>
+    <section class="card spec" id="ref" hidden>
+      <h2>Linh kiện đi kèm khi tự làm mạch</h2><div id="refBody"></div>
+    </section>
+  </section>
+
+  <section data-panel="calc" id="calc" hidden>
+    <div class="grid2">
+      <div class="card calc"><h3>Điện trở LED</h3>
+        <div class="f3"><label>V nguồn (V)<input id="ledV" inputmode="decimal" value="3.3"></label><label>Vf LED (V)<input id="ledVf" inputmode="decimal" value="2.0"></label><label>Dòng (mA)<input id="ledI" inputmode="decimal" value="10"></label></div>
+        <p class="hint">Vf tham khảo: đỏ 1.8–2.2 V · xanh lá 2.0–3.2 V · xanh dương/trắng 2.8–3.3 V.</p>
+        <div class="out" id="ledOut"></div></div>
+      <div class="card calc"><h3>Phân áp cho ADC</h3>
+        <div class="f3"><label>Vin max (V)<input id="dvIn" inputmode="decimal" value="12"></label><label>V ADC max (V)<input id="dvMax" inputmode="decimal" value="3.1"></label><label>R2 (kΩ)<input id="dvR2" inputmode="decimal" value="10"></label></div>
+        <p class="hint">ESP32 (atten 11–12 dB) đo tốt tới ~2.5–3.1 V · Pico 3.3 V · Uno 5 V.</p>
+        <div class="out" id="dvOut"></div></div>
+      <div class="card calc"><h3>Pull-up I2C</h3>
+        <div class="f3"><label>VDD (V)<input id="i2V" inputmode="decimal" value="3.3"></label><label>C bus (pF)<input id="i2C" inputmode="decimal" value="100"></label><label>Tốc độ<select id="i2M"><option value="100">100 kHz</option><option value="400" selected>400 kHz</option><option value="1000">1 MHz</option></select></label></div>
+        <p class="hint">Mỗi thiết bị ~10 pF, dây ~50–100 pF/m.</p>
+        <div class="out" id="i2Out"></div></div>
+      <div class="card calc"><h3>Mạch RC (reset trễ / lọc)</h3>
+        <div class="f3"><label>R (kΩ)<input id="rcR" inputmode="decimal" value="10"></label><label>C (µF)<input id="rcC" inputmode="decimal" value="1"></label><label></label></div>
+        <p class="hint">Espressif gợi ý R 10 kΩ + C 1 µF cho chân EN.</p>
+        <div class="out" id="rcOut"></div></div>
+    </div>
+  </section>
+
+  <section data-panel="docs" hidden>
+    <p class="muted">Link trỏ thẳng tới tài liệu gốc của hãng. Dữ liệu trong app tóm tắt từ các tài liệu này; khi thiết kế mạch thật, kiểm tra lại bản mới nhất.</p>
+    <div class="grid2" id="docsAll"></div>
+  </section>
+</main>
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-bar"><span id="lbCap"></span><button class="icon-btn" id="lbOut" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="lbIn" aria-label="Phóng to">+</button><button class="icon-btn" id="lbClose" aria-label="Đóng">✕</button></div>
+  <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
+  <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
+</div>
+<script src="js/i18n-data.js?v=25"></script>
+<script src="js/i18n.js?v=25"></script>
+<script src="js/boards.js?v=25"></script>
+<script src="js/specs.js?v=25"></script>
+<script src="js/learn.js?v=25"></script>
+<script src="js/app.js?v=25"></script>
+</body>
+</html>

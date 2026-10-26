@@ -53,10 +53,14 @@
     renderBoardList(); renderFilters(); draw(); renderDetail(); renderDocs(); renderSpec(); syncHash();
     const active = $("#boards [aria-pressed=true]"); if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
   }
+  // URL dạng <gốc app>/[en/]<board>/#<chân> – mỗi board là một trang thật (xem tools/build-seo.js)
+  const appRoot = new URL(".", document.baseURI).href;
   function syncHash() {
-    const hsh = "#" + state.b.id + (state.sel ? "/" + encodeURIComponent(state.sel.name) : "");
-    if (location.hash !== hsh) history.replaceState(null, "", hsh);
+    const en = document.documentElement.lang === "en";
+    const url = appRoot + (en ? "en/" : "") + state.b.id + "/" + (state.sel ? "#" + encodeURIComponent(state.sel.name) : "");
+    if (location.href !== url) history.replaceState(null, "", url);
   }
+  window.onLangChange = () => { if (state.b) { draw(); syncHash(); } };
 
   /* ---------- Bộ lọc ---------- */
   function renderFilters() {
@@ -244,6 +248,7 @@
     $("#viewPcb").setAttribute("aria-pressed", state.view === "pcb");
     $("#viewSch").setAttribute("aria-pressed", state.view === "sch");
     $("#bTitle").textContent = state.b.name;
+    document.title = document.documentElement.lang === "en" ? `${state.b.name} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${state.b.name} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
     $("#bSub").textContent = `${state.b.vendor} · ${state.b.chip} · logic ${state.b.logic}`;
     const note = [state.b.note, state.view === "pcb" && state.b.photo ? state.b.photo.credit : ""].filter(Boolean).join(" · ");
     $("#bNote").textContent = note; $("#bNote").hidden = !note;
@@ -423,7 +428,12 @@
   $("#skin").onchange = e => setSkin(e.target.value);
   let sk = "pinout"; try { sk = localStorage.getItem("skin") || sk; } catch (e) { }
   setSkin(sk);
-  const fromHash = () => { const [hid, hpin] = location.hash.slice(1).split("/"); selectBoard(hid || BOARDS[0].id, hpin && decodeURIComponent(hpin)); };
+  // Hỗ trợ cả link cũ "#board/chân" lẫn link mới "/board/#chân"
+  const fromHash = () => {
+    const h = decodeURIComponent(location.hash.slice(1)), [a, b] = h.split("/");
+    if (BOARDS.some(x => x.id === a)) return selectBoard(a, b);
+    selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id, h || undefined);
+  };
   addEventListener("hashchange", fromHash);
   fromHash();
   setTab("pins"); calc();

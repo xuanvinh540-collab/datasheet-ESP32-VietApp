@@ -3,7 +3,7 @@
    từng chân/board vẫn giữ tiếng Việt. Thêm câu mới: thêm cặp "tiếng Việt": "English" vào EN. */
 (function () {
   const EN = {
-    "Datasheet tiếng Việt": "Vietnamese datasheet", "Hổ phách": "Amber", "Qua GPIO matrix": "Via GPIO matrix", "IO MUX (FSPI) hoặc GPIO matrix": "IO MUX (FSPI) or GPIO matrix",
+    "Thông tin chân & datasheet board": "Pin info & board datasheets", "Hổ phách": "Amber", "Qua GPIO matrix": "Via GPIO matrix", "IO MUX (FSPI) hoặc GPIO matrix": "IO MUX (FSPI) or GPIO matrix",
     "SoC + Flash + PSRAM (Octal) + anten PCB": "SoC + Flash + PSRAM (Octal) + PCB antenna", "R tính =": "Calculated R =", "→ chọn E24": "→ E24 pick", "→ chọn": "→ pick",
     "R1 tính =": "Calculated R1 =", "Vout tại Vin max =": "Vout at Vin max =", "Gợi ý:": "Suggested:", "Tần số cắt lọc thông thấp f = 1/(2πRC) =": "Low-pass cutoff f = 1/(2πRC) =", "Sơ đồ chân": "Pinout", "Tính toán": "Calculators", "Tài liệu": "Docs",
     "Kiến trúc": "Architecture", "Schematic hãng": "Official schematic", "Tìm chân: 8, ADC, SDA, TX…": "Find pin: 8, ADC, SDA, TX…",
@@ -39,6 +39,7 @@
   ];
   let lang = "vi";
   try { lang = localStorage.getItem("lang") || "vi"; } catch (e) { }
+  if (window.PAGE_LANG) lang = window.PAGE_LANG; // trang /en/… luôn mở tiếng Anh, trang thường luôn tiếng Việt
   const orig = new WeakMap();
   const D = k => EN[k] != null ? EN[k] : (window.EN_DATA || {})[k];
   const tr = s => {
@@ -71,6 +72,7 @@
     try { localStorage.setItem("lang", l); } catch (e) { }
     document.querySelectorAll("#langSw button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === l));
     run();
+    if (window.onLangChange) window.onLangChange();
   };
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("#langSw button").forEach(b => b.onclick = () => setLang(b.dataset.l));

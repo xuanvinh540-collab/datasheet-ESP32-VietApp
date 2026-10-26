@@ -1,4 +1,4 @@
-# Pin Explorer VN
+# Pindex – Thông tin chân & datasheet board
 
 Tra cứu sơ đồ chân vi điều khiển bằng tiếng Việt, dựa trên datasheet hãng. Web tĩnh, tối ưu cho điện thoại và iPad (cài được lên màn hình chính).
 
@@ -18,3 +18,11 @@ Board hiện có: ESP32-C3 Super Mini, ESP32-S3-DevKitC-1, Raspberry Pi Pico 2 W
 npx wrangler deploy
 ```
 Cấu hình trong `wrangler.jsonc`; `.assetsignore` loại `.git`, README… khỏi bản upload.
+
+## SEO (chạy lại sau khi sửa dữ liệu board)
+```
+python tools/og.py          # ảnh xem trước khi chia sẻ: og/*.png
+node tools/build-seo.js     # trang riêng từng board (VI + /en/), sitemap.xml, robots.txt
+```
+`index.html` là khuôn: chỉ sửa ngoài phần `<!--SEO-->…<!--/SEO-->` và `<!--SEOBODY-->…<!--/SEOBODY-->`.
+Cloudflare Pages (pindex.pages.dev) tự deploy khi push nhánh `main`.
