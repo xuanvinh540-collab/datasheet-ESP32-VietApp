@@ -22,10 +22,10 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=35">
-<link rel="stylesheet" href="css/retro.css?v=35" id="skin-8bit" disabled>
-<link rel="stylesheet" href="css/pinout.css?v=35" id="skin-pinout">
-<link rel="stylesheet" href="css/amber.css?v=35" id="skin-amber" disabled>
+<link rel="stylesheet" href="css/app.css?v=39">
+<link rel="stylesheet" href="css/retro.css?v=39" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=39" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=39" id="skin-amber" disabled>
 </head>
 <body>
 <header class="appbar">
@@ -34,6 +34,7 @@
     <button data-tab="pins" role="tab">Sơ đồ chân</button>
     <button data-tab="calc" role="tab">Tính toán</button>
     <button data-tab="docs" role="tab">Tài liệu</button>
+    <button data-tab="build" role="tab" class="tab-build">⚡ Build</button>
   </nav>
   <div class="daynight langsw" id="langSw" role="group" aria-label="Ngôn ngữ"><button data-l="vi" title="Tiếng Việt"><svg viewBox="0 0 30 20" width="22" height="15" aria-hidden="true"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.2,8.3 20.7,8.3 17.1,10.9 18.4,15.2 15,12.6 11.6,15.2 12.9,10.9 9.3,8.3 13.8,8.3" fill="#ff0"/></svg></button><button data-l="en" title="English"><svg viewBox="0 0 60 30" width="22" height="15" aria-hidden="true"><clipPath id="gbc"><rect width="60" height="30"/></clipPath><g clip-path="url(#gbc)"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" stroke="#c8102e" stroke-width="2.4"/><path d="M30,0V30M0,15H60" stroke="#fff" stroke-width="10"/><path d="M30,0V30M0,15H60" stroke="#c8102e" stroke-width="6"/></g></svg></button></div>
   <div class="daynight" role="group" aria-label="Sáng / tối"><button id="tLight" aria-label="Giao diện sáng">☀</button><button id="tDark" aria-label="Giao diện tối">☾</button></div>
@@ -48,7 +49,7 @@
         <div class="stage-head">
           <div><h1 id="bTitle">LilyGO T-Display-S3</h1><p id="bSub" class="muted small"></p></div>
           <div class="seg" role="group" aria-label="Kiểu hình">
-            <button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button></div><button id="viewBuild" class="build-btn">⚡ BUILD</button><div hidden>
+            <button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
           </div>
         </div>
         <div class="toolbar">
@@ -98,6 +99,17 @@
     </div>
   </section>
 
+  <section data-panel="build" hidden>
+    <div class="bwrap">
+      <div class="card bstage">
+        <div class="bbar"><select id="bboard" aria-label="Board"></select><span class="muted small">Kéo nền để di chuyển · cuộn/chụm để zoom</span>
+          <div class="zoom"><button class="icon-btn" id="bzout" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="bzin" aria-label="Phóng to">+</button><button class="icon-btn" id="bfit" aria-label="Vừa khung">⤢</button></div></div>
+        <svg id="bsvg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Khu ghép module"></svg>
+      </div>
+      <aside class="card bside" id="bside"></aside>
+    </div>
+  </section>
+
   <section data-panel="docs" hidden>
     <p class="muted">Link trỏ thẳng tới tài liệu gốc của hãng. Dữ liệu trong app tóm tắt từ các tài liệu này; khi thiết kế mạch thật, kiểm tra lại bản mới nhất.</p>
     <div class="grid2" id="docsAll"></div>
@@ -108,11 +120,11 @@
   <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
   <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
 </div>
-<script src="js/i18n-data.js?v=35"></script>
-<script src="js/i18n.js?v=35"></script>
-<script src="js/boards.js?v=35"></script>
-<script src="js/specs.js?v=35"></script>
-<script src="js/learn.js?v=35"></script>
-<script src="js/app.js?v=35"></script>
+<script src="js/i18n-data.js?v=39"></script>
+<script src="js/i18n.js?v=39"></script>
+<script src="js/boards.js?v=39"></script>
+<script src="js/specs.js?v=39"></script>
+<script src="js/learn.js?v=39"></script>
+<script src="js/app.js?v=39"></script>
 </body>
 </html>

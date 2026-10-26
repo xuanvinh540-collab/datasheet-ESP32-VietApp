@@ -56,7 +56,6 @@
   // URL dạng <gốc app>/[en/]<board>/#<chân> – mỗi board là một trang thật (xem tools/build-seo.js)
   const appRoot = new URL(".", document.baseURI).href;
   function syncHash() {
-    if (state.view === "build") return;
     const en = document.documentElement.lang === "en";
     const url = appRoot + (en ? "en/" : "") + state.b.id + "/" + (state.sel ? "#" + encodeURIComponent(state.sel.name) : "");
     if (location.href !== url) history.replaceState(null, "", url);
@@ -109,7 +108,7 @@
   }
   function labelColors(p) { return { bg: cv(CATS[p.cat].c), fg: ["strap", "nc"].includes(p.cat) ? "#1a1a1a" : "#fff" }; }
 
-  function drawPCB(svg) {
+  function drawPCB(svg, bare) {
     const b = state.b, [fill, edge] = PCB[b.pcb] || PCB.green;
     const bb = { x0: 0, y0: 0, x1: b.w, y1: b.h };
     const grow = (x, y) => { bb.x0 = Math.min(bb.x0, x); bb.y0 = Math.min(bb.y0, y); bb.x1 = Math.max(bb.x1, x); bb.y1 = Math.max(bb.y1, y); };
@@ -133,7 +132,11 @@
         const g = el("g", { class: "pin", tabindex: 0, role: "button", "data-i": i, "aria-label": `${p.name} ${p.fn.join(", ")}` }, svg);
         const vert = hd.side === "T" || hd.side === "B";
         const alt = short(p);
-        if (!vert) {
+        if (bare) {
+          // tab Build: không có nhãn lớn, chỉ tên chân nhỏ cạnh pad (phía trong board) để dây nhìn rõ
+          const inX = hd.side === "L" ? 1 : hd.side === "R" ? -1 : 0, inY = hd.side === "T" ? 1 : hd.side === "B" ? -1 : 0;
+          el("text", { x: p.x + inX * 1.6, y: p.y + inY * 1.8, "text-anchor": inX > 0 ? "start" : inX < 0 ? "end" : "middle", "dominant-baseline": "central", "font-size": .95, class: "padname", fill: col.bg }, g, p.name);
+        } else if (!vert) {
           const L = hd.side === "L", tx = L ? hd.at - TW : hd.at, ax = L ? tx - .5 - AW : tx + TW + .5;
           el("line", { x1: p.x, y1: p.y, x2: hd.at, y2: p.y, stroke: col.bg, "stroke-width": .3, class: "lead" }, lead);
           el("rect", { x: tx, y: p.y - TH / 2, width: TW, height: TH, rx: .45, fill: col.bg, class: "tab" }, g);
@@ -242,8 +245,7 @@
     }
     const svg = $("#svg"); svg.innerHTML = "";
     svg.classList.toggle("sch", state.view === "sch");
-    if (state.view === "pcb" || state.view === "build") drawPCB(svg); else drawArch(svg);
-    if (state.view === "build" && window.BUILD) { BUILD.enter(); BUILD.decorate(svg); }
+    if (state.view === "pcb") drawPCB(svg); else drawArch(svg);
     svg.style.width = state.zoom * 100 + "%";
     svg.querySelectorAll(".pin").forEach(g => {
       g.addEventListener("click", () => pick(pins[+g.dataset.i]));
@@ -251,7 +253,6 @@
     });
     $("#viewPcb").setAttribute("aria-pressed", state.view === "pcb");
     $("#viewSch").setAttribute("aria-pressed", state.view === "sch");
-    $("#viewBuild").setAttribute("aria-pressed", state.view === "build");
     $("#bTitle").textContent = state.b.name;
     renderSeoTable();
     document.title = document.documentElement.lang === "en" ? `${state.b.name} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${state.b.name} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
@@ -263,7 +264,6 @@
 
   /* ---------- Chi tiết ---------- */
   function pick(p) {
-    if (state.view === "build" && window.BUILD && BUILD.onPin(p)) return;
     state.sel = state.sel === p ? null : p;
     applyDim(); renderDetail(); syncHash();
     if (state.sel && matchMedia("(max-width: 899px)").matches) $("#detail").classList.add("open");
@@ -272,7 +272,6 @@
   const SRC = { ds: "Datasheet", hdg: "HDG", std: "Thông lệ" };
   function renderDetail() {
     const box = $("#detailBody"), b = state.b, p = state.sel;
-    if (state.view === "build" && window.BUILD) return BUILD.panel(box);
     const L = !p && state.flag && window.LEARN && LEARN[state.flag];
     if (L) {
       const hit = pins.filter(x => x.flags.includes(state.flag));
@@ -390,7 +389,7 @@
     document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
     document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== t);
   }
-  document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+  document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => b.dataset.tab === "build" ? openBuild() : setTab(b.dataset.tab));
   $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); renderDetail(); };
   $("#viewSch").onclick = () => { state.view = "sch"; draw(); renderDetail(); };
   $(".grab").onclick = () => $("#detail").classList.toggle("open");
@@ -411,8 +410,8 @@
     if (state.view !== "sch") return;
     lbOpen(svgDataUrl(), state.b.name + " – Kiến trúc");
   });
-  function svgDataUrl() {
-    const src = $("#svg"), cl = src.cloneNode(true), a = src.querySelectorAll("*"), b = cl.querySelectorAll("*");
+  function svgDataUrl(svgEl) {
+    const src = svgEl || $("#svg"), cl = src.cloneNode(true), a = src.querySelectorAll("*"), b = cl.querySelectorAll("*");
     a.forEach((n, i) => { const cs = getComputedStyle(n); b[i].setAttribute("style", ["fill", "stroke", "stroke-width", "font-family", "font-size", "font-weight", "opacity"].map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
     const vb = src.viewBox.baseVal; cl.setAttribute("width", vb.width * 40); cl.setAttribute("height", vb.height * 40);
     cl.setAttribute("style", "background:" + getComputedStyle(document.body).backgroundColor);
@@ -440,14 +439,12 @@
 
   $("#viewOem").onclick = () => { state.view = "oem"; draw(); };
   const loadJs = src => new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
+  // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
-    if (!window.BUILD) { await loadJs("js/modules.js?v=35"); await loadJs("js/build.js?v=35"); }
-    state.view = "build"; state.sel = null; state.flag = null; BUILD.enter(); if (h) BUILD.importHash(h);
-    draw(); renderDetail(); renderFilters();
-    if (matchMedia("(max-width: 899px)").matches) $("#detail").classList.add("open");
+    if (!window.BUILD) { await loadJs("js/modules.js?v=38"); await loadJs("js/build.js?v=38"); }
+    setTab("build"); BUILD.open(h);
   }
-  $("#viewBuild").onclick = () => openBuild();
-  window.APP = { state, get pins() { return pins; }, draw, renderDetail, esc, el, toast: t => toast(t), svgDataUrl, closeSheet: () => $("#detail").classList.remove("open") };
+  window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });
