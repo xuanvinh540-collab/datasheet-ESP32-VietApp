@@ -330,6 +330,14 @@
   }
 
   /* ---------- Chi tiết ---------- */
+  // Giá trị nhinhiều mục ghép bằng " · " thì mỗi mục một dòng, không bị ngắt giữa chừng; phần trong ngoặc cuối làm chú thích
+  function factVal(v) {
+    const parts = String(v).split(" · ");
+    if (parts.length < 3) return esc(v);
+    let note = "";
+    const li = parts.map(x => { const m = x.match(/^(.*?)\s*(\([^)]*\))$/); if (m) { note = m[2]; return `<li>${esc(m[1])}</li>`; } return `<li>${esc(x)}</li>`; }).join("");
+    return `<ul class="fv${parts.length > 4 ? " two" : ""}">${li}${note ? `<li class="fv-note">${esc(note)}</li>` : ""}</ul>`;
+  }
   function pick(p) {
     state.sel = state.sel === p ? null : p;
     applyDim(); renderDetail(); syncHash();
@@ -360,7 +368,7 @@
     if (!p) {
       box.innerHTML = `<div class="d-head"><div><div class="d-kicker">${b.mod ? "Linh kiện" : "Board"}</div><h2>${esc(b.name)}</h2></div></div>
         <p class="muted">${esc(b.summary)}</p>
-        <dl class="facts">${b.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+        <dl class="facts">${b.facts.map(([k, v]) => `<div class="fact"><dt>${esc(k)}</dt><dd>${factVal(v)}</dd></div>`).join("")}</dl>
         <button class="btn-share share">⤴ Chia sẻ board này</button>
         <p class="hint">Chạm vào một chân trên hình để xem chức năng, cảnh báo và linh kiện gợi ý.</p>`;
       return;

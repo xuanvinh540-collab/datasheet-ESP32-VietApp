@@ -479,3 +479,21 @@ main { padding-top: 12px; }
 .bwinfo span { color: var(--muted); }
 .mitem img { flex: none; width: 42px; height: 34px; object-fit: contain; }
 .mitem { min-height: 44px; }
+
+/* Panel thông tin board: nhãn cột cố định, giá trị căn đều, mỗi dòng một đường kẻ mảnh */
+.facts { display: block; margin: 14px 0 0; border-top: 1px solid var(--line); }
+.fact { display: grid; grid-template-columns: 8.6em minmax(0, 1fr); gap: 4px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.facts dt { font: 600 11.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .03em; line-height: 1.5; }
+.facts dd { margin: 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.fv { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+.fv li { position: relative; padding-left: 12px; }
+.fv li::before { content: ""; position: absolute; left: 0; top: .6em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.fv-n { color: var(--muted); font-size: 12.5px; }
+.detail .hint { margin: 14px 0 0; }
+@media (max-width: 430px) { .fact { grid-template-columns: 1fr; gap: 2px; } }
+.fv.two { grid-template-columns: 1fr 1fr; gap: 3px 12px; }
+.fv li.fv-note { grid-column: 1 / -1; padding-left: 0; color: var(--muted); font-size: 12.5px; }
+.fv li.fv-note::before { display: none; }
+.fact:has(.fv.two) { grid-template-columns: 1fr; }
+.fv.two li { white-space: nowrap; }
+.fv.two { grid-template-columns: repeat(3, auto); justify-content: start; gap: 4px 18px; }
