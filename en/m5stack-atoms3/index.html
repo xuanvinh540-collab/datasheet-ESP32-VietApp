@@ -22,10 +22,10 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=25">
-<link rel="stylesheet" href="css/retro.css?v=25" id="skin-8bit" disabled>
-<link rel="stylesheet" href="css/pinout.css?v=25" id="skin-pinout">
-<link rel="stylesheet" href="css/amber.css?v=25" id="skin-amber" disabled>
+<link rel="stylesheet" href="css/app.css?v=26">
+<link rel="stylesheet" href="css/retro.css?v=26" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=26" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=26" id="skin-amber" disabled>
 </head>
 <body>
 <header class="appbar">
@@ -66,7 +66,7 @@
     <!--SEOBODY--><section class="card spec seo"><h2>M5Stack AtomS3 pinout table</h2>
 <p class="muted">24×24 mm module: ESP32-S3, 0.85 inch screen, 6-axis IMU, IR, Grove port.</p><dl class="facts"><dt>Logic</dt><dd>3.3 V, not 5 V tolerant</dd><dt>Size</dt><dd>24 × 24 × 13 mm</dd><dt>Display</dt><dd>0.85&quot; GC9107 128×128 (SPI)</dd><dt>Button</dt><dd>Pressing the screen face = GPIO41</dd><dt>Grove</dt><dd>G1/G2 (yellow = G2, white = G1)</dd></dl>
 <div class="tw"><table><thead><tr><th>Pin</th><th>Header</th><th>GPIO</th><th>Type</th><th>Functions</th><th>Notes</th></tr></thead><tbody><tr><td><b>3V3</b></td><td>L-1</td><td>–</td><td>Power</td><td>3.3 V output</td><td>3.3 V output (SY8089 DC-DC).</td></tr><tr><td><b>IO5</b></td><td>L-2</td><td>5</td><td>Analog</td><td>ADC1_CH4, TOUCH5</td><td></td></tr><tr><td><b>IO6</b></td><td>L-3</td><td>6</td><td>Analog</td><td>ADC1_CH5, TOUCH6</td><td></td></tr><tr><td><b>IO7</b></td><td>L-4</td><td>7</td><td>Analog</td><td>ADC1_CH6, TOUCH7</td><td></td></tr><tr><td><b>IO8</b></td><td>L-5</td><td>8</td><td>Analog</td><td>ADC1_CH7, TOUCH8</td><td></td></tr><tr><td><b>IO39</b></td><td>R-1</td><td>39</td><td>GPIO</td><td>MTCK, IMU SCL (MPU6886)</td><td>Shares the I2C bus with the onboard MPU6886 IMU (0x68).</td></tr><tr><td><b>IO38</b></td><td>R-2</td><td>38</td><td>GPIO</td><td>IMU SDA (MPU6886)</td><td>Shares the I2C bus with the onboard MPU6886 IMU (0x68).</td></tr><tr><td><b>5V</b></td><td>R-3</td><td>–</td><td>Power</td><td>5 V in/out</td><td>Connected to USB-C 5 V. Never feed 5 V into a GPIO.</td></tr><tr><td><b>GND</b></td><td>R-4</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GND</b></td><td>GROVE-1</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>5V</b></td><td>GROVE-2</td><td>–</td><td>Power</td><td>5 V Grove</td><td>5 V supply for Grove modules.</td></tr><tr><td><b>IO2</b></td><td>GROVE-3</td><td>2</td><td>Analog</td><td>ADC1_CH1, TOUCH2, Grove (yellow)</td><td></td></tr><tr><td><b>IO1</b></td><td>GROVE-4</td><td>1</td><td>Analog</td><td>ADC1_CH0, TOUCH1, Grove (white)</td><td></td></tr></tbody></table></div>
-<h3>Manufacturer documents</h3><ul class="seo-links"><li><a href="https://docs.m5stack.com/en/core/AtomS3" rel="noopener" target="_blank">M5Stack AtomS3 Docs</a></li><li><a href="https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/472/Sch_M5_AtomS3_v1.0.pdf" rel="noopener" target="_blank">AtomS3 Schematic</a></li><li><a href="https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf" rel="noopener" target="_blank">ESP32-S3 Datasheet</a></li><li><a href="https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/docs/datasheet/core/MPU-6886-000193%2Bv1.1_GHIC_en.pdf" rel="noopener" target="_blank">MPU6886 Datasheet</a></li></ul><h3>All boards</h3><ul class="seo-links"><li><a href="en/esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span></li><li><a href="en/esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="en/lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="en/m5stack-atoms3/">M5Stack AtomS3</a> <span class="muted small">ESP32-S3FN8 + LCD 0.85&quot;</span></li><li><a href="en/pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="en/pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="en/raspberry-pi-40pin/">Raspberry Pi 4 / 5 (40-pin GPIO)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="en/arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li></ul></section><!--/SEOBODY-->
+<h3>Manufacturer documents</h3><ul class="seo-links"><li><a href="https://docs.m5stack.com/en/core/AtomS3" rel="noopener" target="_blank">M5Stack AtomS3 Docs</a></li><li><a href="https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/472/Sch_M5_AtomS3_v1.0.pdf" rel="noopener" target="_blank">AtomS3 Schematic</a></li><li><a href="https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf" rel="noopener" target="_blank">ESP32-S3 Datasheet</a></li><li><a href="https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/docs/datasheet/core/MPU-6886-000193%2Bv1.1_GHIC_en.pdf" rel="noopener" target="_blank">MPU6886 Datasheet</a></li></ul><h3>All boards</h3><ul class="seo-links"><li><a href="en/esp32-c3-devkitm-1/">ESP32-C3-DevKitM-1</a> <span class="muted small">ESP32-C3 (MINI-1)</span></li><li><a href="en/esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="en/lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="en/m5stack-atoms3/">M5Stack AtomS3</a> <span class="muted small">ESP32-S3FN8 + LCD 0.85&quot;</span></li><li><a href="en/pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="en/pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="en/raspberry-pi-40pin/">Raspberry Pi 4 / 5 (40-pin GPIO)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="en/arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li></ul></section><!--/SEOBODY-->
     <section class="card spec" id="spec" hidden>
       <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
       <div class="chips" id="specTabs" role="tablist"></div>
@@ -108,11 +108,11 @@
   <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
   <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
 </div>
-<script src="js/i18n-data.js?v=25"></script>
-<script src="js/i18n.js?v=25"></script>
-<script src="js/boards.js?v=25"></script>
-<script src="js/specs.js?v=25"></script>
-<script src="js/learn.js?v=25"></script>
-<script src="js/app.js?v=25"></script>
+<script src="js/i18n-data.js?v=26"></script>
+<script src="js/i18n.js?v=26"></script>
+<script src="js/boards.js?v=26"></script>
+<script src="js/specs.js?v=26"></script>
+<script src="js/learn.js?v=26"></script>
+<script src="js/app.js?v=26"></script>
 </body>
 </html>

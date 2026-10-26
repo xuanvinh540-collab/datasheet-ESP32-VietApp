@@ -58,8 +58,8 @@ function page({ board, en }) {
   const desc = board
     ? (en ? `${name} pinout: every pin's functions, boot/strapping warnings, electrical limits and companion parts from the ${board.vendor} datasheet. ${T(board.summary, true)}`
           : `Sơ đồ chân ${name}: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet ${board.vendor}. ${board.summary}`)
-    : (en ? "Interactive pinout reference built from manufacturer datasheets: ESP32-C3 Super Mini, ESP32-S3, LilyGO, M5Stack, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno."
-          : "Tra cứu sơ đồ chân tương tác theo datasheet hãng: ESP32-C3 Super Mini, ESP32-S3, LilyGO, M5Stack, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno.");
+    : (en ? "Interactive pinout reference built from manufacturer datasheets: ESP32-C3, ESP32-S3, LilyGO, M5Stack, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno."
+          : "Tra cứu sơ đồ chân tương tác theo datasheet hãng: ESP32-C3, ESP32-S3, LilyGO, M5Stack, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno.");
   let html = tpl.replace(/<!--SEO-->[\s\S]*?<!--\/SEO-->/, head({ title, desc: desc.slice(0, 300), url, en, viUrl, enUrl, base, board, img: `og/${board ? board.id : "home"}.png` }))
     .replace(/<!--SEOBODY-->[\s\S]*?<!--\/SEOBODY-->/, body(board, en, base))
     .replace(/<html lang="[a-z]+"/, `<html lang="${en ? "en" : "vi"}"`);
