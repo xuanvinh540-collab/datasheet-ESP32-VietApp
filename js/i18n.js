@@ -3,7 +3,11 @@
    từng chân/board vẫn giữ tiếng Việt. Thêm câu mới: thêm cặp "tiếng Việt": "English" vào EN. */
 (function () {
   const EN = {
-    "Thông tin chân & datasheet board": "Pin info & board datasheets", "⤴ Chia sẻ board này": "⤴ Share this board", "Chia sẻ": "Share", "Hổ phách": "Amber", "Qua GPIO matrix": "Via GPIO matrix", "IO MUX (FSPI) hoặc GPIO matrix": "IO MUX (FSPI) or GPIO matrix",
+    "Thông tin chân & datasheet board": "Pin info & board datasheets", "⤴ Chia sẻ board này": "⤴ Share this board", "Ghép module": "Build with modules", "Module": "Modules", "Copy #define": "Copy #define",
+    "⬇ Ảnh PNG": "⬇ PNG image", "⬇ File .json": "⬇ .json file", "🔗 Link": "🔗 Link", "⬆ Mở .json": "⬆ Open .json",
+    "Chọn module: app tự gán chân an toàn (✓). Đổi chân bằng danh sách, hoặc bấm ☝ rồi chạm chân trên board (vòng xanh = an toàn, cam = có lưu ý).": "Pick modules: the app assigns safe pins (✓). Change a pin from the list, or press ☝ then tap a board pin (green ring = safe, orange = caution).",
+    "Board chạy logic 3.3 V: không nối thẳng tín hiệu 5 V vào GPIO.": "This board uses 3.3 V logic: never wire 5 V signals straight into a GPIO.",
+    "Bus I2C dùng chung: cần pull-up 4.7 kΩ trên SDA/SCL (nhiều module đã có sẵn).": "Shared I2C bus: needs 4.7 kΩ pull-ups on SDA/SCL (many modules include them).", "Chia sẻ": "Share", "Hổ phách": "Amber", "Qua GPIO matrix": "Via GPIO matrix", "IO MUX (FSPI) hoặc GPIO matrix": "IO MUX (FSPI) or GPIO matrix",
     "SoC + Flash + PSRAM (Octal) + anten PCB": "SoC + Flash + PSRAM (Octal) + PCB antenna", "R tính =": "Calculated R =", "→ chọn E24": "→ E24 pick", "→ chọn": "→ pick",
     "R1 tính =": "Calculated R1 =", "Vout tại Vin max =": "Vout at Vin max =", "Gợi ý:": "Suggested:", "Tần số cắt lọc thông thấp f = 1/(2πRC) =": "Low-pass cutoff f = 1/(2πRC) =", "Sơ đồ chân": "Pinout", "Tính toán": "Calculators", "Tài liệu": "Docs",
     "Kiến trúc": "Architecture", "Schematic hãng": "Official schematic", "Tìm chân: 8, ADC, SDA, TX…": "Find pin: 8, ADC, SDA, TX…",

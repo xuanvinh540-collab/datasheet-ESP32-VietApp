@@ -56,6 +56,7 @@
   // URL dạng <gốc app>/[en/]<board>/#<chân> – mỗi board là một trang thật (xem tools/build-seo.js)
   const appRoot = new URL(".", document.baseURI).href;
   function syncHash() {
+    if (state.view === "build") return;
     const en = document.documentElement.lang === "en";
     const url = appRoot + (en ? "en/" : "") + state.b.id + "/" + (state.sel ? "#" + encodeURIComponent(state.sel.name) : "");
     if (location.href !== url) history.replaceState(null, "", url);
@@ -241,7 +242,8 @@
     }
     const svg = $("#svg"); svg.innerHTML = "";
     svg.classList.toggle("sch", state.view === "sch");
-    if (state.view === "pcb") drawPCB(svg); else drawArch(svg);
+    if (state.view === "pcb" || state.view === "build") drawPCB(svg); else drawArch(svg);
+    if (state.view === "build" && window.BUILD) { BUILD.enter(); BUILD.decorate(svg); }
     svg.style.width = state.zoom * 100 + "%";
     svg.querySelectorAll(".pin").forEach(g => {
       g.addEventListener("click", () => pick(pins[+g.dataset.i]));
@@ -249,6 +251,7 @@
     });
     $("#viewPcb").setAttribute("aria-pressed", state.view === "pcb");
     $("#viewSch").setAttribute("aria-pressed", state.view === "sch");
+    $("#viewBuild").setAttribute("aria-pressed", state.view === "build");
     $("#bTitle").textContent = state.b.name;
     renderSeoTable();
     document.title = document.documentElement.lang === "en" ? `${state.b.name} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${state.b.name} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`;
@@ -260,6 +263,7 @@
 
   /* ---------- Chi tiết ---------- */
   function pick(p) {
+    if (state.view === "build" && window.BUILD && BUILD.onPin(p)) return;
     state.sel = state.sel === p ? null : p;
     applyDim(); renderDetail(); syncHash();
     if (state.sel && matchMedia("(max-width: 899px)").matches) $("#detail").classList.add("open");
@@ -268,6 +272,7 @@
   const SRC = { ds: "Datasheet", hdg: "HDG", std: "Thông lệ" };
   function renderDetail() {
     const box = $("#detailBody"), b = state.b, p = state.sel;
+    if (state.view === "build" && window.BUILD) return BUILD.panel(box);
     const L = !p && state.flag && window.LEARN && LEARN[state.flag];
     if (L) {
       const hit = pins.filter(x => x.flags.includes(state.flag));
@@ -316,7 +321,7 @@
     const text = p ? `${p.name}: ${p.fn.slice(0, 4).join(", ")}${p.warn ? " ⚠" : ""}` : (en ? "Pin functions, warnings and datasheet links" : "Chức năng từng chân, cảnh báo, link datasheet");
     const url = location.href;
     try { if (navigator.share) return await navigator.share({ title, text, url }); } catch (e) { return; }
-    try { await navigator.clipboard.writeText(url); toast(en ? "Link copied" : "Đã copy link"); } catch (e) { prompt("Link:", url); }
+    try { await navigator.clipboard.writeText(url); toast(en ? "Link copied" : "Đã copy link"); } catch (e) { toast(url); }
   }
   function toast(t) { const d = h("div", "toast", esc(t)); document.body.appendChild(d); setTimeout(() => d.remove(), 1800); }
   $("#detailBody").addEventListener("click", e => { if (e.target.closest(".share")) share(); });
@@ -386,8 +391,8 @@
     document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== t);
   }
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
-  $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); };
-  $("#viewSch").onclick = () => { state.view = "sch"; draw(); };
+  $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); renderDetail(); };
+  $("#viewSch").onclick = () => { state.view = "sch"; draw(); renderDetail(); };
   $(".grab").onclick = () => $("#detail").classList.toggle("open");
   /* Popup zoom ảnh: kéo để di chuyển, cuộn chuột / 2 ngón để zoom, chạm đúp để phóng to */
   const lb = $("#lightbox"), lbImg = $("#lbImg"), V = { s: 1, x: 0, y: 0 }, pts = new Map();
@@ -404,12 +409,15 @@
   // Sơ đồ kiến trúc: chép style tính toán vào từng phần tử rồi xuất SVG thành ảnh để zoom
   $("#svg").addEventListener("click", () => {
     if (state.view !== "sch") return;
+    lbOpen(svgDataUrl(), state.b.name + " – Kiến trúc");
+  });
+  function svgDataUrl() {
     const src = $("#svg"), cl = src.cloneNode(true), a = src.querySelectorAll("*"), b = cl.querySelectorAll("*");
     a.forEach((n, i) => { const cs = getComputedStyle(n); b[i].setAttribute("style", ["fill", "stroke", "stroke-width", "font-family", "font-size", "font-weight", "opacity"].map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
     const vb = src.viewBox.baseVal; cl.setAttribute("width", vb.width * 40); cl.setAttribute("height", vb.height * 40);
     cl.setAttribute("style", "background:" + getComputedStyle(document.body).backgroundColor);
-    lbOpen("data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(cl)), state.b.name + " – Kiến trúc");
-  });
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(cl));
+  }
   $("#lbClose").onclick = lbClose; $("#lbIn").onclick = () => lbZoom(1.6); $("#lbOut").onclick = () => lbZoom(1 / 1.6);
   addEventListener("keydown", e => { if (!lb.hidden && e.key === "Escape") lbClose(); });
   const stg = $("#lbStage");
@@ -431,6 +439,15 @@
   stg.addEventListener("pointerup", up); stg.addEventListener("pointercancel", up);
 
   $("#viewOem").onclick = () => { state.view = "oem"; draw(); };
+  const loadJs = src => new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
+  async function openBuild(h) {
+    if (!window.BUILD) { await loadJs("js/modules.js?v=35"); await loadJs("js/build.js?v=35"); }
+    state.view = "build"; state.sel = null; state.flag = null; BUILD.enter(); if (h) BUILD.importHash(h);
+    draw(); renderDetail(); renderFilters();
+    if (matchMedia("(max-width: 899px)").matches) $("#detail").classList.add("open");
+  }
+  $("#viewBuild").onclick = () => openBuild();
+  window.APP = { state, get pins() { return pins; }, draw, renderDetail, esc, el, toast: t => toast(t), svgDataUrl, closeSheet: () => $("#detail").classList.remove("open") };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });
@@ -457,6 +474,7 @@
   setSkin(sk);
   // Hỗ trợ cả link cũ "#board/chân" lẫn link mới "/board/#chân"
   const fromHash = () => {
+    if (location.hash.startsWith("#build=")) { selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id); openBuild(location.hash.slice(7)); return; }
     const h = decodeURIComponent(location.hash.slice(1)), [a, b] = h.split("/");
     if (BOARDS.some(x => x.id === a)) return selectBoard(a, b);
     selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id, h || undefined);
