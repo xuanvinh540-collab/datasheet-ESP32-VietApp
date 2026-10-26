@@ -6,7 +6,7 @@
      js/affiliates.js   link tiếp thị liên kết theo vùng
      css/custom.css     màu ngày/đêm, font, cỡ chữ, và chỉnh từng phần tử (JSON trong dòng đầu giúp mở lại để sửa tiếp)
      js/images.js       ảnh thay thế (thumbnail "Mua board"), ảnh mới nằm trong img/uploads/
-     js/admin-auth.js   mật khẩu đã băm PBKDF2 (không lưu mật khẩu thật) */
+     js/admin-auth.js   mật khẩu đã băm SHA-256 (null = dùng mật khẩu mặc định "pindex") */
 (function () {
   if (window.__pindexAdmin) return; window.__pindexAdmin = true;
 
@@ -43,14 +43,36 @@
   let rootDir = null, panel = null, liveOn = false, tab = "link", dirty = { aff: false, css: false, img: false, auth: null };
   function fresh() { return { v: 1, day: {}, night: {}, font: {}, rules: { all: {}, day: {}, night: {} } }; }
 
-  /* ---------- băm mật khẩu (PBKDF2, chậm có chủ ý để khó dò) ---------- */
-  const hex = u => [...u].map(b => b.toString(16).padStart(2, "0")).join("");
-  const unhex = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
-  async function pbk(pw, saltHex, iter) {
-    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
-    return hex(new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: unhex(saltHex), iterations: iter }, key, 256)));
+  /* ---------- mật khẩu: mặc định "pindex", đổi được trong admin. Không cần bảo mật cao: admin chỉ ghi vào
+     thư mục trên máy bạn, trang thật chỉ đổi khi bạn push lên GitHub. ---------- */
+  const DEFAULT_PW = "pindex";
+  function sha256(str) {          // SHA-256 thuần JS, không phụ thuộc crypto.subtle
+    const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+      0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+      0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+      0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+    const b = new TextEncoder().encode(str), l = b.length, n = ((l + 9 + 63) >> 6) << 6, m = new Uint8Array(n);
+    m.set(b); m[l] = 0x80; const dv = new DataView(m.buffer); dv.setUint32(n - 4, l * 8); dv.setUint32(n - 8, Math.floor(l / 0x20000000));
+    let H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]; const w = new Array(64);
+    const r = (x, k) => (x >>> k) | (x << (32 - k));
+    for (let o = 0; o < n; o += 64) {
+      for (let t = 0; t < 16; t++) w[t] = dv.getUint32(o + t * 4);
+      for (let t = 16; t < 64; t++) { const s0 = r(w[t - 15], 7) ^ r(w[t - 15], 18) ^ (w[t - 15] >>> 3), s1 = r(w[t - 2], 17) ^ r(w[t - 2], 19) ^ (w[t - 2] >>> 10); w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0; }
+      let [a, bb, c, d, e, f, g, h] = H;
+      for (let t = 0; t < 64; t++) {
+        const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[t] + w[t]) | 0, t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & bb) ^ (a & c) ^ (bb & c))) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+      }
+      H = [H[0] + a, H[1] + bb, H[2] + c, H[3] + d, H[4] + e, H[5] + f, H[6] + g, H[7] + h].map(x => x | 0);
+    }
+    return H.map(x => (x >>> 0).toString(16).padStart(8, "0")).join("");
   }
-  async function makeAuth(pw) { const salt = hex(crypto.getRandomValues(new Uint8Array(16))); return { salt, iter: PBK_ITER, hash: await pbk(pw, salt, PBK_ITER) }; }
+  const ITER = 2000;
+  function hashPw(pw, salt, iter) { let h = sha256(salt + ":" + pw); for (let i = 1; i < iter; i++) h = sha256(h + salt); return h; }
+  function makeAuth(pw) { const salt = [...Array(16)].map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, "0")).join(""); return { alg: "sha256", salt, iter: ITER, hash: hashPw(pw, salt, ITER) }; }
+  const checkPw = (pw, A) => A ? (A.alg === "sha256" && hashPw(pw, A.salt, A.iter) === A.hash) : pw === DEFAULT_PW;
 
   /* ---------- giao diện của chính admin ---------- */
   const style = document.createElement("style");
@@ -119,7 +141,8 @@
     return '/* Ảnh thay thế do trang admin ghi (nhấp phải vào ảnh Mua board → Thay ảnh). Khoá "buy:<id board>" → đường dẫn ảnh. */\nwindow.IMG_MAP = ' + JSON.stringify(IMGPATH, null, 2) + ";\n";
   }
   function authText(a) {
-    return '/* Mật khẩu admin (đã băm PBKDF2-SHA256, không phải mật khẩu thật). Đặt lần đầu khi mở trang admin; đổi bằng nút "Đổi mật khẩu". */\nwindow.ADMIN_AUTH = ' + JSON.stringify(a) + ";\n";
+    return '/* Mật khẩu admin (đã băm SHA-256, không lưu mật khẩu thật). null = dùng mật khẩu mặc định "pindex".\n'
+      + '   Đổi bằng nút "Đổi mật khẩu" trong trang admin rồi bấm Lưu vào file. */\nwindow.ADMIN_AUTH = ' + JSON.stringify(a) + ";\n";
   }
   const fontOf = k => FONTS.find(f => f[0] === k);
   const fontUrl = f => "https://fonts.googleapis.com/css2?family=" + f[3] + "&display=swap";
@@ -178,27 +201,33 @@
   function askPw(title, two) {
     return new Promise(res => {
       const d = document.createElement("div"); d.className = "adm-modal adm-ui";
-      d.innerHTML = `<form class="adm-card"><b>${esc(title)}</b><input type="password" autocomplete="${two ? "new-password" : "current-password"}" placeholder="Mật khẩu" required ${two ? 'minlength="10"' : ""}>${two ? '<input type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" required minlength="10">' : ""}<div class="adm-err"></div><div class="adm-btns"><button type="button" data-x>Huỷ</button><button class="adm-primary">OK</button></div></form>`;
+      d.innerHTML = `<form class="adm-card" novalidate><b>${esc(title)}</b><input type="password" autocomplete="${two ? "new-password" : "current-password"}" placeholder="Mật khẩu">${two ? '<input type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu">' : ""}<div class="adm-err"></div><div class="adm-btns"><button type="button" data-x>Huỷ</button><button class="adm-primary">OK</button></div></form>`;
       document.body.appendChild(d); const [a, b] = d.querySelectorAll("input"); a.focus();
-      d.querySelector("form").onsubmit = e => { e.preventDefault(); if (two && a.value !== b.value) { d.querySelector(".adm-err").textContent = "Hai lần nhập chưa giống nhau."; return; } d.remove(); res(a.value); };
+      const err = d.querySelector(".adm-err");
+      d.querySelector("form").onsubmit = e => {
+        e.preventDefault();
+        if (!a.value) { err.textContent = "Chưa nhập mật khẩu."; return; }
+        if (two && a.value.length < 4) { err.textContent = "Mật khẩu mới cần ít nhất 4 ký tự."; return; }
+        if (two && a.value !== b.value) { err.textContent = "Hai lần nhập chưa giống nhau."; return; }
+        d.remove(); res(a.value);
+      };
       d.querySelector("[data-x]").onclick = () => { d.remove(); res(null); };
     });
   }
   async function login() {
     if (panel || liveOn) return;
-    let until = 0; try { until = +sessionStorage.getItem("adm-lock") || 0; } catch (e) { }
-    if (Date.now() < until) { alert("Nhập sai nhiều lần. Thử lại sau " + Math.ceil((until - Date.now()) / 1000) + " giây."); return; }
-    await loadScript("js/admin-auth.js?" + Date.now());
-    const A = window.ADMIN_AUTH;
-    if (!A) {
-      const pw = await askPw("Lần đầu: đặt mật khẩu admin (từ 10 ký tự)", true); if (pw == null) return;
-      dirty.auth = await makeAuth(pw);
-    } else {
+    try {
+      await loadScript("js/admin-auth.js?" + Date.now());
+      const A = window.ADMIN_AUTH;
       let ok = false;
-      for (let i = 0; i < 3 && !ok; i++) { const pw = await askPw(i ? "Sai mật khẩu, thử lại" : "Mật khẩu admin", false); if (pw == null) return; ok = await pbk(pw, A.salt, A.iter) === A.hash; }
-      if (!ok) { try { sessionStorage.setItem("adm-lock", String(Date.now() + 30000)); } catch (e) { } alert("Sai mật khẩu."); return; }
-    }
-    await loadState(); applyLive(false); tok = readTokens(); openPanel();
+      for (let i = 0; i < 5 && !ok; i++) {
+        const pw = await askPw(i ? "Sai mật khẩu, thử lại" : (A ? "Mật khẩu admin" : 'Mật khẩu admin (mặc định: pindex)'), false);
+        if (pw == null) return;
+        ok = checkPw(pw, A);
+      }
+      if (!ok) { alert("Sai mật khẩu 5 lần."); return; }
+      await loadState(); applyLive(false); tok = readTokens(); openPanel();
+    } catch (e) { alert("Không mở được trang admin: " + (e && e.message || e)); }
   }
 
   /* ---------- lưu ---------- */
@@ -225,7 +254,7 @@
   function openPanel() {
     liveOn = false;
     panel = document.createElement("div"); panel.className = "adm adm-ui";
-    panel.innerHTML = `<div class="adm-bar"><b>Admin · Pindexio</b><span class="adm-st">${dirty.auth ? "chưa lưu mật khẩu mới" : "chưa sửa"}</span>
+    panel.innerHTML = `<div class="adm-bar"><b>Admin · Pindexio</b><span class="adm-st">chưa sửa</span>
         <button data-a="live" class="adm-primary">✎ Sửa trực tiếp trên trang</button><button data-a="pw">Đổi mật khẩu</button><button data-a="save" class="adm-primary">Lưu vào file</button><button data-a="x">Thoát</button></div>
       <div class="adm-tabs" role="tablist"><button data-tab="link" role="tab">Link mua hàng</button><button data-tab="theme" role="tab">Giao diện</button></div>
       <div class="adm-body"><div class="adm-in" id="admTab"></div></div>`;
@@ -237,7 +266,7 @@
       if (a === "save") saveAll();
       if (a === "x") { if ((dirty.aff || dirty.css || dirty.img) && !confirm("Còn chỉnh sửa chưa lưu. Thoát luôn?")) return; location.reload(); }
       if (a === "live") startLive();
-      if (a === "pw") { const pw = await askPw("Mật khẩu admin mới (từ 10 ký tự)", true); if (pw != null) { dirty.auth = await makeAuth(pw); setStatus("chưa lưu mật khẩu mới"); } }
+      if (a === "pw") { const pw = await askPw("Mật khẩu admin mới (ít nhất 4 ký tự)", true); if (pw != null) { dirty.auth = makeAuth(pw); setStatus("chưa lưu mật khẩu mới — bấm Lưu vào file"); } }
     };
     paintTab();
   }

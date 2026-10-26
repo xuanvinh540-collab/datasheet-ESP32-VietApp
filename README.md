@@ -34,7 +34,7 @@ Chi tiết dành cho người (hoặc AI) sửa code nằm trong [AGENTS.md](AGE
 
 Không cần máy chủ. Mở trang **trên máy có thư mục dự án** (Chrome hoặc Edge), mở admin bằng một trong ba cách: **Ctrl + Shift + E**, thêm `?edit` vào URL, hoặc **bấm logo 5 lần liền** (cách này dùng được cả trên điện thoại).
 
-- **Lần đầu** trang hỏi đặt mật khẩu (từ 10 ký tự). Mật khẩu được băm PBKDF2 rồi lưu vào `js/admin-auth.js`, không lưu mật khẩu thật.
+- Mật khẩu mặc định **`pindex`**. Đổi bằng nút **Đổi mật khẩu** (ít nhất 4 ký tự) rồi **Lưu vào file**; mật khẩu được băm SHA-256 vào `js/admin-auth.js`.
 - **Link mua hàng:** sửa link tiếp thị cho từng board, từng vùng (Việt Nam / Quốc tế).
 - **Giao diện:** màu ban ngày và ban đêm (9 màu mỗi chế độ), font chữ chính, font chữ số, cỡ chữ cơ bản. Xem trước ngay.
 - **✎ Sửa trực tiếp trên trang:** nhấp phải vào bất kỳ chữ, khung hay ảnh nào để đổi màu chữ, màu nền, font, cỡ chữ, độ đậm, kích thước.

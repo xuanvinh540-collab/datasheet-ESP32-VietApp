@@ -1,2 +1,3 @@
-/* Mật khẩu admin (đã băm PBKDF2-SHA256, không phải mật khẩu thật). Đặt lần đầu khi mở trang admin; đổi bằng nút "Đổi mật khẩu". */
+/* Mật khẩu admin (đã băm SHA-256, không lưu mật khẩu thật). null = dùng mật khẩu mặc định "pindex".
+   Đổi bằng nút "Đổi mật khẩu" trong trang admin rồi bấm Lưu vào file. */
 window.ADMIN_AUTH = null;

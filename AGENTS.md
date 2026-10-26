@@ -39,7 +39,8 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
    Vùng đoán theo múi giờ rồi ngôn ngữ, người dùng đổi được và lưu vào `localStorage.region`.
    Link luôn mang `rel="noopener sponsored nofollow"` và có dòng công khai là link tiếp thị.
 10. **Trang admin** (`js/admin.js`, chỉ tải khi mở bằng Ctrl+Shift+E, `?edit` hoặc bấm logo 5 lần, qua đoạn nạp inline trong `index.html`; đoạn nạp phải đứng TRƯỚC `app.js` vì app xoá `?edit` khỏi URL ngay khi khởi động).
-   Đăng nhập: `js/admin-auth.js` chứa `{salt, iter, hash}` PBKDF2-SHA256; `null` = chưa đặt, lần đầu mở sẽ hỏi đặt mật khẩu.
+   Đăng nhập: `js/admin-auth.js` chứa `{alg:"sha256", salt, iter, hash}` (SHA-256 viết tay, chạy cả khi không có crypto.subtle);
+   `null` = dùng mật khẩu mặc định `pindex`. Người dùng muốn đơn giản, đừng thêm luật mật khẩu dài hay nhập 2 lần khi đăng nhập.
    Tab "Link mua hàng" ghi `js/affiliates.js`; tab "Giao diện" (token màu ngày/đêm, font, cỡ chữ) và chế độ "Sửa trực tiếp"
    (nhấp phải vào phần tử) ghi `css/custom.css`; thay thumbnail Mua board ghi `js/images.js` + `img/uploads/`.
    `css/custom.css` dòng đầu là `/*CUSTOM {json} */` để admin mở lại sửa tiếp – **đừng sửa tay**, mọi quy tắc trong đó
@@ -56,7 +57,7 @@ js/seo-body.js          Khối chữ cuối trang Sơ đồ chân (bảng chân 
 js/build.js, modules.js Tab Build + thư viện module
 js/affiliates.js        Link tiếp thị liên kết theo vùng (vn / intl) – trang admin ghi đè nguyên file này
 js/admin.js             Trang admin (tải lười): link mua hàng, màu/font, sửa trực tiếp bằng nhấp phải, thay thumbnail
-js/admin-auth.js        Mật khẩu admin đã băm PBKDF2 (null = chưa đặt)
+js/admin-auth.js        Mật khẩu admin đã băm SHA-256 (null = mặc định "pindex")
 js/images.js            Ảnh thumbnail Mua board đã thay (khoá "buy:<id>")
 css/custom.css          Chỉnh giao diện do admin ghi – không sửa tay
 js/specs.js             Thông số chip theo board id (HTML chuỗi)
