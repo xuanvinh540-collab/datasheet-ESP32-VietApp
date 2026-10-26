@@ -15,6 +15,6 @@ Board hiện có: ESP32-C3 Super Mini, ESP32-S3-DevKitC-1, Raspberry Pi Pico 2 W
 
 ## Deploy Cloudflare
 ```
-npx wrangler deploy --assets=. --name pin-explorer-vn --compatibility-date 2026-10-19
+npx wrangler deploy
 ```
-(chỉ nên chép `index.html icon.svg manifest.webmanifest sw.js css js` vào một thư mục riêng rồi trỏ `--assets` tới đó).
+Cấu hình trong `wrangler.jsonc`; `.assetsignore` loại `.git`, README… khỏi bản upload.
