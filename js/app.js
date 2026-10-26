@@ -179,50 +179,30 @@
     }
   }
 
-  /* ---------- Vẽ schematic ---------- */
-  function drawSch(svg) {
-    const b = state.b, row = 2.54, groups = {};
-    b.headers.forEach(hd => { const k = hd.sch || hd.id; (groups[k] = groups[k] || []).push(hd); });
-    const left = [], right = [];
-    Object.values(groups).forEach(gs => (gs[0].side === "L" || gs[0].side === "T" ? left : right).push(gs));
-    if (!left.length) left.push(right.shift());
-    const NET = 14, W = 7;
-    const drawConn = (gs, x, y, dir) => {
-      const dual = gs.length > 1;
-      const list = dual ? null : gs[0].pins;
-      const n = dual ? Math.max(...gs.map(g => g.pins.length)) : list.length;
-      const bw = dual ? 10 : W, H = n * row + 2;
-      el("rect", { x, y, width: bw, height: H, class: "symbox" }, svg);
-      el("text", { x: x + bw / 2, y: y - 1.2, "text-anchor": "middle", "font-size": 1.5, class: "symtitle" }, svg, gs[0].sch || gs[0].id);
-      const sides = dual ? [[gs[0], -1], [gs[1], 1]] : [[gs[0], dir]];
-      sides.forEach(([hd, d]) => hd.pins.forEach((p, k) => {
-        const i = pins.indexOf(p), yy = y + 1 + row / 2 + k * row, col = labelColors(p);
-        const x0 = d < 0 ? x : x + bw, x1 = x0 + d * 4;
-        const g = el("g", { class: "pin", tabindex: 0, role: "button", "data-i": i, "aria-label": p.name }, svg);
-        el("line", { x1: x0, y1: yy, x2: x1, y2: yy, class: "wire" }, g);
-        el("circle", { cx: x1, cy: yy, r: .35, class: "node" }, g);
-        el("text", { x: x0 - d * .6, y: yy, "text-anchor": d < 0 ? "start" : "end", "dominant-baseline": "central", "font-size": 1.15, class: "pnum" }, g, p.pn);
-        const tx = d < 0 ? x1 - TW : x1;
-        el("path", { d: d < 0 ? `M${x1} ${yy} l-1 -${TH / 2} h-${TW - 1} v${TH} h${TW - 1}z` : `M${x1} ${yy} l1 -${TH / 2} h${TW - 1} v${TH} h-${TW - 1}z`, fill: col.bg, class: "tab" }, g);
-        el("text", { x: tx + TW / 2 + d * .4, y: yy + .02, "text-anchor": "middle", "dominant-baseline": "central", "font-size": FS, fill: col.fg, class: "tl" }, g, p.name);
-        const alt = short(p);
-        if (alt) el("text", { x: d < 0 ? tx - .6 : tx + TW + .6, y: yy, "text-anchor": d < 0 ? "end" : "start", "dominant-baseline": "central", "font-size": 1.05, class: "alt" }, g, alt);
-      }));
-      return { w: bw, h: H };
+  /* ---------- Kiến trúc module: chip ở giữa, khối ngoại vi hai bên, đường nối ghi tên bus/chân ---------- */
+  function drawArch(svg) {
+    const b = state.b, A = b.arch, BW = 30, BH = 10, GAP = 4, BUS = 26;
+    const L = A.blocks.filter(x => x.side === "L"), R = A.blocks.filter(x => x.side === "R");
+    const rows = Math.max(L.length, R.length), H = rows * (BH + GAP) - GAP;
+    const xL = 0, xC = BW + BUS, CW = 30, xR = xC + CW + BUS, cy0 = 8;
+    el("rect", { x: xC, y: cy0, width: CW, height: H, rx: 1.5, class: "mcu" }, svg);
+    el("text", { x: xC + CW / 2, y: cy0 + H / 2 - 2, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 2.6, class: "symtitle" }, svg, A.core);
+    el("text", { x: xC + CW / 2, y: cy0 + H / 2 + 2, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 1.5, class: "pnum" }, svg, A.coreSub || "");
+    const KC = { power: "--c-power", usb: "--c-usb", comm: "--c-comm", mem: "--c-adc", io: "--c-gpio", ctl: "--c-ctl", rf: "--c-strap" };
+    const block = (blk, i, left) => {
+      const list = left ? L : R, y = cy0 + i * (BH + GAP) + (H - (list.length * (BH + GAP) - GAP)) / 2, x = left ? xL : xR;
+      const g = el("g", { class: "blk" }, svg), c = cv(KC[blk.k] || "--c-ctl");
+      el("rect", { x, y, width: BW, height: BH, rx: 1.2, class: "symbox" }, g);
+      el("rect", { x: left ? x : x + BW - 1, y, width: 1, height: BH, fill: c }, g);
+      el("text", { x: x + BW / 2, y: y + 3.8, "text-anchor": "middle", "font-size": 1.8, class: "symtitle" }, g, blk.n);
+      el("text", { x: x + BW / 2, y: y + 7, "text-anchor": "middle", "font-size": 1.25, class: "pnum" }, g, blk.s || "");
+      const yy = y + BH / 2, x0 = left ? x + BW : xC + CW, x1 = left ? xC : x;
+      el("line", { x1: x0, y1: yy, x2: x1, y2: yy, stroke: c, "stroke-width": .45 }, g);
+      el("text", { x: (x0 + x1) / 2, y: yy - 1, "text-anchor": "middle", "font-size": 1.2, class: "buslbl" }, g, blk.bus || "");
     };
-    let yL = 3, yR = 3, maxH = 0;
-    const xL = NET + AW + 2, xC = xL + W + 6, CW = 16, xR = xC + CW + 6;
-    const single = left.length + right.length === 1;
-    if (single) { const r = drawConn(left[0], xL + 8, 3, -1); maxH = r.h; }
-    else {
-      left.forEach(gs => { const r = drawConn(gs, xL, yL, -1); yL += r.h + 5; });
-      right.forEach(gs => { const r = drawConn(gs, xR, yR, 1); yR += r.h + 5; });
-      maxH = Math.max(yL, yR) - 5;
-      el("rect", { x: xC, y: 3, width: CW, height: maxH - 3, class: "mcu" }, svg);
-      el("text", { x: xC + CW / 2, y: 3 + (maxH - 3) / 2, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 1.6, class: "symtitle", transform: `rotate(-90 ${xC + CW / 2} ${3 + (maxH - 3) / 2})` }, svg, b.chip);
-    }
-    const totalW = single ? xL + 8 + 10 + NET + AW + 4 : xR + W + NET + AW + 2;
-    svg.setAttribute("viewBox", `0 -1 ${totalW} ${maxH + 6}`);
+    L.forEach((blk, i) => block(blk, i, true)); R.forEach((blk, i) => block(blk, i, false));
+    el("text", { x: 0, y: 3.5, "font-size": 1.6, class: "pnum" }, svg, "Sơ đồ khối board: khối ngoại vi và bus/chân nối vào chip");
+    svg.setAttribute("viewBox", `-1 0 ${xR + BW + 2} ${H + cy0 + 4}`);
   }
 
   function draw() {
@@ -231,6 +211,7 @@
     $("#viewOem").hidden = !oem;
     $("#viewOem").setAttribute("aria-pressed", !!isOem);
     ["#canvas", "#filters", ".stage-foot", ".search"].forEach(s => $(s).hidden = !!isOem);
+    ["#filters", ".stage-foot", ".search"].forEach(s => { if (state.view === "sch") $(s).hidden = true; });
     $("#oem").hidden = !isOem;
     if (isOem) {
       $("#oem").innerHTML = oem.pages.map(([src, t]) => `<figure><figcaption>${esc(t)}</figcaption><div class="oem-img"><img src="${src}" alt="${esc(t)}" loading="lazy" style="width:${state.zoom * 100}%"></div></figure>`).join("") +
@@ -238,7 +219,7 @@
     }
     const svg = $("#svg"); svg.innerHTML = "";
     svg.classList.toggle("sch", state.view === "sch");
-    if (state.view === "pcb") drawPCB(svg); else drawSch(svg);
+    if (state.view === "pcb") drawPCB(svg); else drawArch(svg);
     svg.style.width = state.zoom * 100 + "%";
     svg.querySelectorAll(".pin").forEach(g => {
       g.addEventListener("click", () => pick(pins[+g.dataset.i]));
@@ -342,6 +323,38 @@
   $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); };
   $("#viewSch").onclick = () => { state.view = "sch"; draw(); };
   $(".grab").onclick = () => $("#detail").classList.toggle("open");
+  /* Popup zoom ảnh: kéo để di chuyển, cuộn chuột / 2 ngón để zoom, chạm đúp để phóng to */
+  const lb = $("#lightbox"), lbImg = $("#lbImg"), V = { s: 1, x: 0, y: 0 }, pts = new Map();
+  let last = null, pinch = null, tap = 0;
+  const lbApply = () => lbImg.style.transform = `translate(${V.x}px, ${V.y}px) scale(${V.s})`;
+  const lbZoom = (f, cx, cy) => {
+    const r = $("#lbStage").getBoundingClientRect(); cx = (cx ?? r.left + r.width / 2) - r.left; cy = (cy ?? r.top + r.height / 2) - r.top;
+    const ns = Math.min(12, Math.max(1, V.s * f)), k = ns / V.s;
+    V.x = cx - (cx - V.x) * k; V.y = cy - (cy - V.y) * k; V.s = ns; if (ns === 1) { V.x = 0; V.y = 0; } lbApply();
+  };
+  const lbOpen = (src, cap) => { lbImg.src = src; $("#lbCap").textContent = cap; Object.assign(V, { s: 1, x: 0, y: 0 }); lbApply(); lb.hidden = false; document.body.style.overflow = "hidden"; };
+  const lbClose = () => { lb.hidden = true; document.body.style.overflow = ""; };
+  $("#oem").addEventListener("click", e => { const im = e.target.closest("img"); if (im) lbOpen(im.src, im.alt); });
+  $("#lbClose").onclick = lbClose; $("#lbIn").onclick = () => lbZoom(1.6); $("#lbOut").onclick = () => lbZoom(1 / 1.6);
+  addEventListener("keydown", e => { if (!lb.hidden && e.key === "Escape") lbClose(); });
+  const stg = $("#lbStage");
+  stg.addEventListener("wheel", e => { e.preventDefault(); lbZoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX, e.clientY); }, { passive: false });
+  stg.addEventListener("pointerdown", e => {
+    stg.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); last = [e.clientX, e.clientY];
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); }
+    const now = Date.now(); if (now - tap < 300 && pts.size === 1) lbZoom(V.s > 1.5 ? 1 / V.s : 2.5, e.clientX, e.clientY); tap = now;
+  });
+  stg.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2 && pinch) {
+      const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      lbZoom(d / pinch, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); pinch = d;
+    } else if (pts.size === 1 && last) { V.x += e.clientX - last[0]; V.y += e.clientY - last[1]; last = [e.clientX, e.clientY]; lbApply(); }
+  });
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; last = pts.size ? [...pts.values()][0] : null; };
+  stg.addEventListener("pointerup", up); stg.addEventListener("pointercancel", up);
+
   $("#viewOem").onclick = () => { state.view = "oem"; draw(); };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };

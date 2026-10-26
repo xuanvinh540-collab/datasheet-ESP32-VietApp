@@ -73,6 +73,15 @@
 
   const ESP32_S3 = {
     id: "esp32-s3-devkitc-1",
+    arch: { core: "ESP32-S3-WROOM-1", coreSub: "SoC + Flash + PSRAM (Octal) + anten PCB", blocks: [
+      { side: "L", n: "Cổng Micro-USB UART", s: "5V + D+/D−", k: "usb", bus: "USB" },
+      { side: "L", n: "USB-UART Bridge", s: "CP2102N / CH343", k: "comm", bus: "UART0 IO43/IO44" },
+      { side: "L", n: "Cổng Micro-USB native", s: "USB OTG / Serial-JTAG", k: "usb", bus: "IO19 D− · IO20 D+" },
+      { side: "L", n: "LDO 3.3 V", s: "5V → 3V3, ~1 A", k: "power", bus: "3V3" },
+      { side: "R", n: "RGB LED", s: "WS2812", k: "io", bus: "IO48 (v1.0) / IO38 (v1.1)" },
+      { side: "R", n: "Nút BOOT", s: "kéo xuống GND", k: "ctl", bus: "IO0" },
+      { side: "R", n: "Nút RST", s: "RC 10 kΩ + 1 µF", k: "ctl", bus: "EN / CHIP_PU" },
+      { side: "R", n: "Header J1 + J3", s: "2 × 22 chân", k: "io", bus: "GPIO" }] },
     elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", p => p.flags.includes("spi") && p.gpio <= 14 ? "IO MUX (FSPI) hoặc GPIO matrix" : "Qua GPIO matrix"]], tag: "S3",
     oem: { by: "Espressif Systems", file: "SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", url: "https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", pages: [["sch/esp32-s3-devkitc-1-1.png", "Sơ đồ khối"], ["sch/esp32-s3-devkitc-1-2.png", "Mạch chi tiết"]] }, name: "ESP32-S3-DevKitC-1", vendor: "Espressif", chip: "ESP32-S3 (WROOM-1)", family: "ESP32",
     summary: "Xtensa LX7 2 nhân 240 MHz, Wi-Fi 4 + BLE 5, USB OTG native.",
@@ -144,6 +153,15 @@
   const C3R = [c3(5), c3(6), c3(7), c3(8), c3(9), c3(10), c3(20), c3(21)];
   const ESP32_C3_SM = {
     id: "esp32-c3-supermini",
+    arch: { core: "ESP32-C3FH4", coreSub: "RISC-V + 4 MB flash trong chip", blocks: [
+      { side: "L", n: "Cổng USB-C", s: "5V + D+/D−", k: "usb", bus: "GPIO18 D− · GPIO19 D+" },
+      { side: "L", n: "LDO 3.3 V", s: "5V → 3V3", k: "power", bus: "3V3" },
+      { side: "L", n: "Thạch anh 40 MHz", s: "XTAL", k: "ctl", bus: "XTAL_P/N" },
+      { side: "L", n: "Anten ceramic", s: "2.4 GHz", k: "rf", bus: "LNA_IN" },
+      { side: "R", n: "LED xanh", s: "LOW = sáng", k: "io", bus: "GPIO8" },
+      { side: "R", n: "Nút BOOT", s: "kéo xuống GND", k: "ctl", bus: "GPIO9" },
+      { side: "R", n: "Nút RST", s: "reset chip", k: "ctl", bus: "CHIP_EN" },
+      { side: "R", n: "Header 2 × 8", s: "13 GPIO + nguồn", k: "io", bus: "GPIO" }] },
     elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", "IO MUX hoặc GPIO matrix"]], tag: "C3", name: "ESP32-C3 Super Mini", vendor: "Nologo / bản phổ biến", chip: "ESP32-C3FH4", family: "ESP32",
     summary: "RISC-V 160 MHz, 4 MB flash tích hợp, Wi-Fi 4 + BLE 5, USB-C native (USB Serial/JTAG).",
     w: 18, h: 22.52, pcb: "black", logic: "3.3 V",
@@ -215,6 +233,15 @@
   ];
   const PICO2W = {
     id: "pico-2-w",
+    arch: { core: "RP2350A", coreSub: "2 × Cortex-M33 / Hazard3, 520 KB SRAM", blocks: [
+      { side: "L", n: "Cổng Micro-USB", s: "USB 1.1 device/host", k: "usb", bus: "USB_DP/DM" },
+      { side: "L", n: "Buck-boost RT6154", s: "VSYS 1.8–5.5 V → 3V3", k: "power", bus: "3V3" },
+      { side: "L", n: "QSPI Flash 4 MB", s: "W25Q32", k: "mem", bus: "QSPI" },
+      { side: "L", n: "Thạch anh 12 MHz", s: "XOSC", k: "ctl", bus: "XIN/XOUT" },
+      { side: "R", n: "CYW43439", s: "Wi-Fi 4 + BLE 5.2, LED", k: "rf", bus: "SPI: GP23/24/25/29" },
+      { side: "R", n: "Nút BOOTSEL", s: "vào chế độ nạp UF2", k: "ctl", bus: "QSPI_SS" },
+      { side: "R", n: "Debug SWD", s: "SWCLK / SWDIO", k: "ctl", bus: "SWD" },
+      { side: "R", n: "Header 2 × 20", s: "26 GPIO, 3 ADC", k: "io", bus: "GP0–22, 26–28" }] },
     elec: [["Mức logic", "3.3 V (IOVDD)"], ["VIH / VIL", "≥2.0 V / ≤0.8 V"], ["Dòng ra", "chọn 2 / 4 / 8 / 12 mA (mặc định 4 mA)"], ["Pull nội", "~50 kΩ"], ["Ngoại vi số", "Theo bảng function select + PIO bất kỳ"]], tag: "P2W",
     oem: { by: "Raspberry Pi Ltd", file: "pico-2-w-schematic.pdf", url: "https://datasheets.raspberrypi.com/picow/pico-2-w-schematic.pdf", pages: [["sch/pico-2-w-1.png", "Schematic trang 1"], ["sch/pico-2-w-2.png", "Schematic trang 2"], ["sch/pico-2-w-layout-21.png", "Vị trí linh kiện (Datasheet, Phụ lục B)"]] }, name: "Raspberry Pi Pico 2 W", vendor: "Raspberry Pi", chip: "RP2350 + CYW43439", family: "RP2",
     summary: "2 × Cortex-M33 / Hazard3 RISC-V 150 MHz, 520 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5.2.",
@@ -283,6 +310,15 @@
   const UPy = [27.94, 30.48, 33.02, 35.56, 38.1, 40.64, 43.18, 45.72, 50.8, 53.34, 55.88, 58.42, 60.96, 63.5];
   const UNO = {
     id: "arduino-uno-r3",
+    arch: { core: "ATmega328P", coreSub: "AVR 8-bit 16 MHz, DIP-28", blocks: [
+      { side: "L", n: "Cổng USB-B", s: "5V + D+/D−", k: "usb", bus: "USB" },
+      { side: "L", n: "ATmega16U2", s: "USB ↔ Serial", k: "comm", bus: "D0 RX · D1 TX" },
+      { side: "L", n: "Jack DC + LDO 5 V", s: "7–12 V → 5 V", k: "power", bus: "5V" },
+      { side: "L", n: "LDO 3.3 V", s: "~50 mA", k: "power", bus: "3.3V (header)" },
+      { side: "R", n: "Thạch anh 16 MHz", s: "XTAL1/XTAL2", k: "ctl", bus: "PB6/PB7" },
+      { side: "R", n: "LED L", s: "qua op-amp đệm", k: "io", bus: "D13" },
+      { side: "R", n: "Nút RESET + ICSP", s: "nạp bootloader", k: "ctl", bus: "RESET · SPI" },
+      { side: "R", n: "Header Digital/Analog", s: "14 D + 6 A", k: "io", bus: "PD/PB/PC" }] },
     elec: [["Mức logic", "5 V"], ["VIH / VIL", "≥0.6·VCC / ≤0.3·VCC"], ["Dòng ra", "≤20 mA khuyến nghị · 40 mA tối đa"], ["Pull nội", "20–50 kΩ (chỉ pull-up)"], ["Ngoại vi số", "Cố định theo chân"]], tag: "UNO",
     oem: { by: "Arduino", file: "A000066-schematics.pdf", url: "https://docs.arduino.cc/resources/schematics/A000066-schematics.pdf", license: "CC BY-SA 4.0", pages: [["sch/arduino-uno-r3-1.png", "Schematic Uno R3"]] }, name: "Arduino Uno R3", vendor: "Arduino", chip: "ATmega328P", family: "AVR",
     summary: "AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V.",
@@ -341,6 +377,15 @@
   for (let c = 0; c < 20; c++) { odd.push({ ...PI[2 * c + 1], x: 51.23, y: 8.37 + c * PITCH }); even.push({ ...PI[2 * c + 2], x: 53.77, y: 8.37 + c * PITCH }); }
   const RPI = {
     id: "raspberry-pi-40pin",
+    arch: { core: "BCM2712 / BCM2711", coreSub: "SoC 4 × Cortex-A76 / A72", blocks: [
+      { side: "L", n: "LPDDR4X RAM", s: "1–16 GB", k: "mem", bus: "DRAM" },
+      { side: "L", n: "PMIC + USB-C PD", s: "5 V nguồn", k: "power", bus: "5V / 3V3" },
+      { side: "L", n: "2 × micro-HDMI", s: "4Kp60", k: "comm", bus: "HDMI" },
+      { side: "L", n: "microSD / PCIe", s: "boot, NVMe", k: "mem", bus: "SDIO · PCIe 2.0" },
+      { side: "R", n: "RP1 I/O controller", s: "Pi 5 (Pi 4: GPIO trong SoC)", k: "comm", bus: "PCIe ×4" },
+      { side: "R", n: "Header GPIO 40 chân", s: "28 GPIO 3.3 V", k: "io", bus: "qua RP1" },
+      { side: "R", n: "USB 3/2 + Ethernet", s: "Gigabit", k: "usb", bus: "qua RP1" },
+      { side: "R", n: "EEPROM HAT", s: "ID_SD / ID_SC", k: "ctl", bus: "GPIO0 / GPIO1" }] },
     elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["Dòng ra", "chọn 2–16 mA (mặc định 8 mA)"], ["Pull nội", "~50 kΩ"], ["Ngoại vi số", "Theo ALT function"]], tag: "Pi",
     oem: { by: "Raspberry Pi Ltd", file: "raspberry-pi-4-reduced-schematics.pdf", url: "https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-reduced-schematics.pdf", note: "Pi 5 chưa có schematic công khai; đây là bản rút gọn của Pi 4.", pages: [["sch/raspberry-pi-40pin-1.png", "Pi 4 Reduced Schematics"]] }, name: "Raspberry Pi 4 / 5 (GPIO 40 chân)", vendor: "Raspberry Pi", chip: "BCM2711 / BCM2712 + RP1", family: "Raspberry Pi",
     summary: "Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero.",

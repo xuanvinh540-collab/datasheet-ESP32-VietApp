@@ -33,7 +33,7 @@
         <div class="stage-head">
           <div><h1 id="bTitle"></h1><p id="bSub" class="muted small"></p></div>
           <div class="seg" role="group" aria-label="Kiểu hình">
-            <button id="viewPcb">PCB</button><button id="viewSch">Schematic</button><button id="viewOem">Schematic hãng</button>
+            <button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
           </div>
         </div>
         <div class="toolbar">
@@ -84,6 +84,11 @@
     <div class="grid2" id="docsAll"></div>
   </section>
 </main>
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-bar"><span id="lbCap"></span><button class="icon-btn" id="lbOut" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="lbIn" aria-label="Phóng to">+</button><button class="icon-btn" id="lbClose" aria-label="Đóng">✕</button></div>
+  <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
+  <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
+</div>
 <script src="js/boards.js"></script>
 <script src="js/specs.js"></script>
 <script src="js/app.js"></script>
