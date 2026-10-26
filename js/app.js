@@ -412,7 +412,7 @@
   };
   $("#tLight").onclick = () => setTheme("light"); $("#tDark").onclick = () => setTheme("dark");
   { let t = null; try { t = localStorage.getItem("theme"); } catch (e) { }
-    setTheme(t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")); }
+    setTheme(t || "dark"); }
   // Chọn bộ giao diện: bật/tắt file CSS tương ứng; SVG vẽ lại để nhận font mới
   const setSkin = k => {
     $("#skin-8bit").disabled = k !== "8bit"; $("#skin-pinout").disabled = k !== "pinout" && k !== "amber"; $("#skin-amber").disabled = k !== "amber";
@@ -421,7 +421,7 @@
     if (state.b) draw();
   };
   $("#skin").onchange = e => setSkin(e.target.value);
-  let sk = "8bit"; try { sk = localStorage.getItem("skin") || sk; } catch (e) { }
+  let sk = "pinout"; try { sk = localStorage.getItem("skin") || sk; } catch (e) { }
   setSkin(sk);
   const fromHash = () => { const [hid, hpin] = location.hash.slice(1).split("/"); selectBoard(hid || BOARDS[0].id, hpin && decodeURIComponent(hpin)); };
   addEventListener("hashchange", fromHash);
