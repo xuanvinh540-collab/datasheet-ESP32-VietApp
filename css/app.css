@@ -391,7 +391,6 @@ main { padding-top: 12px; }
 #bsvg .whit { fill: none; stroke: transparent; stroke-width: 1.8; cursor: move; }
 #bsvg .whit:hover + * , #bsvg .whit:hover { stroke: rgba(255,255,255,.08); }
 #bsvg .wlabel { font-weight: 800; fill: #cfd6d2 !important; paint-order: stroke; stroke: rgba(0,0,0,.75); stroke-width: .22; pointer-events: none; }
-:root[data-theme="light"] #bsvg .wlabel { fill: #4a524e !important; stroke: rgba(255,255,255,.8); }
 
 /* Listdown chọn linh kiện phân loại + tìm kiếm */
 .mdrop { border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); margin: 8px 0; overflow: hidden; }
@@ -478,7 +477,6 @@ main { padding-top: 12px; }
 .fact:has(.fv.two) { grid-template-columns: 1fr; }
 .fv.two li { white-space: nowrap; }
 .fv.two { grid-template-columns: repeat(3, auto); justify-content: start; gap: 4px 18px; }
-@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) #bsvg .wlabel { fill: #4a524e !important; stroke: rgba(255,255,255,.8); } }
 .btitle { font: 700 15px var(--mono); color: var(--fg); padding: 4px 2px; }
 .seo-links .buy { font: 600 11px var(--mono); color: var(--muted); text-decoration: none; }
 .seo-links .buy:hover { color: var(--accent); }

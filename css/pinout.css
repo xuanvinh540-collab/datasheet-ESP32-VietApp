@@ -3,12 +3,12 @@
    ☾ Ban đêm: xanh ô liu tối pha chút xanh lá, để mắt dễ chịu và phân biệt hẳn với ban ngày */
 :root {
   --sans: "Ubuntu", system-ui, sans-serif; --mono: "Ubuntu Mono", ui-monospace, monospace;
-  --bg: #a8c8e6; --surface: #d9e9f7; --surface2: #bcd7ee; --fg: #021a35; --muted: #2a568a; --line: #76a5cd;
+  --bg: #0a2a56; --surface: #e8f0f8; --surface2: #d4e3f1; --fg: #06213f; --muted: #35618f; --line: #9bbbd8;
   --navy: #041E42; --navy-2: #064273; --cyan: #00AEEF; --cyan-2: #00C2F7;
   --accent: #0098da; --accent-fg: #fff;
   --c-power: #e8392f; --c-gnd: #46586b; --c-gpio: #00a37a; --c-adc: #8257e0; --c-comm: #00AEEF;
   --c-usb: #f08a1c; --c-strap: #e0ad00; --c-ban: #9db4c7; --c-ctl: #5f7b96;
-  --ok: #076b50; --warn: #8a6600; --ban: #b5251d; --info: #2a568a; --canvas: #96bbdc;
+  --ok: #076b50; --warn: #8a6600; --ban: #b5251d; --info: #35618f; --canvas: #0b2a58;
   --label: #06478a; --pad: #041E42;
   --r: 4px; --shadow: 0 1px 0 rgba(4,30,66,.08); color-scheme: light;
 }
@@ -34,6 +34,20 @@
 /* nền tối: các khối đặc dùng xanh ô liu thay cho navy, chữ trên đó vẫn sáng */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --navy: #38491f; } }
 :root[data-theme="dark"] { --navy: #38491f; }
+
+
+/* ☀ Ban ngày chia vùng: nền trang navy; cột board, khung vẽ và panel chi tiết cũng navy (đổi token ngay trong vùng nên mọi chữ,
+   nút, đường kẻ bên trong tự sáng lên); các thẻ nội dung (Mua board, Bảng chân, Thông số…) giữ màu trắng dịu cho dễ đọc */
+:root[data-theme="light"] .boards, :root[data-theme="light"] .detail, :root[data-theme="light"] .canvas, :root[data-theme="light"] #bsvg {
+  --surface: #14407e; --surface2: #0e3269; --fg: #eef5fc; --muted: #a9c5e7; --line: #2f60a3;
+  --accent: #00b5f0; --accent-fg: #031a35; --label: #7fd4ff; --navy: #0a63c7; --canvas: #0b2a58;
+  --ok: #5fd6a4; --warn: #f0c75a; --ban: #ff7a70; --info: #a9c5e7; --pad: #0b2a58;
+  color: var(--fg);
+}
+:root[data-theme="light"] .boards { padding: 10px; border-radius: 8px; background: #071d3f; }
+:root[data-theme="light"] .detail { border-color: #2f60a3; }
+/* chữ nằm thẳng trên nền navy của trang */
+:root[data-theme="light"] [data-panel] > .muted, :root[data-theme="light"] .bwrap > .muted { color: #b7cfee; }
 
 body { font-family: var(--sans); }
 .appbar { background: #fff; border-bottom: 3px solid var(--navy); backdrop-filter: none; }

@@ -83,7 +83,10 @@ Mỗi board là object: `id, tag, name, vendor, chip, family (ESP32|RP2|AVR|Rasp
 - Tên riêng: **Pindexio**; chữ thương hiệu tách màu **PIN** navy + **DEX** cyan + **IO** navy (`.wm-n` / `.wm-c`),
   dòng phụ "Thông tin chân & datasheet board" / "Pin info & board datasheets".
   Màu thương hiệu: navy `#041E42`, cyan `#00AEEF`. `icon.svg` là biểu tượng PX; 4 file `icon-*.png` sinh lại từ nó khi logo đổi.
-  Giao diện mặc định (`css/pinout.css`): **ban ngày** navy + cyan trên nền ngả xanh, thanh tiêu đề trắng;
+  Giao diện mặc định (`css/pinout.css`): **ban ngày chia vùng** – nền trang, cột board, khung vẽ (`.canvas`, `#bsvg`) và panel chi tiết (`.detail`)
+  là **navy** (khoảng một nửa diện tích; vùng đó tự đổi token `--surface/--fg/--muted…` nên chữ bên trong sáng lên), còn các thẻ nội dung
+  (Mua board, Bảng chân, Thông số, Tài liệu…) giữ trắng dịu `#e8f0f8`; thanh tiêu đề trắng. Chữ đặt thẳng lên nền trang phải dùng màu sáng
+  (đã có rule cho `[data-panel] > .muted`). Muốn thêm một vùng navy mới: thêm selector vào khối "☀ Ban ngày chia vùng" trong `pinout.css`;
   **ban đêm** xanh ô liu pha xanh lá, để phân biệt hẳn hai chế độ. Không dùng logo thật của hãng; icon board vẽ tự động từ dữ liệu PCB.
 - Hình: ưu tiên **SVG tự vẽ theo ảnh pinout chính thức** (đo vị trí linh kiện ~px/mm); ảnh chụp chỉ dùng khi đã cắt khớp chân, và ghi nguồn (`photo.credit`). Super Mini là hàng bên thứ ba: ghi rõ không có datasheet chính thức. Schematic: chỉ dùng bản hãng công bố, ghi nguồn + giấy phép (Arduino: CC BY-SA 4.0).
 - Build: gợi ý chân dựa `score()` trong `build.js` (trừ điểm strapping/USB/UART0/JTAG/LED; RP2/AVR bắt buộc đúng chân bus phần cứng). Cảnh báo 5 V↔3.3 V, I2S của Pico (LRCLK = BCLK+1). Không viết nguyên chương trình trong tab Code.

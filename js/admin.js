@@ -56,19 +56,19 @@
   const style = document.createElement("style");
   style.textContent = `
 .adm-ui, .adm-ui * { box-sizing: border-box; }
-.adm { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: var(--bg); color: var(--fg); font: 14px var(--sans); }
-.adm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--surface); }
+.adm { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: var(--surface); color: var(--fg); font: 14px var(--sans); }
+.adm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--surface2); }
 .adm-bar b { flex: none; } .adm-st { flex: 1; min-width: 120px; color: var(--muted); font: 12px var(--mono); }
 .adm button, .adm-modal button, .adm-menu button, .adm-lbar button { padding: 7px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface2); color: var(--fg); font: 600 13px var(--sans); cursor: pointer; }
 .adm button:hover, .adm-menu button:hover { border-color: var(--accent); }
 .adm .adm-primary, .adm-modal .adm-primary, .adm-lbar .adm-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-.adm-tabs { display: flex; gap: 6px; padding: 8px max(16px, env(safe-area-inset-left, 0px)) 0; background: var(--surface); }
+.adm-tabs { display: flex; gap: 6px; padding: 8px max(16px, env(safe-area-inset-left, 0px)) 0; background: var(--surface2); }
 .adm-tabs button { border-radius: 8px 8px 0 0; border-bottom: 0; }
-.adm-tabs button[aria-selected="true"] { background: var(--bg); border-color: var(--line); color: var(--fg); }
+.adm-tabs button[aria-selected="true"] { background: var(--surface); border-color: var(--line); color: var(--fg); }
 .adm-body { flex: 1; overflow: auto; padding: 14px max(16px, env(safe-area-inset-left, 0px)) 28px; }
 .adm-in { max-width: 920px; margin: 0 auto; display: grid; gap: 18px; }
 .adm h3 { margin: 0 0 8px; font-size: 15px; display: flex; align-items: center; gap: 10px; }
-.adm input[type=text], .adm input[type=number], .adm select, .adm-menu input[type=text], .adm-menu select, .adm-modal input { padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); font: 12.5px var(--mono); }
+.adm input[type=text], .adm input[type=number], .adm select, .adm-menu input[type=text], .adm-menu select, .adm-modal input { padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface2); color: var(--fg); font: 12.5px var(--mono); }
 .adm-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 3px 0; }
 .adm-row span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-row input { width: 100%; } .adm-row a { text-decoration: none; }
