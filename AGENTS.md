@@ -3,7 +3,7 @@
 Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự án trước khi sửa. Đọc hết, rồi chỉ mở file liên quan nhiệm vụ.
 
 ## 1. Dự án là gì
-**Pindex** (pindex.pages.dev): web tra cứu sơ đồ chân vi điều khiển bằng **tiếng Việt + tiếng Anh**, dữ liệu lấy từ **datasheet của hãng**. Chạm một chân → chức năng, cảnh báo (strapping/USB/JTAG/ADC2…), thông số điện, linh kiện đi kèm, nguồn trích dẫn. Tối ưu điện thoại/iPad, cài được như app (PWA).
+**Pindexio** (pindex.pages.dev, chữ thương hiệu PIN·DEX·IO): web tra cứu sơ đồ chân vi điều khiển bằng **tiếng Việt + tiếng Anh**, dữ liệu lấy từ **datasheet của hãng**. Chạm một chân → chức năng, cảnh báo (strapping/USB/JTAG/ADC2…), thông số điện, linh kiện đi kèm, nguồn trích dẫn. Tối ưu điện thoại/iPad, cài được như app (PWA).
 
 - Người dùng chính: dân làm mạch/IoT Việt Nam.
 - Repo: `github.com/xuanvinh540-collab/datasheet-ESP32-VietApp` (nhánh `main`). Thư mục máy: `W:\AI\datasheet-ESP32-VietApp`.
@@ -34,6 +34,14 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
 7b. **Sơ đồ chân linh kiện**: dưới danh sách board có mục 🧩 Linh kiện (thu gọn 3 hàng / mở rộng theo nhóm `MOD_CATS`), mỗi module thành "board" giả `mod-<mã>` (`modBoard()` trong `app.js`), URL `/#mod-<mã>/<chân>`, không có trang SEO riêng. `js/modules.js` giờ tải sẵn trong `index.html`.
 7. **Song ngữ**: nút cờ VN/EN. **4 giao diện** (ô chọn góc phải): *Pindex* (mặc định, lá ô liu + dark), *8-bit* (tông đại dương retro), *Hổ phách*, *Simple*; nút ☀/☾ sáng/tối.
 8. **Chia sẻ** board/chân (Web Share API hoặc copy link).
+9. **Thẻ "Mua board"** ngay dưới khung xem board: ảnh board thật (`BOARD_PHOTOS`) hoặc icon vẽ từ dữ liệu PCB,
+   link tiếp thị liên kết lấy từ `js/affiliates.js` theo **vùng** (`vn` Shopee / `intl` AliExpress).
+   Vùng đoán theo múi giờ rồi ngôn ngữ, người dùng đổi được và lưu vào `localStorage.region`.
+   Link luôn mang `rel="noopener sponsored nofollow"` và có dòng công khai là link tiếp thị.
+10. **Trang admin** (`js/admin.js`): Ctrl+Shift+E hoặc `?edit`, mật khẩu mặc định `pindex`
+   (đổi bằng `await adminHash("…")` trong Console rồi dán vào `ADMIN_HASH`). Sửa link tiếp thị rồi
+   **ghi thẳng `js/affiliates.js`** vào thư mục dự án bằng File System Access API (Chrome/Edge).
+   **Không có máy chủ**: sửa xong vẫn phải commit & push thì trang thật mới đổi.
 
 ## 4. Cấu trúc thư mục
 ```
@@ -68,13 +76,20 @@ Mỗi board là object: `id, tag, name, vendor, chip, family (ESP32|RP2|AVR|Rasp
 ## 6. Quy tắc nội dung (quan trọng)
 - **Dữ liệu kỹ thuật phải có nguồn** (datasheet/HDG/TRM/pins_arduino.h). Chưa chắc thì ghi "Thông lệ" hoặc không ghi; **không bịa** số liệu. Datasheet đã đối chiếu: ESP32-S3 v2.2, ESP32-C3 v2.4, RP2350, Pico 2/2 W, Uno R3.
 - Khi sửa nội dung tiếng Việt, **thêm bản dịch EN** vào `js/i18n-data.js` (khoá = nguyên văn tiếng Việt). Câu thiếu bản dịch sẽ hiện tiếng Việt khi bật EN. Có thể trích câu chưa dịch bằng cách duyệt `BOARDS`/`LEARN`/`SPECS`.
-- Tên riêng: **Pindex**; dòng phụ "Thông tin chân & datasheet board" / "Pin info & board datasheets". Không dùng logo thật của hãng; icon board vẽ tự động từ dữ liệu PCB.
+- Tên riêng: **Pindexio**; chữ thương hiệu tách màu **PIN** navy + **DEX** cyan + **IO** navy (`.wm-n` / `.wm-c`),
+  dòng phụ "Thông tin chân & datasheet board" / "Pin info & board datasheets".
+  Màu thương hiệu: navy `#041E42`, cyan `#00AEEF`. `icon.svg` là biểu tượng PX; 4 file `icon-*.png` sinh lại từ nó khi logo đổi.
+  Giao diện mặc định (`css/pinout.css`): **ban ngày** navy + cyan trên nền ngả xanh, thanh tiêu đề trắng;
+  **ban đêm** xanh ô liu pha xanh lá, để phân biệt hẳn hai chế độ. Không dùng logo thật của hãng; icon board vẽ tự động từ dữ liệu PCB.
 - Hình: ưu tiên **SVG tự vẽ theo ảnh pinout chính thức** (đo vị trí linh kiện ~px/mm); ảnh chụp chỉ dùng khi đã cắt khớp chân, và ghi nguồn (`photo.credit`). Super Mini là hàng bên thứ ba: ghi rõ không có datasheet chính thức. Schematic: chỉ dùng bản hãng công bố, ghi nguồn + giấy phép (Arduino: CC BY-SA 4.0).
 - Build: gợi ý chân dựa `score()` trong `build.js` (trừ điểm strapping/USB/UART0/JTAG/LED; RP2/AVR bắt buộc đúng chân bus phần cứng). Cảnh báo 5 V↔3.3 V, I2S của Pico (LRCLK = BCLK+1). Không viết nguyên chương trình trong tab Code.
 
 ## 7. Quy ước mã
-- JS thuần ES2020, IIFE, không module. Biến toàn cục: `BOARDS, CATS, FLAGS, SPECS, LEARN, MODULES, EN_DATA, APP, BUILD`.
+- JS thuần ES2020, IIFE, không module. Biến toàn cục: `BOARDS, CATS, FLAGS, SPECS, LEARN, MODULES, MOD_CATS, PIN_DOC, EN_DATA, AFFILIATE, BOARD_PHOTOS, APP, BUILD, seoBody`.
 - CSS dùng biến (`--bg --fg --accent --c-*`); giao diện ghi đè bằng file riêng, bật/tắt bằng `disabled` trên thẻ `<link>`.
+- **Đừng dùng `var(--navy)` làm màu CHỮ.** Nền tối `--navy` thành xanh ô liu đậm nên chữ sẽ chìm.
+  Chữ nhãn dùng `var(--label)`, pad chân dùng `var(--pad)`, chữ thương hiệu dùng `var(--fg)`; cả ba đổi theo chế độ sáng/tối.
+  Sửa màu xong phải xem **cả hai** chế độ ☀ và ☾ trước khi commit.
 - Cache: **không sửa tay `?v=`**. `node tools/build-seo.js` tự tăng một số phiên bản duy nhất rồi ghi vào `index.html`, `js/app.js` và `sw.js`. Cứ chạy nó sau khi sửa file tĩnh.
 - Hash/URL: `/<board-id>/#<chân>` (EN: `/en/<board-id>/`); link cũ `#<board>/<chân>` vẫn chạy; `#build=<base64>` mở Build.
 - Giữ code gọn, comment tiếng Việt ngắn; không thêm thư viện ngoài (chỉ Google Fonts đã có).
@@ -104,6 +119,13 @@ git add -A && git commit -m "..." && git push origin main       # Cloudflare t�
 - Bài PR soạn sẵn: `W:\AI\Pindex-bai-dang-PR.md`. Video quảng bá: `W:\AI\pindex-video\` (dự án HyperFrames riêng, không nằm trong repo này).
 
 ## 10. Việc đang dở / ý tưởng tiếp
-- Gắn 2 SVG người dùng cung cấp (`C:\Users\PC29\Downloads\svg\st7789.txt`, `hc-sr04.svg`) làm hình thân module trong Build; chốt tên chân ST7789 (file: GND, VCC, SCL, SDA, RES, DC, BLK; app hiện: SCK, MOSI, CS, DC, RST, BL).
-- Build giai đoạn 2: nhiều module cùng loại, sơ đồ nguồn, zoom bằng 2 ngón, thử cảm ứng thật; xuất ảnh PNG chưa có ảnh board thật cho board dùng ảnh chụp.
-- Nút "Cài app" trong giao diện; thêm board (ESP32-P4, LilyGO T-Beam…, M5Stack nếu có ảnh pinout chính thức); thông số chip cho Pico/Uno; dịch nốt câu cảnh báo ghép tên chân và kết quả bộ tính toán.
+- **Link tiếp thị liên kết còn là link tìm kiếm**, chưa có hoa hồng. Thay link rút gọn thật (`s.shopee.vn/…`,
+  AliExpress Portals) qua trang admin. Amazon Associates xét duyệt theo từng nước, thường phải có lượng truy cập trước.
+- **Không tự chuyển ngôn ngữ theo IP.** Google thu thập dữ liệu từ IP nước ngoài; tự chuyển sang `/en/` sẽ làm
+  trang tiếng Việt khó được lập chỉ mục. Nếu muốn, chỉ nên hiện **dải gợi ý** "This page is also available in English →"
+  và nhớ lựa chọn. Việc đổi link mua theo vùng thì an toàn, đã làm.
+- Gắn 2 SVG người dùng cung cấp (`st7789.txt`, `hc-sr04.svg`) làm hình thân module trong Connect.
+- Connect giai đoạn 2: nhiều module cùng loại, sơ đồ nguồn, zoom bằng 2 ngón, thử cảm ứng thật.
+- Nút "Cài app" trong giao diện; thêm board (ESP32-P4, LilyGO T-Beam…); thông số chip cho Pico/Uno.
+- Còn 12 cảnh báo `<rect> width "undefined"` trong Console lúc tải trang, có từ trước, chưa tìm ra nguồn; không ảnh hưởng hiển thị.
+- Icon PWA hơi lệch lên trái một chút so với tâm khung.

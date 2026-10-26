@@ -1,28 +1,72 @@
-# Pindex – Thông tin chân & datasheet board
+# Pindexio – Thông tin chân & datasheet board
 
-Tra cứu sơ đồ chân vi điều khiển bằng tiếng Việt, dựa trên datasheet hãng. Web tĩnh, tối ưu cho điện thoại và iPad (cài được lên màn hình chính).
+Tra cứu sơ đồ chân vi điều khiển bằng **tiếng Việt và tiếng Anh**, dựa trên datasheet của hãng.
+Web tĩnh thuần (không framework, không máy chủ), tối ưu cho điện thoại và iPad, cài được lên màn hình chính như app.
 
-Board hiện có: ESP32-C3 Super Mini, ESP32-S3-DevKitC-1, Raspberry Pi Pico 2 W, Arduino Uno R3, Raspberry Pi 4/5 (header 40 chân).
+**Đang chạy tại:** https://pindex.pages.dev
 
-- Hai kiểu xem: PCB (vị trí chân theo mm thật) và Schematic (ký hiệu connector).
-- Tab Tính toán: điện trở LED, phân áp ADC, pull-up I2C, mạch RC.
-- Tab Tài liệu: link datasheet/schematic gốc của hãng.
+## Có gì
+
+- **8 board:** ESP32-C3-DevKitM-1, ESP32-C3 Super Mini, ESP32-S3-DevKitC-1, LilyGO T-Display-S3,
+  Raspberry Pi Pico 2 W, Pico 2, Raspberry Pi 4/5 (header 40 chân), Arduino Uno R3.
+- **14 linh kiện** cũng có sơ đồ chân riêng (OLED, ST7789, HC-SR04, MPU6050, INMP441…), kèm giải thích từng chân.
+- **3 kiểu xem board:** PCB theo toạ độ mm thật, sơ đồ khối kiến trúc, schematic gốc của hãng.
+- **⚡ Tab Connect:** kéo thả linh kiện lên board, nối dây, cảnh báo chân sai, sinh sẵn `#define`.
+- **Tab Tính toán:** điện trở LED, phân áp ADC, pull-up I2C, mạch RC.
+- **Tab Tài liệu:** link datasheet và schematic gốc.
+- Song ngữ Việt/Anh, 4 giao diện, chế độ sáng/tối.
 
 ## Cấu trúc
-- `js/boards.js` – dữ liệu board. Thêm board mới: tạo object theo mẫu (toạ độ mm, gốc góc trên-trái PCB) và thêm vào `BOARDS`.
-- `js/app.js` – vẽ SVG, panel chi tiết, bộ tính toán.
-- `css/app.css` – giao diện (sáng/tối).
 
-## Deploy Cloudflare
-```
-npx wrangler deploy
-```
-Cấu hình trong `wrangler.jsonc`; `.assetsignore` loại `.git`, README… khỏi bản upload.
+| Đường dẫn | Việc |
+|---|---|
+| `js/boards.js` | Dữ liệu board (nguồn sự thật): chân, toạ độ mm, linh kiện, tài liệu |
+| `js/modules.js` | 14 linh kiện cho tab Connect + giải thích từng chân |
+| `js/app.js` | Vẽ SVG, panel chi tiết, bộ lọc, router |
+| `js/seo-body.js` | Khối chữ cuối trang, dùng chung cho app và trang tĩnh |
+| `js/affiliates.js` | Link tiếp thị liên kết theo vùng (Việt Nam / Quốc tế) |
+| `js/admin.js` | Trang admin sửa link, xem bên dưới |
+| `css/app.css` | Giao diện nền; `pinout.css` / `retro.css` / `amber.css` là các bộ giao diện |
 
-## SEO (chạy lại sau khi sửa dữ liệu board)
+Chi tiết dành cho người (hoặc AI) sửa code nằm trong [AGENTS.md](AGENTS.md).
+
+## Trang admin (sửa link tiếp thị liên kết)
+
+Không cần máy chủ. Mở trang **trên máy có thư mục dự án**, rồi:
+
+1. Bấm **Ctrl + Shift + E** (hoặc thêm `?edit` vào cuối URL).
+2. Nhập mật khẩu, mặc định `pindex`.
+3. Sửa link cho từng board, từng vùng.
+4. Bấm **Lưu vào file** → chọn thư mục dự án → ghi thẳng vào `js/affiliates.js`.
+5. **Commit và push** thì trang thật mới đổi.
+
+Cần Chrome hoặc Edge (dùng File System Access API). Đổi mật khẩu: mở Console chạy
+`await adminHash("mật-khẩu-mới")` rồi dán chuỗi nhận được vào `ADMIN_HASH` trong `js/admin.js`.
+
+## Chạy thử trên máy
+
+```bash
+python -m http.server 8765
 ```
+Mở http://127.0.0.1:8765/ (cần chạy qua server vì có `fetch` và service worker).
+
+## Sau khi sửa dữ liệu
+
+```bash
+node tools/check-i18n.js    # báo câu tiếng Việt chưa có bản dịch EN (thoát 1 nếu còn)
 python tools/og.py          # ảnh xem trước khi chia sẻ: og/*.png
-node tools/build-seo.js     # trang riêng từng board (VI + /en/), sitemap.xml, robots.txt
+node tools/build-seo.js     # trang tĩnh từng board (VI + /en/), sitemap, robots, và tự tăng phiên bản cache
 ```
-`index.html` là khuôn: chỉ sửa ngoài phần `<!--SEO-->…<!--/SEO-->` và `<!--SEOBODY-->…<!--/SEOBODY-->`.
-Cloudflare Pages (pindex.pages.dev) tự deploy khi push nhánh `main`.
+
+`index.html` là khuôn: đừng sửa tay phần giữa `<!--SEO-->…<!--/SEO-->` và `<!--SEOBODY-->…<!--/SEOBODY-->`.
+
+## Triển khai
+
+Push nhánh `main` → Cloudflare Pages tự build (khoảng 1 phút).
+`.assetsignore` loại `.git`, README… khỏi bản upload.
+
+## Nguồn dữ liệu
+
+Tổng hợp từ datasheet của Espressif, Raspberry Pi và Arduino. Có thể có sai sót —
+kiểm tra lại tài liệu gốc trước khi làm mạch thật. Các tên ESP32, Raspberry Pi, Arduino
+thuộc về chủ sở hữu tương ứng; dự án này không liên kết với họ.

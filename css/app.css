@@ -514,7 +514,7 @@ main { padding-top: 12px; }
 .appbar .brand img { width: 60px; height: 60px; }
 .brand .wm span { display: inline; font: inherit; color: inherit; }
 .brand .wm { display: block; white-space: nowrap; font: 800 23px/1.1 var(--sans); letter-spacing: .03em; }
-.brand .wm .wm-n { color: #041E42; }
+.brand .wm .wm-n { color: var(--fg); }   /* navy khi nền sáng, sáng màu khi nền tối */
 .brand .wm .wm-c { color: #00AEEF; }
 .appbar .brand span { color: var(--muted); }
 
