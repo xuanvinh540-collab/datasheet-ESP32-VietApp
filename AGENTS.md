@@ -38,10 +38,13 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
    link tiếp thị liên kết lấy từ `js/affiliates.js` theo **vùng** (`vn` Shopee / `intl` AliExpress).
    Vùng đoán theo múi giờ rồi ngôn ngữ, người dùng đổi được và lưu vào `localStorage.region`.
    Link luôn mang `rel="noopener sponsored nofollow"` và có dòng công khai là link tiếp thị.
-10. **Trang admin** (`js/admin.js`): Ctrl+Shift+E hoặc `?edit`, mật khẩu mặc định `pindex`
-   (đổi bằng `await adminHash("…")` trong Console rồi dán vào `ADMIN_HASH`). Sửa link tiếp thị rồi
-   **ghi thẳng `js/affiliates.js`** vào thư mục dự án bằng File System Access API (Chrome/Edge).
-   **Không có máy chủ**: sửa xong vẫn phải commit & push thì trang thật mới đổi.
+10. **Trang admin** (`js/admin.js`, chỉ tải khi mở bằng Ctrl+Shift+E hoặc `?edit` qua đoạn nạp inline trong `index.html`).
+   Đăng nhập: `js/admin-auth.js` chứa `{salt, iter, hash}` PBKDF2-SHA256; `null` = chưa đặt, lần đầu mở sẽ hỏi đặt mật khẩu.
+   Tab "Link mua hàng" ghi `js/affiliates.js`; tab "Giao diện" (token màu ngày/đêm, font, cỡ chữ) và chế độ "Sửa trực tiếp"
+   (nhấp phải vào phần tử) ghi `css/custom.css`; thay thumbnail Mua board ghi `js/images.js` + `img/uploads/`.
+   `css/custom.css` dòng đầu là `/*CUSTOM {json} */` để admin mở lại sửa tiếp – **đừng sửa tay**, mọi quy tắc trong đó
+   được kiểm tra giá trị (màu hex, font trong danh sách, px) và chỉ áp cho giao diện mặc định (`[data-skin="pinout"]`).
+   Ghi bằng File System Access API (Chrome/Edge). **Không có máy chủ**: sửa xong vẫn phải commit & push.
 
 ## 4. Cấu trúc thư mục
 ```
@@ -52,9 +55,10 @@ js/seo-body.js          Khối chữ cuối trang Sơ đồ chân (bảng chân 
                         cho app.js (vẽ lại khi đổi board) và tools/build-seo.js (trang tĩnh). Chỉ sửa ở đây.
 js/build.js, modules.js Tab Build + thư viện module
 js/affiliates.js        Link tiếp thị liên kết theo vùng (vn / intl) – trang admin ghi đè nguyên file này
-js/admin.js             Trang admin: Ctrl+Shift+E hoặc ?edit, mật khẩu "pindex" (đổi bằng adminHash trong Console).
-                        Lưu bằng File System Access API, ghi thẳng js/affiliates.js vào thư mục dự án (Chrome/Edge).
-                        Không có máy chủ: sửa xong vẫn phải commit & push.
+js/admin.js             Trang admin (tải lười): link mua hàng, màu/font, sửa trực tiếp bằng nhấp phải, thay thumbnail
+js/admin-auth.js        Mật khẩu admin đã băm PBKDF2 (null = chưa đặt)
+js/images.js            Ảnh thumbnail Mua board đã thay (khoá "buy:<id>")
+css/custom.css          Chỉnh giao diện do admin ghi – không sửa tay
 js/specs.js             Thông số chip theo board id (HTML chuỗi)
 js/learn.js             Bài giải thích ADC/PWM/I2C/SPI/UART/Touch/USB/Strapping/JTAG/LED
 js/i18n.js, i18n-data.js Dịch EN: từ điển {câu tiếng Việt → tiếng Anh}
@@ -85,7 +89,8 @@ Mỗi board là object: `id, tag, name, vendor, chip, family (ESP32|RP2|AVR|Rasp
 - Build: gợi ý chân dựa `score()` trong `build.js` (trừ điểm strapping/USB/UART0/JTAG/LED; RP2/AVR bắt buộc đúng chân bus phần cứng). Cảnh báo 5 V↔3.3 V, I2S của Pico (LRCLK = BCLK+1). Không viết nguyên chương trình trong tab Code.
 
 ## 7. Quy ước mã
-- JS thuần ES2020, IIFE, không module. Biến toàn cục: `BOARDS, CATS, FLAGS, SPECS, LEARN, MODULES, MOD_CATS, PIN_DOC, EN_DATA, AFFILIATE, BOARD_PHOTOS, APP, BUILD, seoBody`.
+- JS thuần ES2020, IIFE, không module. Biến toàn cục: `BOARDS, CATS, FLAGS, SPECS, LEARN, MODULES, MOD_CATS, PIN_DOC, EN_DATA, AFFILIATE, BOARD_PHOTOS, IMG_MAP, ADMIN_AUTH, APP, BUILD, seoBody`.
+- `window.BOARD_PHOTOS` nằm cuối `js/boards.js`; khi cắt/sửa đoạn đó nhớ giữ lại (đã từng mất một lần làm thẻ Mua board chỉ còn icon).
 - CSS dùng biến (`--bg --fg --accent --c-*`); giao diện ghi đè bằng file riêng, bật/tắt bằng `disabled` trên thẻ `<link>`.
 - **Đừng dùng `var(--navy)` làm màu CHỮ.** Nền tối `--navy` thành xanh ô liu đậm nên chữ sẽ chìm.
   Chữ nhãn dùng `var(--label)`, pad chân dùng `var(--pad)`, chữ thương hiệu dùng `var(--fg)`; cả ba đổi theo chế độ sáng/tối.

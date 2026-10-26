@@ -12,6 +12,8 @@
   const h = (t, cls, html) => { const e = document.createElement(t); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const cv = v => `var(${v})`;
+  // ảnh thay thế do admin ghi vào js/images.js (chỉ thumbnail "Mua board")
+  const IMG = (k, d) => (window.IMG_MAP && window.IMG_MAP[k]) || d;
   const PCB = { green: ["#1f5a3f", "#123826"], green2: ["#1d6b47", "#114a30"], black: ["#202422", "#0d0f0e"], blue: ["#16609c", "#0d416d"] };
 
   const state = { b: null, view: "pcb", sel: null, flag: null, q: "", zoom: 1, tab: "pins" };
@@ -437,13 +439,13 @@
     const list = [state.b, ...BOARDS.filter(b => b !== state.b)];
     row.innerHTML = list.map(b => {
       const url = (cur.links || {})[b.id];
-      const pic = ph[b.id] ? `<img src="${esc(ph[b.id])}" alt="" loading="lazy" decoding="async">` : boardIcon(b);
+      const src = IMG("buy:" + b.id, ph[b.id]), pic = src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async">` : boardIcon(b);
       const inner = `<span class="buy-pic">${pic}</span>
         <span class="buy-txt"><b>${esc(b.name)}</b><span class="muted small">${esc(b.chip)}</span></span>
         <span class="buy-go">${url ? (en ? "Buy on " : "Mua trên ") + esc(cur.shop || "") + " ↗" : (en ? "No link yet" : "Chưa có link")}</span>`;
       return url
-        ? `<a class="buy-card${b === state.b ? " on" : ""}" href="${esc(url)}" target="_blank" rel="noopener sponsored nofollow">${inner}</a>`
-        : `<span class="buy-card off${b === state.b ? " on" : ""}">${inner}</span>`;
+        ? `<a class="buy-card${b === state.b ? " on" : ""}" data-b="${b.id}" href="${esc(url)}" target="_blank" rel="noopener sponsored nofollow">${inner}</a>`
+        : `<span class="buy-card off${b === state.b ? " on" : ""}" data-b="${b.id}">${inner}</span>`;
     }).join("");
   }
 
@@ -548,8 +550,8 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=90");
-    if (!window.BUILD) await loadJs("js/build.js?v=90");
+    if (!window.MODULES) await loadJs("js/modules.js?v=95");
+    if (!window.BUILD) await loadJs("js/build.js?v=95");
     setTab("build"); BUILD.open(h);
   }
   document.addEventListener("click", e => {

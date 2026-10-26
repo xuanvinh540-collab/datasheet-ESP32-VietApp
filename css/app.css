@@ -528,21 +528,6 @@ main { padding-top: 12px; }
 .buy-card.off { opacity: .55; cursor: default; }
 .buy-card.off .buy-go { color: var(--muted); }
 
-/* Bảng admin sửa link tiếp thị liên kết */
-.adm { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: var(--bg); }
-.adm-bar { display: flex; align-items: center; gap: 10px; padding: 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--surface); }
-.adm-bar b { flex: none; } .adm-st { flex: 1; color: var(--muted); font: 12px var(--mono); }
-.adm-bar button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface2); color: var(--fg); font-weight: 600; }
-.adm-bar .adm-save { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-.adm-body { flex: 1; overflow: auto; padding: 14px max(16px, env(safe-area-inset-left, 0px)) 24px; display: grid; gap: 18px; max-width: 900px; width: 100%; margin: 0 auto; }
-.adm-body h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 15px; }
-.adm-shop { width: 140px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); font: 12px var(--mono); }
-.adm-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 0; }
-.adm-row span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.adm-row input { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); font: 12px var(--mono); }
-.adm-row a { text-decoration: none; }
-.adm-note { color: var(--muted); font-size: 13px; }
-@media (max-width: 620px) { .adm-row { grid-template-columns: 1fr auto; } .adm-row span { grid-column: 1 / -1; } }
 /* Nền tối: dải trắng gắn vào thanh tiêu đề – mép trên, dưới, trái thẳng cứng sát khung;
    chỉ mép phải kéo dài ra thêm và loang mềm vào nền, không bo cong */
 .appbar > * { position: relative; z-index: 1; }

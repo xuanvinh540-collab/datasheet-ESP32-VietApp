@@ -30,18 +30,20 @@ Web tĩnh thuần (không framework, không máy chủ), tối ưu cho điện t
 
 Chi tiết dành cho người (hoặc AI) sửa code nằm trong [AGENTS.md](AGENTS.md).
 
-## Trang admin (sửa link tiếp thị liên kết)
+## Trang admin
 
-Không cần máy chủ. Mở trang **trên máy có thư mục dự án**, rồi:
+Không cần máy chủ. Mở trang **trên máy có thư mục dự án** (Chrome hoặc Edge), bấm **Ctrl + Shift + E** hoặc thêm `?edit` vào URL.
 
-1. Bấm **Ctrl + Shift + E** (hoặc thêm `?edit` vào cuối URL).
-2. Nhập mật khẩu, mặc định `pindex`.
-3. Sửa link cho từng board, từng vùng.
-4. Bấm **Lưu vào file** → chọn thư mục dự án → ghi thẳng vào `js/affiliates.js`.
-5. **Commit và push** thì trang thật mới đổi.
+- **Lần đầu** trang hỏi đặt mật khẩu (từ 10 ký tự). Mật khẩu được băm PBKDF2 rồi lưu vào `js/admin-auth.js`, không lưu mật khẩu thật.
+- **Link mua hàng:** sửa link tiếp thị cho từng board, từng vùng (Việt Nam / Quốc tế).
+- **Giao diện:** màu ban ngày và ban đêm (9 màu mỗi chế độ), font chữ chính, font chữ số, cỡ chữ cơ bản. Xem trước ngay.
+- **✎ Sửa trực tiếp trên trang:** nhấp phải vào bất kỳ chữ, khung hay ảnh nào để đổi màu chữ, màu nền, font, cỡ chữ, độ đậm, kích thước.
+  Màu áp riêng cho chế độ đang xem (ngày hoặc đêm); font và kích thước áp cho cả hai. Ảnh thumbnail "Mua board" có thêm nút **Thay ảnh**
+  (ảnh được thu nhỏ còn 1000px, lưu WebP vào `img/uploads/`).
+- Bấm **Lưu vào file** → chọn thư mục dự án → admin ghi `js/affiliates.js`, `css/custom.css`, `js/images.js`, `js/admin-auth.js`.
+- **Commit và push** thì trang thật mới đổi.
 
-Cần Chrome hoặc Edge (dùng File System Access API). Đổi mật khẩu: mở Console chạy
-`await adminHash("mật-khẩu-mới")` rồi dán chuỗi nhận được vào `ADMIN_HASH` trong `js/admin.js`.
+Khách truy cập không tải mã admin (chỉ có một đoạn nạp nhỏ), và không ai ghi được gì vào trang thật trừ người có quyền push lên GitHub.
 
 ## Chạy thử trên máy
 

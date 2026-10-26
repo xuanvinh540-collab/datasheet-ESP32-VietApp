@@ -615,6 +615,14 @@
   };
 
   window.BOARDS = [ESP32_C3, ESP32_C3_SM, ESP32_S3, TDISPLAY, PICO2W, PICO2, RPI, UNO];
+  /* Ảnh board thật cho thẻ "Mua board" (board không có thì vẽ icon từ dữ liệu PCB) */
+  window.BOARD_PHOTOS = {
+    "esp32-s3-devkitc-1": "sch/esp32-s3-devkitc-1-board.jpg",
+    "lilygo-t-display-s3": "sch/lilygo-t-display-s3-board.jpg",
+    "pico-2-w": "sch/pico-2-w-board.jpg",
+    "pico-2": "sch/pico-2-board.jpg",
+    "arduino-uno-r3": "sch/arduino-uno-r3-board.jpg"
+  };
   window.CATS = {
     power: { label: "Nguồn", c: "--c-power" }, gnd: { label: "GND", c: "--c-gnd" }, gpio: { label: "GPIO", c: "--c-gpio" },
     adc: { label: "Analog", c: "--c-adc" }, comm: { label: "UART/I2C", c: "--c-comm" }, usb: { label: "USB", c: "--c-usb" },
