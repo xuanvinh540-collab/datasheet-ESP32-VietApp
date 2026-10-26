@@ -72,7 +72,7 @@
   const S3R = ["G", 43, 44, 1, 2, 42, 41, 40, 39, 38, 37, 36, 35, 0, 45, 48, 47, 21, 20, 19, "G", "G"];
 
   const ESP32_S3 = {
-    id: "esp32-s3-devkitc-1",
+    id: "esp32-s3-devkitc-1", tag: "S3",
     oem: { by: "Espressif Systems", file: "SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", url: "https://dl.espressif.com/dl/schematics/SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf", pages: [["sch/esp32-s3-devkitc-1-1.png", "Sơ đồ khối"], ["sch/esp32-s3-devkitc-1-2.png", "Mạch chi tiết"]] }, name: "ESP32-S3-DevKitC-1", vendor: "Espressif", chip: "ESP32-S3 (WROOM-1)", family: "ESP32",
     summary: "Xtensa LX7 2 nhân 240 MHz, Wi-Fi 4 + BLE 5, USB OTG native.",
     w: 25.9, h: 63, pcb: "green", logic: "3.3 V",
@@ -142,7 +142,7 @@
   ];
   const C3R = [c3(5), c3(6), c3(7), c3(8), c3(9), c3(10), c3(20), c3(21)];
   const ESP32_C3_SM = {
-    id: "esp32-c3-supermini", name: "ESP32-C3 Super Mini", vendor: "Nologo / bản phổ biến", chip: "ESP32-C3FH4", family: "ESP32",
+    id: "esp32-c3-supermini", tag: "C3", name: "ESP32-C3 Super Mini", vendor: "Nologo / bản phổ biến", chip: "ESP32-C3FH4", family: "ESP32",
     summary: "RISC-V 160 MHz, 4 MB flash tích hợp, Wi-Fi 4 + BLE 5, USB-C native (USB Serial/JTAG).",
     w: 18, h: 22.52, pcb: "black", logic: "3.3 V",
     facts: [["Logic", "3.3 V, không chịu 5 V"], ["Kích thước", "22.52 × 18 mm, 2 hàng × 8 chân, bước 2.54 mm"], ["ADC", "SAR 12-bit: GPIO0–GPIO4 (ADC1)"], ["USB", "USB Serial/JTAG trên GPIO18/19 (đã dùng cho cổng USB-C)"], ["LED / nút", "LED xanh GPIO8 (LOW sáng), BOOT = GPIO9, RST = CHIP_EN"], ["Wi-Fi yếu?", "Một số lô anten kém; cộng đồng hay giảm TX power (WiFi.setTxPower(WIFI_POWER_8_5dBm))"]],
@@ -212,7 +212,7 @@
     ctl("SWDIO", "Debug SWD data", "Cổng debug SWD.")
   ];
   const PICO2W = {
-    id: "pico-2-w",
+    id: "pico-2-w", tag: "P2W",
     oem: { by: "Raspberry Pi Ltd", file: "pico-2-w-schematic.pdf", url: "https://datasheets.raspberrypi.com/picow/pico-2-w-schematic.pdf", pages: [["sch/pico-2-w-1.png", "Schematic trang 1"], ["sch/pico-2-w-2.png", "Schematic trang 2"], ["sch/pico-2-w-layout-21.png", "Vị trí linh kiện (Datasheet, Phụ lục B)"]] }, name: "Raspberry Pi Pico 2 W", vendor: "Raspberry Pi", chip: "RP2350 + CYW43439", family: "RP2",
     summary: "2 × Cortex-M33 / Hazard3 RISC-V 150 MHz, 520 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5.2.",
     w: 21, h: 51, pcb: "green2", logic: "3.3 V",
@@ -279,7 +279,7 @@
   ];
   const UPy = [27.94, 30.48, 33.02, 35.56, 38.1, 40.64, 43.18, 45.72, 50.8, 53.34, 55.88, 58.42, 60.96, 63.5];
   const UNO = {
-    id: "arduino-uno-r3",
+    id: "arduino-uno-r3", tag: "UNO",
     oem: { by: "Arduino", file: "A000066-schematics.pdf", url: "https://docs.arduino.cc/resources/schematics/A000066-schematics.pdf", license: "CC BY-SA 4.0", pages: [["sch/arduino-uno-r3-1.png", "Schematic Uno R3"]] }, name: "Arduino Uno R3", vendor: "Arduino", chip: "ATmega328P", family: "AVR",
     summary: "AVR 8-bit 16 MHz, 32 KB flash, 2 KB SRAM, logic 5 V.",
     w: 53.34, h: 68.58, pcb: "blue", logic: "5 V",
@@ -336,7 +336,7 @@
   const odd = [], even = [];
   for (let c = 0; c < 20; c++) { odd.push({ ...PI[2 * c + 1], x: 51.23, y: 8.37 + c * PITCH }); even.push({ ...PI[2 * c + 2], x: 53.77, y: 8.37 + c * PITCH }); }
   const RPI = {
-    id: "raspberry-pi-40pin",
+    id: "raspberry-pi-40pin", tag: "Pi",
     oem: { by: "Raspberry Pi Ltd", file: "raspberry-pi-4-reduced-schematics.pdf", url: "https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-reduced-schematics.pdf", note: "Pi 5 chưa có schematic công khai; đây là bản rút gọn của Pi 4.", pages: [["sch/raspberry-pi-40pin-1.png", "Pi 4 Reduced Schematics"]] }, name: "Raspberry Pi 4 / 5 (GPIO 40 chân)", vendor: "Raspberry Pi", chip: "BCM2711 / BCM2712 + RP1", family: "Raspberry Pi",
     summary: "Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero.",
     w: 56, h: 85, pcb: "green2", logic: "3.3 V",

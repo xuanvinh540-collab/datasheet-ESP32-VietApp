@@ -27,7 +27,9 @@
   function renderBoardList() {
     const box = $("#boards"); box.innerHTML = "";
     BOARDS.forEach(b => {
-      const btn = h("button", "board-card", `<span class="bc-name">${esc(b.name)}</span><span class="bc-chip">${esc(b.chip)}</span><span class="bc-logic l${b.logic === "5 V" ? 5 : 3}">${esc(b.logic)}</span>`);
+      const fam = { ESP32: "esp", RP2: "rp", "Raspberry Pi": "rp", AVR: "avr" }[b.family] || "esp";
+      const btn = h("button", "board-card", `<span class="bc-icon ${fam}">${esc(b.tag)}</span><span class="bc-txt"><span class="bc-name">${esc(b.name)}</span><span class="bc-chip">${esc(b.chip)} · ${esc(b.logic)}</span></span>`);
+      btn.title = b.name;
       btn.setAttribute("aria-pressed", b === state.b);
       btn.onclick = () => selectBoard(b.id);
       box.appendChild(btn);
@@ -336,6 +338,7 @@
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
   $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); };
   $("#viewSch").onclick = () => { state.view = "sch"; draw(); };
+  $(".grab").onclick = () => $("#detail").classList.toggle("open");
   $("#viewOem").onclick = () => { state.view = "oem"; draw(); };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
