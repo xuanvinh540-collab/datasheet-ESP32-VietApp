@@ -185,8 +185,9 @@
       { t: "ant", x: 4.5, y: 18.2, w: 9, h: 3.4, label: "ANT" }
     ],
     headers: [
-      { id: "L", side: "L", at: -1.6, pins: vcol(1.38, 3.4, C3L) },
-      { id: "R", side: "R", at: 19.6, pins: vcol(16.62, 3.4, C3R) }
+      // Nhìn mặt trước (USB-C ở trên): trái GPIO5…21, phải 5V/GND/3V3/GPIO4…0 (theo silk "5V G 3.3" cạnh USB)
+      { id: "L", side: "L", at: -1.6, pins: vcol(1.38, 3.4, C3R) },
+      { id: "R", side: "R", at: 19.6, pins: vcol(16.62, 3.4, C3L) }
     ]
   };
 

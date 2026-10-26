@@ -3,7 +3,9 @@
    từng chân/board vẫn giữ tiếng Việt. Thêm câu mới: thêm cặp "tiếng Việt": "English" vào EN. */
 (function () {
   const EN = {
-    "Datasheet tiếng Việt": "Vietnamese datasheet", "Sơ đồ chân": "Pinout", "Tính toán": "Calculators", "Tài liệu": "Docs",
+    "Datasheet tiếng Việt": "Vietnamese datasheet", "Hổ phách": "Amber", "Qua GPIO matrix": "Via GPIO matrix", "IO MUX (FSPI) hoặc GPIO matrix": "IO MUX (FSPI) or GPIO matrix",
+    "SoC + Flash + PSRAM (Octal) + anten PCB": "SoC + Flash + PSRAM (Octal) + PCB antenna", "R tính =": "Calculated R =", "→ chọn E24": "→ E24 pick", "→ chọn": "→ pick",
+    "R1 tính =": "Calculated R1 =", "Vout tại Vin max =": "Vout at Vin max =", "Gợi ý:": "Suggested:", "Tần số cắt lọc thông thấp f = 1/(2πRC) =": "Low-pass cutoff f = 1/(2πRC) =", "Sơ đồ chân": "Pinout", "Tính toán": "Calculators", "Tài liệu": "Docs",
     "Kiến trúc": "Architecture", "Schematic hãng": "Official schematic", "Tìm chân: 8, ADC, SDA, TX…": "Find pin: 8, ADC, SDA, TX…",
     "Thu nhỏ": "Zoom out", "Phóng to": "Zoom in", "Đóng": "Close", "Giao diện sáng": "Light mode", "Giao diện tối": "Dark mode",
     "Thông số chip": "Chip specs", "Linh kiện đi kèm khi tự làm mạch": "Companion parts for custom boards",
@@ -25,7 +27,7 @@
     "Nguyên lý": "How it works", "Ứng dụng": "Applications", "▲ Ưu điểm": "▲ Pros", "▼ Nhược điểm": "▼ Cons", "Ví dụ nối dây": "Wiring example",
     "Datasheet": "Datasheet", "Manual": "Manual", "Hướng dẫn": "Guide", "Thông lệ": "Common practice",
     // nhãn loại chân / bộ lọc
-    "Nguồn ": "Power ", "GPIO": "GPIO", "Analog": "Analog", "UART/I2C": "UART/I2C", "Strapping ⚠": "Strapping ⚠", "Dành riêng": "Reserved", "Điều khiển": "Control",
+    "Nguồn": "Power", "GPIO": "GPIO", "Analog": "Analog", "UART/I2C": "UART/I2C", "Strapping ⚠": "Strapping ⚠", "Dành riêng": "Reserved", "Điều khiển": "Control",
     "Mặt trước": "Front", "Sơ đồ khối board: khối ngoại vi và bus/chân nối vào chip": "Board block diagram: peripherals and the buses/pins to the chip",
     // tab thông số
     "Boot / Strapping": "Boot / Strapping", "Nguồn & giới hạn": "Power & limits", "Dòng tiêu thụ": "Current draw", "Ngoại vi": "Peripherals",
@@ -38,7 +40,16 @@
   let lang = "vi";
   try { lang = localStorage.getItem("lang") || "vi"; } catch (e) { }
   const orig = new WeakMap();
-  const tr = s => { const k = s.trim(); if (!k) return null; if (EN[k] != null) return s.replace(k, EN[k]); for (const [r, v] of RX) if (r.test(k)) return s.replace(k, k.replace(r, v)); return null; };
+  const D = k => EN[k] != null ? EN[k] : (window.EN_DATA || {})[k];
+  const tr = s => {
+    const k = s.trim(); if (!k) return null;
+    const d = D(k); if (d != null) return s.replace(k, d);
+    const m = k.match(/^📄 Nguồn: (.+?)( ·)?$/); if (m) return s.replace(k, "📄 Source: " + (D(m[1]) ?? m[1]) + (m[2] || ""));
+    for (const [r, v] of RX) if (r.test(k)) return s.replace(k, k.replace(r, v));
+    // chuỗi ghép "a · b · c": dịch từng đoạn nếu có
+    if (k.includes(" · ")) { const parts = k.split(" · "), out = parts.map(x => D(x) ?? x); if (out.some((x, i) => x !== parts[i])) return s.replace(k, out.join(" · ")); }
+    return null;
+  };
   function fixNode(n) {
     if (n.nodeType === 3) {
       if (!orig.has(n)) orig.set(n, n.nodeValue);
