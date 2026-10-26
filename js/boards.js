@@ -114,7 +114,7 @@
 
   /* ---------------- ESP32-C3-DevKitM-1 (Espressif) ----------------
      Chân & ghi chú theo ESP32-C3 Series Datasheet v2.4; vị trí linh kiện đo từ ảnh pin layout chính thức. */
-  function c3(n) {
+  function c3(n, sm) {
     const p = pin("IO" + n, { gpio: n });
     if (n <= 4) { p.fn.push("ADC1_CH" + n); p.flags.push("adc"); }
     if (n === 5) { p.fn.push("ADC2_CH0"); p.flags.push("adc"); p.warn = "ADC2 không được hiệu chỉnh từ nhà máy và không dùng được trên một số revision chip (xem errata). Cần đo analog thì dùng IO0–IO4 (ADC1)."; }
@@ -127,7 +127,7 @@
     if (n === 18 || n === 19) p.flags.push("usb");
     if (n === 20 || n === 21) { p.flags.push("uart"); p.name = n === 20 ? "RX" : "TX"; p.fn.push("IO" + n); }
     if ([2, 8, 9].includes(n)) p.flags.push("strap");
-    if (n === 8) { p.fn.push("RGB LED (WS2812)"); p.flags.push("led"); }
+    if (n === 8) { p.fn.push(sm ? "LED xanh onboard (LOW = sáng)" : "RGB LED (WS2812)"); p.flags.push("led"); }
     if (n === 9) p.fn.push("Nút BOOT");
     const w = {
       2: "Strapping: thả nổi lúc reset. Không quyết định chế độ boot nhưng datasheet khuyên kéo lên HIGH vì có thể bị nhiễu (glitch).",
@@ -139,6 +139,9 @@
       21: "UART0 TX nối chip USB-UART CP2102 trên board: chip in log ROM ra đây lúc khởi động. Nên để nguyên."
     };
     if (w[n]) p.warn = w[n];
+    if (sm && n === 8) p.warn = "Strapping: thả nổi lúc reset; phải HIGH khi vào chế độ nạp, đồng thời điều khiển việc in log ROM. LED xanh onboard nối chân này (theo ảnh pinout nhà bán, LOW = sáng).";
+    if (sm && n === 20) p.warn = "UART0 RX: chức năng nạp/log qua UART. Super Mini nạp qua USB-C (USB Serial/JTAG) nên chân này dùng được, nhưng nên tránh khi cần nạp qua UART.";
+    if (sm && n === 21) p.warn = "UART0 TX: chip in log ROM ra chân này lúc khởi động. Super Mini nạp qua USB-C nên vẫn dùng được làm GPIO/TX.";
     const drv = [2, 3, 4, 5].includes(n) ? 10 : n === 18 || n === 19 ? 40 : 20;
     p.notes.push(`Dòng drive mặc định: ${drv} mA.`);
     if ([6, 7, 10, 20].includes(n)) p.notes.push("Có xung LOW ~5 ns lúc cấp nguồn (Bảng 2-2).");
@@ -162,6 +165,50 @@
   const c3mk = x => typeof x === "number" ? c3(x) : c3pw[x]();
   const C3J1 = ["G", "3V3", "3V3", 2, 3, "G", "RST", "G", 0, 1, 10, "G", "5V", "5V", "G"];
   const C3J3 = ["G", 21, 20, "G", 9, 8, "G", 7, 6, 5, 4, "G", 18, 19, "G"];
+  /* ---------------- ESP32-C3 Super Mini (bên thứ ba) ----------------
+     Chức năng chân theo ESP32-C3 Datasheet v2.4; vị trí chân/linh kiện theo ảnh pinout nhà bán (mặt trước, USB-C ở trên). */
+  const SML = [5, 6, 7, 8, 9, 10, 20, 21].map(n => c3(n, true));
+  const SMR = [pw("5V", "VBUS từ USB-C / ngõ vào 5V", "Nối VBUS của cổng USB-C. Cấp 5V ngoài vào đây thì đừng cắm USB cùng lúc."), gnd(),
+    pw("3V3", "Ngõ ra LDO 3.3 V", "Ngõ ra LDO onboard. Chip cần nguồn ≥ 0.5 A; giữ tải ngoài nhỏ.", { parts: [["Tụ", "10 µF + 0.1 µF gần tải ngoài", "hdg"]] }),
+    c3(4, true), c3(3, true), c3(2, true), c3(1, true), c3(0, true)];
+  const ESP32_C3_SM = {
+    id: "esp32-c3-supermini", tag: "C3m", name: "ESP32-C3 Super Mini", vendor: "Bên thứ ba (Nologo…)", chip: "ESP32-C3FH4", family: "ESP32",
+    elec: [["Mức logic", "3.3 V (không chịu 5 V)"], ["VIH / VIL", "≥0.75·VDD / ≤0.25·VDD"], ["Dòng ra", "cấp 40 mA · hút 28 mA"], ["Pull nội", "45 kΩ"], ["Ngoại vi số", "IO MUX hoặc GPIO matrix"]],
+    arch: { core: "ESP32-C3FH4", coreSub: "RISC-V + 4 MB flash trong chip", blocks: [
+      { side: "L", n: "Cổng USB-C", s: "USB Serial/JTAG", k: "usb", bus: "IO18 D− · IO19 D+" },
+      { side: "L", n: "LDO 3.3 V", s: "5V → 3V3", k: "power", bus: "3V3" },
+      { side: "L", n: "Thạch anh 40 MHz", s: "XTAL", k: "ctl", bus: "XTAL_P/N" },
+      { side: "L", n: "Anten ceramic", s: "2.4 GHz", k: "rf", bus: "LNA_IN" },
+      { side: "R", n: "LED xanh", s: "LOW = sáng", k: "io", bus: "IO8" },
+      { side: "R", n: "Nút BOOT", s: "kéo xuống GND", k: "ctl", bus: "IO9" },
+      { side: "R", n: "Nút RST", s: "reset chip", k: "ctl", bus: "CHIP_EN" },
+      { side: "R", n: "Header 2 × 8", s: "13 GPIO + nguồn", k: "io", bus: "GPIO" }] },
+    summary: "Board tí hon 22.5 × 18 mm: ESP32-C3FH4 (RISC-V 160 MHz, 4 MB flash trong chip), Wi-Fi 4 + BLE 5, USB-C nối thẳng USB Serial/JTAG.",
+    w: 18, h: 22.52, pcb: "black", logic: "3.3 V",
+    facts: [["Logic", "3.3 V, không chịu 5 V"], ["Kích thước", "22.52 × 18 mm, 2 hàng × 8 chân, bước 2.54 mm"], ["ADC", "ADC1: IO0–IO4 (5 kênh) · ADC2: IO5"], ["USB", "USB-C nối USB Serial/JTAG (IO18/IO19, không ra header)"], ["Nút", "BOOT = IO9, RST = CHIP_EN"], ["Tên Arduino", "Mỗi nhà bán ghi khác nhau (vd. SDA = IO8 hoặc IO6). Hãy dùng số GPIO."]],
+    docs: [
+      ["datasheet", "ESP32-C3 Series Datasheet v2.4", "https://documentation.espressif.com/esp32-c3_datasheet_en.pdf"],
+      ["guide", "ESP32-C3 Hardware Design Guidelines", "https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32c3/index.html"],
+      ["manual", "ESP32-C3 Technical Reference Manual", "https://www.espressif.com/sites/default/files/documentation/esp32-c3_technical_reference_manual_en.pdf"],
+      ["errata", "ESP32-C3 Errata", "https://www.espressif.com/sites/default/files/documentation/esp32-c3_errata_en.pdf"]
+    ],
+    note: "Board do bên thứ ba sản xuất, không có datasheet/schematic chính thức. Chức năng chân theo datasheet ESP32-C3 của Espressif; vị trí chân và linh kiện theo ảnh pinout nhà bán. Tên Arduino (A0, D3, SDA…) khác nhau giữa các nhà bán nên không ghi.",
+    src: "ESP32-C3 Series Datasheet v2.4 chương 2–3, ảnh pinout nhà bán",
+    parts: [
+      { t: "usb", x: 4.8, y: -2.4, w: 7.4, h: 6.5, label: "USB-C" },
+      { t: "led", x: 2, y: 5.4, w: 1, h: 1.5, color: "#ff4d4d", label: "PW" },
+      { t: "btn", x: 3.6, y: 6.8, w: 2.6, h: 2.5, label: "BOOT" },
+      { t: "btn", x: 9.3, y: 6.8, w: 2.6, h: 2.5, label: "RST" },
+      { t: "chip", x: 8.4, y: 12.2, w: 4.5, h: 4, label: "C3", sub: "FH4" },
+      { t: "chip", x: 4.6, y: 14.9, w: 1.8, h: 1.5, label: "XTAL", small: true },
+      { t: "jack", x: 5.7, y: 19.4, w: 4.4, h: 2.2, label: "ANT" }
+    ],
+    headers: [
+      { id: "L", side: "L", at: -1.6, pins: vcol(1.38, 1.1, SML) },
+      { id: "R", side: "R", at: 19.6, pins: vcol(16.62, 1.1, SMR) }
+    ]
+  };
+
   const ESP32_C3 = {
     id: "esp32-c3-devkitm-1", tag: "C3", name: "ESP32-C3-DevKitM-1", vendor: "Espressif", chip: "ESP32-C3 (MINI-1)", family: "ESP32",
     oem: { by: "Espressif Systems", file: "SCH_ESP32-C3-DEVKITM-1_V1_20200915A.pdf", url: "https://dl.espressif.com/dl/schematics/SCH_ESP32-C3-DEVKITM-1_V1_20200915A.pdf", pages: [["sch/esp32-c3-devkitm-1-1.png", "Schematic trang 1"], ["sch/esp32-c3-devkitm-1-2.png", "Schematic trang 2"]] },
@@ -553,7 +600,7 @@
     ]
   };
 
-  window.BOARDS = [ESP32_C3, ESP32_S3, TDISPLAY, ATOMS3, PICO2W, PICO2, RPI, UNO];
+  window.BOARDS = [ESP32_C3, ESP32_C3_SM, ESP32_S3, TDISPLAY, PICO2W, PICO2, RPI, UNO];
   window.CATS = {
     power: { label: "Nguồn", c: "--c-power" }, gnd: { label: "GND", c: "--c-gnd" }, gpio: { label: "GPIO", c: "--c-gpio" },
     adc: { label: "Analog", c: "--c-adc" }, comm: { label: "UART/I2C", c: "--c-comm" }, usb: { label: "USB", c: "--c-usb" },

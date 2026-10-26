@@ -623,5 +623,19 @@ window.EN_DATA = {
 "Nối tiếp; tụ xuống GND để trống ban đầu": "In series; leave capacitors to GND unpopulated at first",
 "Khuyên kéo lên vì glitch (không ghi giá trị)": "Pull-up recommended because of glitches (no value given)",
 "Pull-up, không gắn tụ lớn": "Pull-up, no large capacitor",
-"Tụ lớn dễ làm chip vào chế độ nạp": "A large capacitor can push the chip into download mode"
+"Tụ lớn dễ làm chip vào chế độ nạp": "A large capacitor can push the chip into download mode",
+"Bên thứ ba (Nologo…)": "Third party (Nologo…)",
+"Board tí hon 22.5 × 18 mm: ESP32-C3FH4 (RISC-V 160 MHz, 4 MB flash trong chip), Wi-Fi 4 + BLE 5, USB-C nối thẳng USB Serial/JTAG.": "Tiny 22.5 × 18 mm board: ESP32-C3FH4 (RISC-V 160 MHz, 4 MB in-package flash), Wi-Fi 4 + BLE 5, USB-C wired straight to USB Serial/JTAG.",
+"ADC1: IO0–IO4 (5 kênh) · ADC2: IO5": "ADC1: IO0–IO4 (5 channels) · ADC2: IO5",
+"USB-C nối USB Serial/JTAG (IO18/IO19, không ra header)": "USB-C wired to USB Serial/JTAG (IO18/IO19, not on the header)",
+"Tên Arduino": "Arduino names",
+"Mỗi nhà bán ghi khác nhau (vd. SDA = IO8 hoặc IO6). Hãy dùng số GPIO.": "Each seller labels them differently (e.g. SDA = IO8 or IO6). Use GPIO numbers.",
+"Board do bên thứ ba sản xuất, không có datasheet/schematic chính thức. Chức năng chân theo datasheet ESP32-C3 của Espressif; vị trí chân và linh kiện theo ảnh pinout nhà bán. Tên Arduino (A0, D3, SDA…) khác nhau giữa các nhà bán nên không ghi.": "Made by third parties, with no official datasheet/schematic. Pin functions follow Espressif's ESP32-C3 datasheet; pin and component positions follow sellers' pinout images. Arduino names (A0, D3, SDA…) differ between sellers, so they are not shown.",
+"ESP32-C3 Series Datasheet v2.4 chương 2–3, ảnh pinout nhà bán": "ESP32-C3 Series Datasheet v2.4 chapters 2–3, sellers' pinout images",
+"Strapping: thả nổi lúc reset; phải HIGH khi vào chế độ nạp, đồng thời điều khiển việc in log ROM. LED xanh onboard nối chân này (theo ảnh pinout nhà bán, LOW = sáng).": "Strapping: floating at reset; must be HIGH to enter download mode, and also controls ROM log printing. The onboard blue LED is on this pin (per sellers' pinout, LOW = on).",
+"UART0 RX: chức năng nạp/log qua UART. Super Mini nạp qua USB-C (USB Serial/JTAG) nên chân này dùng được, nhưng nên tránh khi cần nạp qua UART.": "UART0 RX: UART flashing/log function. The Super Mini flashes over USB-C (USB Serial/JTAG) so this pin is usable, but avoid it if you need UART flashing.",
+"UART0 TX: chip in log ROM ra chân này lúc khởi động. Super Mini nạp qua USB-C nên vẫn dùng được làm GPIO/TX.": "UART0 TX: the chip prints its ROM log here at boot. The Super Mini flashes over USB-C, so it is still usable as GPIO/TX.",
+"Nối VBUS của cổng USB-C. Cấp 5V ngoài vào đây thì đừng cắm USB cùng lúc.": "Connected to the USB-C VBUS. If you feed external 5V here, don't plug USB in at the same time.",
+"Ngõ ra LDO onboard. Chip cần nguồn ≥ 0.5 A; giữ tải ngoài nhỏ.": "Onboard LDO output. The chip needs a ≥ 0.5 A supply; keep external load small.",
+"Dành cho mạch dùng chip hoặc module trực tiếp. Board Super Mini đã có sẵn phần lớn các linh kiện này. Nhãn": "For designs using the chip or module directly. The Super Mini board already has most of these parts. The"
 };
