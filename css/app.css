@@ -471,3 +471,10 @@ main { padding-top: 12px; }
   .mr-if { display: none; }
   .mods-more { font-size: 10px; }
 }
+/* Connect: menu chuột phải, tên 2 đầu dây đang chọn, ảnh nhỏ trong danh sách linh kiện */
+.bmenu { position: absolute; z-index: 20; display: grid; min-width: 190px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.bmenu button { padding: 8px 12px; border: 0; border-radius: 7px; background: none; color: var(--fg); font: 600 12.5px var(--mono); text-align: left; }
+.bmenu button:hover, .bmenu button:focus-visible { background: var(--surface2); outline: none; }
+.bwinfo { position: absolute; left: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; max-width: calc(100% - 40px); padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--surface) 90%, transparent); font: 600 12px var(--mono); color: var(--fg); pointer-events: none; }
+.bwinfo span { color: var(--muted); }
+.mitem img { flex: none; width: 24px; height: 18px; object-fit: contain; }

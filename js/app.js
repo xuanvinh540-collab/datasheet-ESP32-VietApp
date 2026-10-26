@@ -307,7 +307,12 @@
     const svg = $("#svg"); svg.innerHTML = "";
     svg.classList.toggle("sch", state.view === "sch");
     if (state.view === "pcb") drawPCB(svg); else drawArch(svg);
-    svg.style.width = state.zoom * 100 + "%";
+    svg.style.width = state.zoom * 100 + "%"; svg.style.height = svg.style.aspectRatio = svg.style.maxWidth = "";
+    if (state.b.mod && state.view === "pcb") {
+      // linh kiện: vừa chiều cao khung (hình module thường cao hơn rộng), zoom thì cao thêm
+      const vb = svg.viewBox.baseVal;
+      Object.assign(svg.style, { width: "auto", height: `min(${58 * state.zoom}vh, ${520 * state.zoom}px)`, aspectRatio: `${vb.width} / ${vb.height}`, maxWidth: state.zoom > 1 ? "none" : "100%" });
+    }
     svg.querySelectorAll(".pin").forEach(g => {
       g.addEventListener("click", () => pick(pins[+g.dataset.i]));
       g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(pins[+g.dataset.i]); } });
@@ -509,7 +514,7 @@
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
     if (!window.MODULES) await loadJs("js/modules.js?v=56");
-    if (!window.BUILD) await loadJs("js/build.js?v=56");
+    if (!window.BUILD) await loadJs("js/build.js?v=57");
     setTab("build"); BUILD.open(h);
   }
   window.APP = { state, get pins() { return pins; }, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };

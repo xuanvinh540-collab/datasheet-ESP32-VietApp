@@ -14,7 +14,7 @@
     if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { d.svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); if (B.boardId) draw(); }).catch(() => {});
   }
   const B = { boardId: null, bus: {}, mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "" };
-  const CATS = (window.MOD_CATS || []).map(([n, , keys]) => [n, keys]);
+  const CATS = window.MOD_CATS || [];
   // tên hiển thị góc phải dưới khung vẽ
   const ARR_NAMES = ["Gần chân nhất", "Vòng cung cân bằng", "Tách Bus / GPIO"];
   const STYLE_NAMES = ["Vuông góc gọn", "Vuông góc tách nhóm", "Cong mềm (Node)", "Vát 45° kiểu PCB"];
@@ -360,22 +360,16 @@
       d.pins.forEach(([label, role]) => { const p = pinByName(getPin(m, label) || ""); if (!p) return;
         const c = COLOR[role] || d.color, info = routeMap[`${mi}:${label}`]; if (!info) return;
         const { pts, w: wObj } = info;
-        const isSel = B.selW && B.selW.m === mi && B.selW.label === label, wcls = "bwire" + (isSel ? " sel" : "");
-        if (B.style === 2) {
-          const bp = blenderPath(wObj);
-          el("path", { d: bp.d, stroke: c, class: wcls }, wires);
-          el("text", { x: bp.mx, y: bp.my - .55, "text-anchor": "middle", "font-size": 1.1, class: "wlabel", fill: c }, wires, label);
-          const hit = el("path", { d: bp.d, class: "whit", "data-wm": mi, "data-wl": label }, wires);
-          hit.addEventListener("pointerdown", e => { e.stopPropagation(); selectWire(mi, label); });
-        } else {
-          const pd = pathOf(pts);
-          el("path", { d: pd, stroke: c, class: wcls }, wires);
-          let li = 1, ll = 0; for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (l > ll && i < pts.length - 1) { ll = l; li = i; } }
-          const [x0, y0] = pts[li - 1], [x1, y1] = pts[li], vert = Math.abs(x0 - x1) < .01, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
-          if (ll > 6) el("text", { x: mx, y: my - (vert ? 0 : .55), "text-anchor": "middle", "font-size": 1.1, class: "wlabel", fill: c, transform: vert ? `rotate(-90 ${mx} ${my}) translate(0 -.55)` : "" }, wires, label);
-          const hit = el("path", { d: pd, class: "whit", "data-wm": mi, "data-wl": label }, wires);
-          hit.addEventListener("pointerdown", e => { if (e.button === 2) return; selectWire(mi, label); dragSeg(e, mi, label, pts); });
-        }
+        const isSel = B.selW && B.selW.m === mi && B.selW.label === label, tag = { "data-wm": mi, "data-wl": label };
+        const pd = B.style === 2 ? blenderPath(wObj).d : pathOf(pts);
+        const pe = el("path", { d: pd, stroke: c, class: "bwire" + (isSel ? " sel" : ""), ...tag }, wires);
+        wireLabels(pe, label, c, tag, wires);
+        const hit = el("path", { d: pd, class: "whit", ...tag }, wires);
+        hit.addEventListener("pointerdown", e => {
+          if (e.button === 2) return;
+          selectWire(mi, label);
+          if (B.style === 2) e.stopPropagation(); else dragSeg(e, mi, label, pts);
+        });
         const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: c, "fill-opacity": .35, stroke: c, "stroke-width": .5, class: "wend", "data-wm": mi, "data-wl": label }, wires);
         end.addEventListener("pointerdown", e => startWire(e, mi, label, true)); });
       const g = el("g", { class: "bnode", "data-m": mi }, nodes);
@@ -407,6 +401,16 @@
       head.addEventListener("pointerdown", e => { if (e.button !== 2) startNode(e, mi); });
       if (B.selM === mi) el("rect", { x: m.pos.x - 1, y: m.pos.y - 1, width: w + 2, height: h + 2, rx: 1, class: "bsel" }, g);
     }
+    // dây đang chọn: tên 2 chân ở 2 đầu, góc trái trên khung vẽ
+    const wi = $("#bwinfo"), sw = B.selW && B.mods[B.selW.m];
+    if (wi) {
+      wi.hidden = !sw;
+      if (sw) {
+        const d = M[sw.type], n = getPin(sw, B.selW.label), p = pinByName(n || "");
+        wi.innerHTML = `<b>${esc(d.short)} · ${esc(B.selW.label)}</b><span>⟷</span><b>${esc(board().name)} · ${esc(n || "?")}${p && p.gpio != null ? ` (GPIO${p.gpio})` : ""}</b>`;
+        wi.style.top = svg().getBoundingClientRect().top - svg().parentElement.getBoundingClientRect().top + 10 + "px";
+      }
+    }
     const nm = $("#bname");
     if (nm) nm.innerHTML = `<div><span>Bố cục:</span> ${esc(B.arrLast == null ? "Tự do" : ARR_NAMES[B.arrLast])}</div><div><span>Dây:</span> ${esc(STYLE_NAMES[B.style])}</div>`;
     if (B.arm) showGlow(B.mods[B.arm.m], B.arm.label);
@@ -419,6 +423,17 @@
     world.h = Math.max(boardBox.y + boardBox.h + pad, ...maxY) - world.y;
     if (!B.cam) B.cam = { ...world };
     s.setAttribute("viewBox", `${B.cam.x} ${B.cam.y} ${B.cam.w} ${B.cam.h}`);
+  }
+  // tên dây: 1 nhãn; dây dài thêm tới 3 nhãn rải đều dọc dây
+  function wireLabels(pe, label, c, tag, parent) {
+    const L = pe.getTotalLength(); if (L < 6) return;
+    const n = L > 70 ? 3 : L > 35 ? 2 : 1;
+    for (let i = 1; i <= n; i++) {
+      const t = L * i / (n + 1), p = pe.getPointAtLength(t), q = pe.getPointAtLength(Math.min(L, t + .6));
+      const vert = Math.abs(q.x - p.x) < Math.abs(q.y - p.y) * .4;
+      el("text", { x: p.x, y: p.y, "text-anchor": "middle", "font-size": 1.1, class: "wlabel", fill: c, ...tag,
+        transform: vert ? `rotate(-90 ${p.x} ${p.y}) translate(0 -.55)` : "translate(0 -.55)" }, parent, label);
+    }
   }
   function showGlow(m, label) {
     const g = $("#glow"); g.innerHTML = ""; const role = roleOf(m, label), b = board(), taken = used(), cur = getPin(m, label);
@@ -437,8 +452,10 @@
     e.stopPropagation(); e.preventDefault();
     const m = B.mods[mi], k = M[m.type].pins.findIndex(x => x[0] === label), a = sockPos(m, k), s = svg();
     showGlow(m, label);
-    if (fromEnd) $("#wires").querySelectorAll("path,circle").forEach(x => x.style.opacity = .25);   // làm mờ dây khác khi đang nắm đầu dây
-    const tmp = el("path", { d: "", stroke: COLOR[M[m.type].pins[k][1]] || M[m.type].color, class: "bwire tmp" }, $("#wires"));
+    // dây đang nối của chân này ẩn đi, thay bằng dây tạm bám theo con trỏ (khi nắm đầu dây thì làm mờ dây khác)
+    const mine = x => x.dataset.wm === String(mi) && x.dataset.wl === label, cur = pinByName(getPin(m, label) || "");
+    $("#wires").querySelectorAll("path,circle,text").forEach(x => { if (mine(x)) x.style.display = "none"; else if (fromEnd) x.style.opacity = .25; });
+    const tmp = el("path", { d: cur ? wirePath(a, cur) : "", stroke: COLOR[M[m.type].pins[k][1]] || M[m.type].color, class: "bwire" + (cur ? "" : " tmp") }, $("#wires"));
     let moved = false;
     const mv = ev => { moved = true; const pt = toSvg(ev), near = nearestPad(pt); tmp.setAttribute("d", wirePath(a, near ? { x: near.x, y: near.y } : pt)); };
     const up = ev => {
@@ -486,6 +503,24 @@
     setPin(m, label, null); if (m.route) delete m.route[label];
     B.selW = null; save(); refresh(); A.toast("Đã xoá dây " + label);
   }
+  function autoMod(i) { const m = B.mods[i]; if (!m) return; autoAssign(m); save(); refresh(); A.toast("Đã tự nối chân " + M[m.type].short); }
+  function rewire(mi, label) {
+    const m = B.mods[mi]; if (!m) return;
+    setPin(m, label, null); if (m.route) delete m.route[label];
+    autoAssign(m); save(); refresh(); A.toast(`Đã nối lại ${label} → ${getPin(m, label) || "?"}`);
+  }
+  // menu chuột phải (nhấn giữ trên điện thoại cũng mở)
+  const closeMenu = () => document.querySelectorAll(".bmenu").forEach(x => x.remove());
+  function ctxMenu(e, items) {
+    closeMenu();
+    const st = svg().parentElement, r = st.getBoundingClientRect(), mn = document.createElement("div");
+    mn.className = "bmenu"; mn.setAttribute("role", "menu");
+    items.forEach(([t, fn]) => { const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "menuitem"); b.textContent = t; b.onclick = () => { closeMenu(); fn(); }; mn.appendChild(b); });
+    st.appendChild(mn);
+    const x = Math.min(e.clientX - r.left, r.width - mn.offsetWidth - 8), y = Math.min(e.clientY - r.top, r.height - mn.offsetHeight - 8);
+    mn.style.left = Math.max(8, x) + "px"; mn.style.top = Math.max(8, y) + "px";
+    mn.querySelector("button").focus();
+  }
   function deleteSel() {
     if (B.selW) removeWire(B.selW.m, B.selW.label);
     else if (B.selM != null && B.mods[B.selM]) removeMod(B.selM);
@@ -513,13 +548,22 @@
       }
     }
     if (!$("#bname")) { const nm = document.createElement("div"); nm.id = "bname"; nm.className = "bname"; s.after(nm); }
-    // chuột phải lên linh kiện / dây = xoá
+    if (!$("#bwinfo")) { const wi = document.createElement("div"); wi.id = "bwinfo"; wi.className = "bwinfo"; wi.hidden = true; s.after(wi); }
+    // chuột phải: menu Xoá / Tự nối chân
     s.addEventListener("contextmenu", e => {
       const node = e.target.closest(".bnode"), w = e.target.closest("[data-wm]");
-      if (node) { e.preventDefault(); removeMod(+node.dataset.m); }
-      else if (w) { e.preventDefault(); removeWire(+w.dataset.wm, w.dataset.wl); }
+      e.preventDefault();
+      if (node) {
+        const i = +node.dataset.m; B.selM = i; B.selW = null; draw();
+        ctxMenu(e, [["🗑 Xoá linh kiện", () => removeMod(i)], ["✨ Tự nối chân", () => autoMod(i)]]);
+      } else if (w) {
+        const i = +w.dataset.wm, l = w.dataset.wl; selectWire(i, l);
+        ctxMenu(e, [["🗑 Xoá dây", () => removeWire(i, l)], ["✨ Tự nối lại chân này", () => rewire(i, l)], ["✨ Tự nối chân linh kiện", () => autoMod(i)]]);
+      } else if (B.mods.length) ctxMenu(e, [["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }]]);
     });
+    document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); }, true);
     addEventListener("keydown", e => {
+      if (e.key === "Escape") closeMenu();
       if (A.state.tab !== "build" || !["Delete", "Backspace"].includes(e.key) || e.target.closest("input, textarea, select, [contenteditable]")) return;
       if (B.selW || B.selM != null) { e.preventDefault(); deleteSel(); }
     });
@@ -542,7 +586,7 @@
   /* ---------- Thanh bên ---------- */
   function renderCatList(b) {
     const q = (B.q || "").trim().toLowerCase();
-    return CATS.map(([catName, keys]) => {
+    return CATS.map(([catName, icon, keys]) => {
       const filtered = keys.filter(k => {
         const d = M[k]; if (!d) return false;
         if (!q) return true;
@@ -551,9 +595,9 @@
       if (!filtered.length) return "";
       const items = filtered.map(k => {
         const d = M[k], on = B.mods.some(m => m.type === k), ok = modOK(d, b);
-        return `<button class="mitem${on ? " on" : ""}" data-add="${k}"${ok ? "" : " disabled"} style="--mc:${d.color}"><span>${on ? "✓" : "+"}</span><span class="mn">${esc(d.short)}</span><span class="mi">${esc(d.iface.split(" ")[0])}</span></button>`;
+        return `<button class="mitem${on ? " on" : ""}" data-add="${k}"${ok ? "" : " disabled"} style="--mc:${d.color}"><span>${on ? "✓" : "+"}</span><img src="${esc(d.svg)}" alt="" loading="lazy"><span class="mn">${esc(d.short)}</span><span class="mi">${esc(d.iface.split(" ")[0])}</span></button>`;
       }).join("");
-      return `<div class="mcat"><div class="mcat-h">${esc(catName)}</div><div class="mlist">${items}</div></div>`;
+      return `<div class="mcat"><div class="mcat-h"><span aria-hidden="true">${icon}</span> ${esc(catName)}</div><div class="mlist">${items}</div></div>`;
     }).join("") || `<div class="muted small">Không tìm thấy linh kiện phù hợp.</div>`;
   }
   function bindAddBtns(root) {
@@ -578,7 +622,7 @@
             <div id="mcats">${renderCatList(b)}</div>
           </div>
         </div>
-        <p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để xoá.</p>
+        <p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân.</p>
         <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Tự nối chân</button>` : ""}
         ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
       : `<pre class="code bcode">${esc(code())}</pre><button class="btn-share" data-copy>Copy #define</button>`}
