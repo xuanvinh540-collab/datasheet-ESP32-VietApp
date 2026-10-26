@@ -312,3 +312,9 @@ main { padding-top: 12px; }
 
 /* Bỏ lưới nền trong khung hình board (mọi giao diện) */
 .canvas, :root:not([data-theme="light"]) .canvas { background-image: none !important; }
+
+/* Nút cờ Việt / Anh */
+.langsw button { display: grid; place-items: center; opacity: .55; }
+.langsw button[aria-pressed="true"] { opacity: 1; background: rgba(255,255,255,.18) !important; }
+.langsw svg { display: block; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+@media (max-width: 560px) { .langsw { margin-left: auto; } .langsw + .daynight { margin-left: 0; } }

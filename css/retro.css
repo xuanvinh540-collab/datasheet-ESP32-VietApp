@@ -164,3 +164,9 @@
 .seg button[aria-pressed="true"], .stab[aria-pressed="true"], .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
 .board-card[aria-pressed="true"] { border-color: #e8672a; box-shadow: 3px 3px 0 #e8672a; }
 .code { background: #04161c; color: #7fd1c4; }
+
+/* 8-bit chế độ sáng: vàng kem đậm (bớt chói) */
+:root, :root[data-theme="light"] {
+  --bg: #e9d9a6; --surface: #f3e6bb; --surface2: #e0cb8b; --canvas: #e6d39b; --muted: #5a4f2e; --line: #0d2f3a; --fg: #1b2a2e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #071c24; --surface: #0d2c37; --surface2: #133a47; --canvas: #062029; --muted: #8fb7bb; --line: #1f5563; --fg: #e9f6f1; } }
+:root[data-theme="dark"] { --bg: #071c24; --surface: #0d2c37; --surface2: #133a47; --canvas: #062029; --muted: #8fb7bb; --line: #1f5563; --fg: #e9f6f1; }
