@@ -651,6 +651,7 @@
     }
     if (!$("#btitle")) { const t = document.createElement("div"); t.id = "btitle"; t.className = "btitle"; $("#bboard").after(t); }
     if (!$("#bname")) { const nm = document.createElement("div"); nm.id = "bname"; nm.className = "bname"; s.after(nm); }
+    if (!$("#buyBtnW")) { const bb = document.createElement("a"); bb.id = "buyBtnW"; bb.className = "buy-btn"; bb.hidden = true; bb.target = "_blank"; bb.rel = "noopener sponsored nofollow"; s.after(bb); A.redrawBuy(); }   // nút Mua tại đây, góc phải dưới
     if (!$("#bwinfo")) { const wi = document.createElement("div"); wi.id = "bwinfo"; wi.className = "bwinfo"; wi.hidden = true; s.after(wi); }
     // chuột phải: menu Xoá / Tự nối chân
     s.addEventListener("contextmenu", e => {
