@@ -3,7 +3,7 @@
 Tra cứu sơ đồ chân vi điều khiển bằng **tiếng Việt và tiếng Anh**, dựa trên datasheet của hãng.
 Web tĩnh thuần (không framework, không máy chủ), tối ưu cho điện thoại và iPad, cài được lên màn hình chính như app.
 
-**Đang chạy tại:** https://pindex.pages.dev
+**Đang chạy tại:** https://pindexio.com
 
 ## Có gì
 
@@ -43,7 +43,7 @@ Không cần máy chủ. Mở trang **trên máy có thư mục dự án** (Chro
   Màu áp riêng cho chế độ đang xem (ngày hoặc đêm); font và kích thước áp cho cả hai. Ảnh thumbnail "Mua board" có thêm nút **Thay ảnh**
   (ảnh được thu nhỏ còn 1000px, lưu WebP vào `img/uploads/`).
 - Bấm **Lưu vào file** → chọn thư mục dự án → admin ghi `js/affiliates.js`, `css/custom.css`, `js/images.js`, `js/admin-auth.js`, `js/posts.js`, `js/settings.js`. Sau đó **commit và push** thì trang thật mới đổi.
-- **Từ xa (máy bất kỳ, cả điện thoại):** mở `pindex.pages.dev/?edit`, sửa, bấm **☁ Lưu lên GitHub**. Lần đầu dán một GitHub token *fine-grained* chỉ cho repo này, quyền *Contents: Read and write*. Token chỉ nằm trong trình duyệt đó (xoá ở tab Cài đặt), không bao giờ vào repo. Mọi thay đổi gộp thành 1 commit trên `main`, Cloudflare tự deploy sau khoảng 1 phút.
+- **Từ xa (máy bất kỳ, cả điện thoại):** mở `pindexio.com/?edit`, sửa, bấm **☁ Lưu lên GitHub**. Lần đầu dán một GitHub token *fine-grained* chỉ cho repo này, quyền *Contents: Read and write*. Token chỉ nằm trong trình duyệt đó (xoá ở tab Cài đặt), không bao giờ vào repo. Mọi thay đổi gộp thành 1 commit trên `main`, Cloudflare tự deploy sau khoảng 1 phút.
 
 Khách truy cập không tải mã admin (chỉ có một đoạn nạp nhỏ), và không ai ghi được gì vào trang thật trừ người có quyền push lên GitHub.
 

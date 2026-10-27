@@ -3,11 +3,11 @@
 Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự án trước khi sửa. Đọc hết, rồi chỉ mở file liên quan nhiệm vụ.
 
 ## 1. Dự án là gì
-**Pindexio** (pindex.pages.dev, chữ thương hiệu PIN·DEX·IO): web tra cứu sơ đồ chân vi điều khiển bằng **tiếng Việt + tiếng Anh**, dữ liệu lấy từ **datasheet của hãng**. Chạm một chân → chức năng, cảnh báo (strapping/USB/JTAG/ADC2…), thông số điện, linh kiện đi kèm, nguồn trích dẫn. Tối ưu điện thoại/iPad, cài được như app (PWA).
+**Pindexio** (pindexio.com, chữ thương hiệu PIN·DEX·IO): web tra cứu sơ đồ chân vi điều khiển bằng **tiếng Việt + tiếng Anh**, dữ liệu lấy từ **datasheet của hãng**. Chạm một chân → chức năng, cảnh báo (strapping/USB/JTAG/ADC2…), thông số điện, linh kiện đi kèm, nguồn trích dẫn. Tối ưu điện thoại/iPad, cài được như app (PWA).
 
 - Người dùng chính: dân làm mạch/IoT Việt Nam.
 - Repo: `github.com/xuanvinh540-collab/datasheet-ESP32-VietApp` (nhánh `main`). Thư mục máy: `W:\AI\datasheet-ESP32-VietApp`.
-- Triển khai: **Cloudflare Pages** `pindex` (`pindex.pages.dev`), tự build khi push `main`. Còn Worker cũ `pin-explorer-vn.xuanvinh540.workers.dev` (bản cũ, không tự cập nhật) và GitHub Pages (bản cũ).
+- Triển khai: **Cloudflare Pages** `pindex` (`pindex.pages.dev`, tên miền chính **pindexio.com** gắn qua Custom domains; trang pages.dev tự chuyển sang tên miền chính bằng đoạn JS đầu `index.html`), tự build khi push `main`. Còn Worker cũ `pin-explorer-vn.xuanvinh540.workers.dev` (bản cũ, không tự cập nhật) và GitHub Pages (bản cũ).
 - **Web tĩnh thuần**: HTML + CSS + JS không build, không framework, không server. Không thêm bundler/npm trừ khi người dùng yêu cầu.
 
 ## 2. Board hiện có (8)

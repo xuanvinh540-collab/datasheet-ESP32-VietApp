@@ -16,7 +16,7 @@ def make(name, title, sub, tag, photo):
     im = Image.new("RGB", (1200, 630), BG); d = ImageDraw.Draw(im)
     for x in range(0, 1200, 24): d.line([(x, 0), (x, 630)], fill="#0e313b")
     d.rectangle([0, 0, 1200, 70], fill="#0f4a59"); d.text((48, 18), "PINDEX", font=font("consolab.ttf", 34), fill=YEL)
-    d.text((240, 24), "pindex.pages.dev", font=font("consola.ttf", 24), fill="#8fb7bb")
+    d.text((240, 24), "pindexio.com", font=font("consola.ttf", 24), fill="#8fb7bb")
     y = 150
     for line in re.findall(r".{1,22}(?:\s|$)", title):
         d.text((60, y), line.strip(), font=font("segoeuib.ttf", 64), fill=FG); y += 78

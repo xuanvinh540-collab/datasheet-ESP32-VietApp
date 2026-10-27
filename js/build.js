@@ -123,7 +123,7 @@
   const busNo = (n, kind) => { const p = pinByName(n || ""); const m = p && p.fn.join(" ").match(new RegExp(kind + "(\\d)")); return m ? +m[1] : 0; };
   const PFX = { button: "BTN", led: "LED1", buzzer: "BUZ", sevseg: "SEG", ssd1306: "OLED", ldr: "LDR", dht22: "DHT", st7789: "TFT", ws2812: "LED", hcsr04: "US", vl53l0x: "TOF", mpu6050: "MPU", max98357a: "I2S", inmp441: "MIC" };
   function code() {
-    const b = board(), f = b.family, L = [`// ${b.name} – Pindex Wiring (pindex.pages.dev)`];
+    const b = board(), f = b.family, L = [`// ${b.name} – Pindex Wiring (pindexio.com)`];
     const has = r => B.mods.some(m => M[m.type].pins.some(x => x[1] === r));
     if (has("spi.sck")) {
       L.push("", "// SPI (dùng chung)", `#define SPI_SCK   ${val(B.bus["spi.sck"])}`, `#define SPI_MOSI  ${val(B.bus["spi.mosi"])}`);

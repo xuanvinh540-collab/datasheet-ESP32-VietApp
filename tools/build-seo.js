@@ -2,7 +2,7 @@
    Chạy lại mỗi khi sửa dữ liệu board:  node tools/build-seo.js
    index.html là khuôn: phần giữa <!--SEO-->…<!--/SEO--> (head) và <!--SEOBODY-->…<!--/SEOBODY--> (nội dung tĩnh) được thay. */
 const fs = require("fs"), path = require("path");
-const ROOT = path.join(__dirname, ".."), SITE = "https://pindex.pages.dev/";
+const ROOT = path.join(__dirname, ".."), SITE = "https://pindexio.com/";
 global.window = {};
 for (const f of ["boards", "i18n-data", "modules", "seo-body"]) require(path.join(ROOT, "js", f + ".js"));
 const { BOARDS, CATS, EN_DATA } = window;

@@ -5,14 +5,14 @@ window.AFFILIATE = {
     "label": "Việt Nam",
     "shop": "Shopee",
     "links": {
-      "esp32-c3-devkitm-1": "https://shopee.vn/search?keyword=ESP32-C3-DevKitM-1",
-      "esp32-c3-supermini": "https://shopee.vn/search?keyword=ESP32-C3%20Super%20Mini",
-      "esp32-s3-devkitc-1": "https://shopee.vn/search?keyword=ESP32-S3-DevKitC-1",
-      "lilygo-t-display-s3": "https://shopee.vn/search?keyword=LilyGO%20T-Display-S3",
-      "pico-2-w": "https://shopee.vn/search?keyword=Raspberry%20Pi%20Pico%202%20W",
-      "pico-2": "https://shopee.vn/search?keyword=Raspberry%20Pi%20Pico%202",
-      "raspberry-pi-40pin": "https://shopee.vn/search?keyword=Raspberry%20Pi%205",
-      "arduino-uno-r3": "https://shopee.vn/search?keyword=Arduino%20Uno%20R3"
+      "esp32-c3-devkitm-1": "https://s.shopee.vn/80DkL6o3WA",
+      "esp32-c3-supermini": "https://s.shopee.vn/80DkL6o3WA",
+      "esp32-s3-devkitc-1": "https://s.shopee.vn/3LRumGd5SP",
+      "lilygo-t-display-s3": "https://s.shopee.vn/4qGkDVqu49",
+      "pico-2-w": "https://s.shopee.vn/70LEnbkIPY",
+      "pico-2": "https://s.shopee.vn/4fxK1OM17S",
+      "raspberry-pi-40pin": "https://s.shopee.vn/8AXCBvpi5D",
+      "arduino-uno-r3": "https://s.shopee.vn/1Lgs3VlPnn"
     }
   },
   "intl": {
