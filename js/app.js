@@ -123,7 +123,7 @@
     const url = appRoot + (en ? "en/" : "") + (state.b.mod ? "#" + state.b.id + (sel ? "/" + sel : "") : state.b.id + "/" + (sel ? "#" + sel : ""));
     if (location.href !== url) history.replaceState(null, "", url);
   }
-  window.onLangChange = () => { if (state.b) { draw(); syncHash(); } };
+  window.onLangChange = () => { if (state.tab === "home" && window.HOME) return HOME.render(); if (state.b) { draw(); syncHash(); } };
 
   /* ---------- Bộ lọc ---------- */
   function renderFilters() {
@@ -430,9 +430,13 @@
   function renderBuy() {
     const box = $("#buyBox"), row = $("#buyRow"); if (!box) return;
     const A = window.AFFILIATE || {}, ph = window.BOARD_PHOTOS || {};
-    box.hidden = !!state.b.mod || !Object.keys(A).length;   // trang linh kiện: chưa có link mua
+    const en = document.documentElement.lang === "en", r = region(), cur = A[r] || Object.values(A)[0] || {};
+    // nút "Mua board này" màu cyan cạnh tên board: dẫn tới link tiếp thị của đúng board đang xem
+    const btn = $("#buyBtn"), url0 = !state.b.mod && (cur.links || {})[state.b.id];
+    if (btn) { btn.hidden = !url0; if (url0) { btn.href = url0; btn.textContent = `🛒 ${en ? "Buy" : "Mua"} ${state.b.name} ${en ? "on" : "trên"} ${cur.shop || ""} ↗`; } }
+    // thẻ "Mua board" (cả dãy board) chỉ hiện khi admin bật trong tab Cài đặt
+    box.hidden = !!state.b.mod || !Object.keys(A).length || !(window.SITE || {}).showBuyCards;
     if (box.hidden) return;
-    const en = document.documentElement.lang === "en", r = region(), cur = A[r] || Object.values(A)[0];
     const shop = $("#buyShop");
     if (shop) shop.innerHTML = Object.entries(A).map(([k, v]) =>
       `<button data-r="${k}" aria-pressed="${k === r}">${esc(en && k === "vn" ? "Vietnam" : en && k === "intl" ? "International" : v.label)}</button>`).join("");
@@ -494,10 +498,12 @@
   /* ---------- Khởi tạo ---------- */
   function setTab(t) {
     state.tab = t;
+    if (t === "pins" && state.b) syncHash();
     document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
     document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== t);
   }
-  document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => b.dataset.tab === "build" ? openBuild() : setTab(b.dataset.tab));
+  document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+  $("#viewWire").onclick = () => openBuild();
   $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); renderDetail(); };
   $("#viewSch").onclick = () => { state.view = "sch"; draw(); renderDetail(); };
   $(".grab").onclick = () => $("#detail").classList.toggle("open");
@@ -550,16 +556,24 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=100");
-    if (!window.BUILD) await loadJs("js/build.js?v=100");
+    if (!window.MODULES) await loadJs("js/modules.js?v=102");
+    if (!window.BUILD) await loadJs("js/build.js?v=102");
     setTab("build"); BUILD.open(h);
   }
+  // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
+  async function openHome(postId) {
+    if (!window.POSTS) await loadJs("js/posts.js?v=102");
+    if (!window.HOME) await loadJs("js/home.js?v=102");
+    setTab("home"); HOME.render(postId);
+  }
+  document.querySelector(".brand").addEventListener("click", () => openHome());
+  document.querySelector(".brand").style.cursor = "pointer";
   document.addEventListener("click", e => {
     const r = e.target.closest("#buyShop [data-r]"); if (!r) return;
     try { localStorage.setItem("region", r.dataset.r); } catch (err) { }
     renderBuy();
   });
-  window.APP = { state, get pins() { return pins; }, redrawBuy: renderBuy, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
+  window.APP = { state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });
@@ -588,11 +602,12 @@
   const fromHash = () => {
     if (location.hash.startsWith("#build=")) { selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id); openBuild(location.hash.slice(7)); return; }
     const h = decodeURIComponent(location.hash.slice(1)), [a, b] = h.split("/");
+    if (a === "home") { if (!state.b) selectBoard(window.PAGE_BOARD || BOARDS[0].id); openHome(b); return "home"; }
     if (findB(a)) return selectBoard(a, b);
     selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id, h || undefined);
   };
   addEventListener("hashchange", fromHash);
-  fromHash();
-  setTab("pins"); calc();
+  if (fromHash() !== "home") setTab("pins");
+  calc();
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => { });
 })();

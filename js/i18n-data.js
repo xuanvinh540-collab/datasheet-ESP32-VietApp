@@ -812,9 +812,15 @@ window.EN_DATA = {
 "Bỏ": "Remove",
 "WS2812 cấp 5 V: tín hiệu 3.3 V thường chạy được với dây ngắn; dải dài nên thêm IC chuyển mức (74AHCT125).": "WS2812 runs on 5 V: a 3.3 V signal usually works over short wiring; long strips need a level shifter (74AHCT125).",
 "File này của board khác.": "This file belongs to a different board.",
-"Link Connect không hợp lệ.": "That Connect link is not valid.",
+"Link Wiring không hợp lệ.": "That Wiring link is not valid.",
 "Đã copy": "Copied",
-"Đã copy link Connect": "Connect link copied",
+"Đã copy link Wiring": "Wiring link copied",
+"⟳ Xoay 90°": "⟳ Rotate 90°",
+"⟳ Xoay board 90°": "⟳ Rotate board 90°",
+"⟳ Xoay board": "⟳ Rotate board",
+"Xoay board 90°": "Rotate the board 90°",
+"Ghép linh kiện và nối dây": "Add parts and wire them up",
+"Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân / Xoay. Phím R xoay linh kiện đang chọn.": "Select a part or wire and press Delete, or right-click for Delete / Auto-wire / Rotate. Press R to rotate the selected part.",
 "Mua board": "Buy a board",
 "Link tiếp thị liên kết tới Shopee. Bạn trả đúng giá niêm yết; Pindex có thể nhận hoa hồng từ người bán. Pindex không bán hàng và không bảo hành sản phẩm.": "Affiliate links to Shopee. You pay the listed price; Pindex may earn a commission from the seller. Pindex does not sell these boards and offers no warranty on them."
 };

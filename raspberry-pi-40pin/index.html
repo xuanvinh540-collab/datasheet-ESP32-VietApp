@@ -15,7 +15,7 @@
 <meta property="og:locale" content="vi_VN"><meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân) (Pinout) – GPIO, ADC, I2C, SPI | Pindex"><meta name="twitter:description" content="Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân): chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet Raspberry Pi. Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero."><meta name="twitter:image" content="https://pindex.pages.dev/og/raspberry-pi-40pin.png">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân) (Pinout) – GPIO, ADC, I2C, SPI | Pindex","name":"Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân) (Pinout) – GPIO, ADC, I2C, SPI | Pindex","description":"Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân): chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet Raspberry Pi. Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero.","url":"https://pindex.pages.dev/raspberry-pi-40pin/","inLanguage":"vi","image":"https://pindex.pages.dev/og/raspberry-pi-40pin.png","publisher":{"@type":"Organization","name":"Pindex"},"dateModified":"2026-10-26","about":{"@type":"Product","name":"Raspberry Pi 4 / 5 (GPIO 40 chân)","brand":{"@type":"Brand","name":"Raspberry Pi"},"description":"Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero."}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân) (Pinout) – GPIO, ADC, I2C, SPI | Pindex","name":"Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân) (Pinout) – GPIO, ADC, I2C, SPI | Pindex","description":"Sơ đồ chân Raspberry Pi 4 / 5 (GPIO 40 chân): chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet Raspberry Pi. Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero.","url":"https://pindex.pages.dev/raspberry-pi-40pin/","inLanguage":"vi","image":"https://pindex.pages.dev/og/raspberry-pi-40pin.png","publisher":{"@type":"Organization","name":"Pindex"},"dateModified":"2026-10-27","about":{"@type":"Product","name":"Raspberry Pi 4 / 5 (GPIO 40 chân)","brand":{"@type":"Brand","name":"Raspberry Pi"},"description":"Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero."}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pindex","item":"https://pindex.pages.dev/"},{"@type":"ListItem","position":2,"name":"Raspberry Pi 4 / 5 (GPIO 40 chân)","item":"https://pindex.pages.dev/raspberry-pi-40pin/"}]}</script>
 
 <script>window.PAGE_BOARD="raspberry-pi-40pin";window.PAGE_LANG="vi";</script><!--/SEO-->
@@ -26,11 +26,11 @@
 <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=100">
-<link rel="stylesheet" href="css/retro.css?v=100" id="skin-8bit" disabled>
-<link rel="stylesheet" href="css/pinout.css?v=100" id="skin-pinout">
-<link rel="stylesheet" href="css/amber.css?v=100" id="skin-amber" disabled>
-<link rel="stylesheet" href="css/custom.css?v=100" id="custom-css">
+<link rel="stylesheet" href="css/app.css?v=102">
+<link rel="stylesheet" href="css/retro.css?v=102" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=102" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=102" id="skin-amber" disabled>
+<link rel="stylesheet" href="css/custom.css?v=102" id="custom-css">
 </head>
 <body>
 <header class="appbar">
@@ -39,7 +39,6 @@
     <button data-tab="pins" role="tab">Sơ đồ chân</button>
     <button data-tab="calc" role="tab">Tính toán</button>
     <button data-tab="docs" role="tab">Tài liệu</button>
-    <button data-tab="build" role="tab" class="tab-build">⚡ Connect</button>
   </nav>
   <div class="daynight langsw" id="langSw" role="group" aria-label="Ngôn ngữ"><button data-l="vi" title="Tiếng Việt"><svg viewBox="0 0 30 20" width="22" height="15" aria-hidden="true"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.2,8.3 20.7,8.3 17.1,10.9 18.4,15.2 15,12.6 11.6,15.2 12.9,10.9 9.3,8.3 13.8,8.3" fill="#ff0"/></svg></button><button data-l="en" title="English"><svg viewBox="0 0 60 30" width="22" height="15" aria-hidden="true"><clipPath id="gbc"><rect width="60" height="30"/></clipPath><g clip-path="url(#gbc)"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" stroke="#c8102e" stroke-width="2.4"/><path d="M30,0V30M0,15H60" stroke="#fff" stroke-width="10"/><path d="M30,0V30M0,15H60" stroke="#c8102e" stroke-width="6"/></g></svg></button></div>
   <div class="daynight" role="group" aria-label="Sáng / tối"><button id="tLight" aria-label="Giao diện sáng">☀</button><button id="tDark" aria-label="Giao diện tối">☾</button></div>
@@ -52,9 +51,9 @@
     <div class="layout">
       <div class="stage card">
         <div class="stage-head">
-          <div><h1 id="bTitle">Raspberry Pi 4 / 5 (GPIO 40 chân)</h1><p id="bSub" class="muted small"></p></div>
+          <div><h1 id="bTitle">Raspberry Pi 4 / 5 (GPIO 40 chân)</h1><p id="bSub" class="muted small"></p><a id="buyBtn" class="buy-btn" hidden target="_blank" rel="noopener sponsored nofollow"></a></div>
           <div class="seg" role="group" aria-label="Kiểu hình">
-            <button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
+            <button id="viewWire" class="wire-btn" title="Ghép linh kiện và nối dây">⚡ Wiring</button><button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
           </div>
         </div>
         <div class="toolbar">
@@ -69,6 +68,11 @@
       </div>
       <aside class="detail card" id="detail"><div class="grab" aria-hidden="true"></div><div id="detailBody"></div></aside>
     </div>
+    <section class="card spec" id="spec" hidden>
+      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
+      <div class="chips" id="specTabs" role="tablist"></div>
+      <div id="specBody"></div>
+    </section>
     <section class="card buy" id="buyBox" hidden>
       <div class="buy-h"><h2>Mua board</h2><div class="buy-shop" id="buyShop" role="group" aria-label="Vùng mua hàng"></div><p class="muted small">Link tiếp thị liên kết tới Shopee. Bạn trả đúng giá niêm yết; Pindex có thể nhận hoa hồng từ người bán. Pindex không bán hàng và không bảo hành sản phẩm.</p></div>
       <div class="buy-row" id="buyRow"></div>
@@ -77,15 +81,12 @@
 <p class="muted">Máy tính nhúng Linux; header 40 chân chuẩn dùng chung Pi 2/3/4/5/Zero.</p><dl class="facts"><dt>Logic</dt><dd>3.3 V, không chịu 5 V</dd><dt>Header</dt><dd>2 × 20, bước 2.54 mm, chân 1 có pad vuông</dd><dt>ADC</dt><dd>Không có ADC – cần chip ngoài (ADS1115, MCP3008)</dd><dt>PWM phần cứng</dt><dd>GPIO12, 13, 18, 19</dd><dt>Đánh số</dt><dd>Code dùng số BCM (GPIOxx), không phải số chân vật lý</dd></dl>
 <div class="tw"><table><thead><tr><th>Chân</th><th>Vị trí</th><th>GPIO</th><th>Loại</th><th>Chức năng</th><th>Lưu ý</th></tr></thead><tbody><tr><td><b>3V3</b></td><td>J8-1</td><td>–</td><td>Nguồn</td><td>Ngõ ra 3.3 V</td><td>Dùng cho cảm biến nhẹ; tổng tải giữ dưới vài trăm mA.</td></tr><tr><td><b>GPIO2</b></td><td>J8-3</td><td>2</td><td>UART/I2C</td><td>I2C1 SDA</td><td>Có pull-up cố định 1.8 kΩ lên 3.3 V trên board.</td></tr><tr><td><b>GPIO3</b></td><td>J8-5</td><td>3</td><td>UART/I2C</td><td>I2C1 SCL</td><td>Có pull-up cố định 1.8 kΩ lên 3.3 V trên board.</td></tr><tr><td><b>GPIO4</b></td><td>J8-7</td><td>4</td><td>GPIO</td><td>GPCLK0, 1-Wire (mặc định overlay)</td><td></td></tr><tr><td><b>GND</b></td><td>J8-9</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GPIO17</b></td><td>J8-11</td><td>17</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GPIO27</b></td><td>J8-13</td><td>27</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GPIO22</b></td><td>J8-15</td><td>22</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>3V3</b></td><td>J8-17</td><td>–</td><td>Nguồn</td><td>Ngõ ra 3.3 V</td><td>Ngõ ra 3.3 V.</td></tr><tr><td><b>GPIO10</b></td><td>J8-19</td><td>10</td><td>GPIO</td><td>SPI0 MOSI</td><td></td></tr><tr><td><b>GPIO9</b></td><td>J8-21</td><td>9</td><td>GPIO</td><td>SPI0 MISO</td><td></td></tr><tr><td><b>GPIO11</b></td><td>J8-23</td><td>11</td><td>GPIO</td><td>SPI0 SCLK</td><td></td></tr><tr><td><b>GND</b></td><td>J8-25</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GPIO0</b></td><td>J8-27</td><td>0</td><td>Dành riêng</td><td>ID_SD (EEPROM HAT)</td><td>Dành cho EEPROM nhận dạng HAT. Không dùng làm GPIO.</td></tr><tr><td><b>GPIO5</b></td><td>J8-29</td><td>5</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GPIO6</b></td><td>J8-31</td><td>6</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GPIO13</b></td><td>J8-33</td><td>13</td><td>GPIO</td><td>PWM1</td><td></td></tr><tr><td><b>GPIO19</b></td><td>J8-35</td><td>19</td><td>GPIO</td><td>PCM_FS, SPI1 MISO, PWM1</td><td></td></tr><tr><td><b>GPIO26</b></td><td>J8-37</td><td>26</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GND</b></td><td>J8-39</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>5V</b></td><td>J8-2</td><td>–</td><td>Nguồn</td><td>5 V từ nguồn board</td><td>Nối trực tiếp nguồn 5V. Không nối vào GPIO.</td></tr><tr><td><b>5V</b></td><td>J8-4</td><td>–</td><td>Nguồn</td><td>5 V từ nguồn board</td><td>Nối trực tiếp nguồn 5V.</td></tr><tr><td><b>GND</b></td><td>J8-6</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GPIO14</b></td><td>J8-8</td><td>14</td><td>UART/I2C</td><td>UART0 TXD</td><td></td></tr><tr><td><b>GPIO15</b></td><td>J8-10</td><td>15</td><td>UART/I2C</td><td>UART0 RXD</td><td></td></tr><tr><td><b>GPIO18</b></td><td>J8-12</td><td>18</td><td>GPIO</td><td>PCM_CLK, PWM0</td><td></td></tr><tr><td><b>GND</b></td><td>J8-14</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GPIO23</b></td><td>J8-16</td><td>23</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GPIO24</b></td><td>J8-18</td><td>24</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GND</b></td><td>J8-20</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GPIO25</b></td><td>J8-22</td><td>25</td><td>GPIO</td><td></td><td></td></tr><tr><td><b>GPIO8</b></td><td>J8-24</td><td>8</td><td>GPIO</td><td>SPI0 CE0</td><td></td></tr><tr><td><b>GPIO7</b></td><td>J8-26</td><td>7</td><td>GPIO</td><td>SPI0 CE1</td><td></td></tr><tr><td><b>GPIO1</b></td><td>J8-28</td><td>1</td><td>Dành riêng</td><td>ID_SC (EEPROM HAT)</td><td>Dành cho EEPROM nhận dạng HAT. Không dùng làm GPIO.</td></tr><tr><td><b>GND</b></td><td>J8-30</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GPIO12</b></td><td>J8-32</td><td>12</td><td>GPIO</td><td>PWM0</td><td></td></tr><tr><td><b>GND</b></td><td>J8-34</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GPIO16</b></td><td>J8-36</td><td>16</td><td>GPIO</td><td>SPI1 CE2</td><td></td></tr><tr><td><b>GPIO20</b></td><td>J8-38</td><td>20</td><td>GPIO</td><td>PCM_DIN, SPI1 MOSI</td><td></td></tr><tr><td><b>GPIO21</b></td><td>J8-40</td><td>21</td><td>GPIO</td><td>PCM_DOUT, SPI1 SCLK</td><td></td></tr></tbody></table></div>
 <h3>Tài liệu hãng</h3><ul class="seo-links"><li><a href="https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#gpio" rel="noopener" target="_blank">Raspberry Pi GPIO documentation</a></li><li><a href="https://datasheets.raspberrypi.com/rp1/rp1-peripherals.pdf" rel="noopener" target="_blank">RP1 Peripherals (Pi 5)</a></li><li><a href="https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf" rel="noopener" target="_blank">BCM2711 Peripherals (Pi 4)</a></li><li><a href="https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-reduced-schematics.pdf" rel="noopener" target="_blank">Pi 4 Reduced Schematics</a></li><li><a href="https://pinout.xyz/" rel="noopener" target="_blank">pinout.xyz (cộng đồng)</a></li></ul><h3>Tất cả board</h3><ul class="seo-links"><li><a href="../esp32-c3-devkitm-1/">ESP32-C3-DevKitM-1</a> <span class="muted small">ESP32-C3 (MINI-1)</span></li><li><a href="../esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span></li><li><a href="../esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="../lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="../pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="../pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="../raspberry-pi-40pin/" aria-current="page">Raspberry Pi 4 / 5 (GPIO 40 chân)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="../arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li></ul></section><!--/SEOBODY-->
-    <section class="card spec" id="spec" hidden>
-      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
-      <div class="chips" id="specTabs" role="tablist"></div>
-      <div id="specBody"></div>
-    </section>
     <section class="card spec" id="ref" hidden>
       <h2>Linh kiện đi kèm khi tự làm mạch</h2><div id="refBody"></div>
     </section>
   </section>
+
+  <section data-panel="home" id="home" hidden></section>
 
   <section data-panel="calc" id="calc" hidden>
     <div class="grid2">
@@ -129,18 +130,19 @@
   <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
   <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
 </div>
-<script src="js/i18n-data.js?v=100"></script>
-<script src="js/i18n.js?v=100"></script>
-<script src="js/boards.js?v=100"></script>
-<script src="js/specs.js?v=100"></script>
-<script src="js/learn.js?v=100"></script>
-<script src="js/modules.js?v=100"></script>
-<script src="js/affiliates.js?v=100"></script>
-<script src="js/seo-body.js?v=100"></script>
+<script src="js/i18n-data.js?v=102"></script>
+<script src="js/i18n.js?v=102"></script>
+<script src="js/boards.js?v=102"></script>
+<script src="js/specs.js?v=102"></script>
+<script src="js/learn.js?v=102"></script>
+<script src="js/modules.js?v=102"></script>
+<script src="js/settings.js?v=102"></script>
+<script src="js/affiliates.js?v=102"></script>
+<script src="js/seo-body.js?v=102"></script>
 <script>/* Trang admin chỉ tải khi cần: Ctrl+Shift+E, thêm ?edit vào URL, hoặc bấm logo 5 lần liền (dùng được trên điện thoại).
-   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=100";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
-<script src="js/images.js?v=100"></script>
-<script src="js/app.js?v=100"></script>
+   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=102";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
+<script src="js/images.js?v=102"></script>
+<script src="js/app.js?v=102"></script>
 
 </body>
 </html>

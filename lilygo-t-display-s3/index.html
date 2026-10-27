@@ -15,7 +15,7 @@
 <meta property="og:locale" content="vi_VN"><meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Sơ đồ chân LilyGO T-Display-S3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex"><meta name="twitter:description" content="Sơ đồ chân LilyGO T-Display-S3: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet LilyGO. ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm."><meta name="twitter:image" content="https://pindex.pages.dev/og/lilygo-t-display-s3.png">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Sơ đồ chân LilyGO T-Display-S3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex","name":"Sơ đồ chân LilyGO T-Display-S3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex","description":"Sơ đồ chân LilyGO T-Display-S3: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet LilyGO. ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm.","url":"https://pindex.pages.dev/lilygo-t-display-s3/","inLanguage":"vi","image":"https://pindex.pages.dev/og/lilygo-t-display-s3.png","publisher":{"@type":"Organization","name":"Pindex"},"dateModified":"2026-10-26","about":{"@type":"Product","name":"LilyGO T-Display-S3","brand":{"@type":"Brand","name":"LilyGO"},"description":"ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm."}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Sơ đồ chân LilyGO T-Display-S3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex","name":"Sơ đồ chân LilyGO T-Display-S3 (Pinout) – GPIO, ADC, I2C, SPI | Pindex","description":"Sơ đồ chân LilyGO T-Display-S3: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet LilyGO. ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm.","url":"https://pindex.pages.dev/lilygo-t-display-s3/","inLanguage":"vi","image":"https://pindex.pages.dev/og/lilygo-t-display-s3.png","publisher":{"@type":"Organization","name":"Pindex"},"dateModified":"2026-10-27","about":{"@type":"Product","name":"LilyGO T-Display-S3","brand":{"@type":"Brand","name":"LilyGO"},"description":"ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm."}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pindex","item":"https://pindex.pages.dev/"},{"@type":"ListItem","position":2,"name":"LilyGO T-Display-S3","item":"https://pindex.pages.dev/lilygo-t-display-s3/"}]}</script>
 
 <script>window.PAGE_BOARD="lilygo-t-display-s3";window.PAGE_LANG="vi";</script><!--/SEO-->
@@ -26,11 +26,11 @@
 <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=100">
-<link rel="stylesheet" href="css/retro.css?v=100" id="skin-8bit" disabled>
-<link rel="stylesheet" href="css/pinout.css?v=100" id="skin-pinout">
-<link rel="stylesheet" href="css/amber.css?v=100" id="skin-amber" disabled>
-<link rel="stylesheet" href="css/custom.css?v=100" id="custom-css">
+<link rel="stylesheet" href="css/app.css?v=102">
+<link rel="stylesheet" href="css/retro.css?v=102" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=102" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=102" id="skin-amber" disabled>
+<link rel="stylesheet" href="css/custom.css?v=102" id="custom-css">
 </head>
 <body>
 <header class="appbar">
@@ -39,7 +39,6 @@
     <button data-tab="pins" role="tab">Sơ đồ chân</button>
     <button data-tab="calc" role="tab">Tính toán</button>
     <button data-tab="docs" role="tab">Tài liệu</button>
-    <button data-tab="build" role="tab" class="tab-build">⚡ Connect</button>
   </nav>
   <div class="daynight langsw" id="langSw" role="group" aria-label="Ngôn ngữ"><button data-l="vi" title="Tiếng Việt"><svg viewBox="0 0 30 20" width="22" height="15" aria-hidden="true"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.2,8.3 20.7,8.3 17.1,10.9 18.4,15.2 15,12.6 11.6,15.2 12.9,10.9 9.3,8.3 13.8,8.3" fill="#ff0"/></svg></button><button data-l="en" title="English"><svg viewBox="0 0 60 30" width="22" height="15" aria-hidden="true"><clipPath id="gbc"><rect width="60" height="30"/></clipPath><g clip-path="url(#gbc)"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" stroke="#c8102e" stroke-width="2.4"/><path d="M30,0V30M0,15H60" stroke="#fff" stroke-width="10"/><path d="M30,0V30M0,15H60" stroke="#c8102e" stroke-width="6"/></g></svg></button></div>
   <div class="daynight" role="group" aria-label="Sáng / tối"><button id="tLight" aria-label="Giao diện sáng">☀</button><button id="tDark" aria-label="Giao diện tối">☾</button></div>
@@ -52,9 +51,9 @@
     <div class="layout">
       <div class="stage card">
         <div class="stage-head">
-          <div><h1 id="bTitle">LilyGO T-Display-S3</h1><p id="bSub" class="muted small"></p></div>
+          <div><h1 id="bTitle">LilyGO T-Display-S3</h1><p id="bSub" class="muted small"></p><a id="buyBtn" class="buy-btn" hidden target="_blank" rel="noopener sponsored nofollow"></a></div>
           <div class="seg" role="group" aria-label="Kiểu hình">
-            <button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
+            <button id="viewWire" class="wire-btn" title="Ghép linh kiện và nối dây">⚡ Wiring</button><button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
           </div>
         </div>
         <div class="toolbar">
@@ -69,6 +68,11 @@
       </div>
       <aside class="detail card" id="detail"><div class="grab" aria-hidden="true"></div><div id="detailBody"></div></aside>
     </div>
+    <section class="card spec" id="spec" hidden>
+      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
+      <div class="chips" id="specTabs" role="tablist"></div>
+      <div id="specBody"></div>
+    </section>
     <section class="card buy" id="buyBox" hidden>
       <div class="buy-h"><h2>Mua board</h2><div class="buy-shop" id="buyShop" role="group" aria-label="Vùng mua hàng"></div><p class="muted small">Link tiếp thị liên kết tới Shopee. Bạn trả đúng giá niêm yết; Pindex có thể nhận hoa hồng từ người bán. Pindex không bán hàng và không bảo hành sản phẩm.</p></div>
       <div class="buy-row" id="buyRow"></div>
@@ -77,15 +81,12 @@
 <p class="muted">ESP32-S3 + màn hình LCD 1.9 inch ST7789 (170×320), có mạch sạc pin, 2 nút bấm.</p><dl class="facts"><dt>Logic</dt><dd>3.3 V, không chịu 5 V</dd><dt>Màn hình</dt><dd>1.9&quot; ST7789, giao tiếp song song 8-bit</dd><dt>Nguồn</dt><dd>USB-C 5 V hoặc pin Li-Po 3.7 V</dd><dt>Lưu ý</dt><dd>Chạy bằng pin/5V header phải set GPIO15 = HIGH</dd><dt>Pin</dt><dd>Đo áp pin ở GPIO4 (chỉ khi rút USB)</dd><dt>Chân Arduino mặc định</dt><dd>SDA IO18 · SCL IO17 · MOSI IO11 · MISO IO13 · SCK IO12 · SS IO10 (arduino-esp32, lilygo_t_display_s3)</dd></dl>
 <div class="tw"><table><thead><tr><th>Chân</th><th>Vị trí</th><th>GPIO</th><th>Loại</th><th>Chức năng</th><th>Lưu ý</th></tr></thead><tbody><tr><td><b>3V3</b></td><td>P2-1</td><td>–</td><td>Nguồn</td><td>Ngõ ra 3.3 V</td><td>Ngõ ra LDO 3.3 V của board.</td></tr><tr><td><b>IO1</b></td><td>P2-2</td><td>1</td><td>Analog</td><td>ADC1_CH0, TOUCH1</td><td></td></tr><tr><td><b>IO2</b></td><td>P2-3</td><td>2</td><td>Analog</td><td>ADC1_CH1, TOUCH2</td><td></td></tr><tr><td><b>IO3</b></td><td>P2-4</td><td>3</td><td>Strapping ⚠</td><td>ADC1_CH2, TOUCH3</td><td>Strapping: chọn nguồn tín hiệu JTAG. Tránh kéo cứng lúc boot.</td></tr><tr><td><b>IO10</b></td><td>P2-5</td><td>10</td><td>Analog</td><td>ADC1_CH9, TOUCH10, FSPICS0, Arduino SS</td><td></td></tr><tr><td><b>IO11</b></td><td>P2-6</td><td>11</td><td>Analog</td><td>ADC2_CH0, TOUCH11, FSPID, Arduino MOSI</td><td>ADC2 không đọc được khi Wi-Fi đang bật. Cần ADC thì ưu tiên ADC1 (IO1–IO10).</td></tr><tr><td><b>IO12</b></td><td>P2-7</td><td>12</td><td>Analog</td><td>ADC2_CH1, TOUCH12, FSPICLK, Arduino SCK</td><td>ADC2 không đọc được khi Wi-Fi đang bật. Cần ADC thì ưu tiên ADC1 (IO1–IO10).</td></tr><tr><td><b>IO13</b></td><td>P2-8</td><td>13</td><td>Analog</td><td>ADC2_CH2, TOUCH13, FSPIQ, Arduino MISO</td><td>ADC2 không đọc được khi Wi-Fi đang bật. Cần ADC thì ưu tiên ADC1 (IO1–IO10).</td></tr><tr><td><b>NC</b></td><td>P2-9</td><td>–</td><td>NC</td><td>Không kết nối</td><td></td></tr><tr><td><b>NC</b></td><td>P2-10</td><td>–</td><td>NC</td><td>Không kết nối</td><td></td></tr><tr><td><b>GND</b></td><td>P2-11</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>5V</b></td><td>P2-12</td><td>–</td><td>Nguồn</td><td>5 V từ USB-C / ngõ vào 5 V</td><td>Cấp 5 V vào đây thì phải kéo GPIO15 (LCD_Power_On) lên HIGH để board chạy.</td></tr><tr><td><b>GND</b></td><td>P1-1</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GND</b></td><td>P1-2</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>TX</b></td><td>P1-3</td><td>43</td><td>UART/I2C</td><td>U0TXD, GPIO43</td><td>UART0 TX: log và nạp qua cổng UART. Nên để nguyên.</td></tr><tr><td><b>RX</b></td><td>P1-4</td><td>44</td><td>UART/I2C</td><td>U0RXD, GPIO44</td><td>UART0 RX: nạp qua cổng UART. Nên để nguyên.</td></tr><tr><td><b>IO18</b></td><td>P1-5</td><td>18</td><td>Analog</td><td>ADC2_CH7, U1RXD, I2C SDA (bản Touch), Arduino SDA</td><td>ADC2 không đọc được khi Wi-Fi đang bật. Cần ADC thì ưu tiên ADC1 (IO1–IO10).</td></tr><tr><td><b>IO17</b></td><td>P1-6</td><td>17</td><td>Analog</td><td>ADC2_CH6, U1TXD, I2C SCL (bản Touch), Arduino SCL</td><td>ADC2 không đọc được khi Wi-Fi đang bật. Cần ADC thì ưu tiên ADC1 (IO1–IO10).</td></tr><tr><td><b>IO21</b></td><td>P1-7</td><td>21</td><td>GPIO</td><td>Touch RES (bản Touch)</td><td></td></tr><tr><td><b>IO16</b></td><td>P1-8</td><td>16</td><td>Analog</td><td>ADC2_CH5, U0CTS · XTAL_32K_N, Touch INT (bản Touch)</td><td>ADC2 không đọc được khi Wi-Fi đang bật. Cần ADC thì ưu tiên ADC1 (IO1–IO10).</td></tr><tr><td><b>NC</b></td><td>P1-9</td><td>–</td><td>NC</td><td>Không kết nối</td><td></td></tr><tr><td><b>GND</b></td><td>P1-10</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GND</b></td><td>P1-11</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>3V3</b></td><td>P1-12</td><td>–</td><td>Nguồn</td><td>Ngõ ra 3.3 V</td><td>Ngõ ra LDO 3.3 V của board.</td></tr></tbody></table></div>
 <h3>Tài liệu hãng</h3><ul class="seo-links"><li><a href="https://github.com/Xinyuan-LilyGO/T-Display-S3" rel="noopener" target="_blank">GitHub LilyGO T-Display-S3 (pinout, ví dụ)</a></li><li><a href="https://github.com/Xinyuan-LilyGO/T-Display-S3/blob/main/schematic/T_Display_S3.pdf" rel="noopener" target="_blank">Schematic T-Display-S3</a></li><li><a href="https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf" rel="noopener" target="_blank">ESP32-S3 Datasheet</a></li><li><a href="https://github.com/Xinyuan-LilyGO/T-Display-S3/tree/main/datasheet" rel="noopener" target="_blank">Thư mục datasheet linh kiện (LilyGO)</a></li></ul><h3>Tất cả board</h3><ul class="seo-links"><li><a href="../esp32-c3-devkitm-1/">ESP32-C3-DevKitM-1</a> <span class="muted small">ESP32-C3 (MINI-1)</span></li><li><a href="../esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span></li><li><a href="../esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="../lilygo-t-display-s3/" aria-current="page">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="../pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="../pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="../raspberry-pi-40pin/">Raspberry Pi 4 / 5 (GPIO 40 chân)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="../arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li></ul></section><!--/SEOBODY-->
-    <section class="card spec" id="spec" hidden>
-      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
-      <div class="chips" id="specTabs" role="tablist"></div>
-      <div id="specBody"></div>
-    </section>
     <section class="card spec" id="ref" hidden>
       <h2>Linh kiện đi kèm khi tự làm mạch</h2><div id="refBody"></div>
     </section>
   </section>
+
+  <section data-panel="home" id="home" hidden></section>
 
   <section data-panel="calc" id="calc" hidden>
     <div class="grid2">
@@ -129,18 +130,19 @@
   <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
   <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
 </div>
-<script src="js/i18n-data.js?v=100"></script>
-<script src="js/i18n.js?v=100"></script>
-<script src="js/boards.js?v=100"></script>
-<script src="js/specs.js?v=100"></script>
-<script src="js/learn.js?v=100"></script>
-<script src="js/modules.js?v=100"></script>
-<script src="js/affiliates.js?v=100"></script>
-<script src="js/seo-body.js?v=100"></script>
+<script src="js/i18n-data.js?v=102"></script>
+<script src="js/i18n.js?v=102"></script>
+<script src="js/boards.js?v=102"></script>
+<script src="js/specs.js?v=102"></script>
+<script src="js/learn.js?v=102"></script>
+<script src="js/modules.js?v=102"></script>
+<script src="js/settings.js?v=102"></script>
+<script src="js/affiliates.js?v=102"></script>
+<script src="js/seo-body.js?v=102"></script>
 <script>/* Trang admin chỉ tải khi cần: Ctrl+Shift+E, thêm ?edit vào URL, hoặc bấm logo 5 lần liền (dùng được trên điện thoại).
-   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=100";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
-<script src="js/images.js?v=100"></script>
-<script src="js/app.js?v=100"></script>
+   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=102";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
+<script src="js/images.js?v=102"></script>
+<script src="js/app.js?v=102"></script>
 
 </body>
 </html>

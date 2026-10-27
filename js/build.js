@@ -1,4 +1,4 @@
-/* Tab BUILD: khu vẽ riêng kiểu node (Blender). Module là node kéo được; kéo dây từ socket của chân module,
+/* Tab WIRING (tên cũ Build/Connect, id vẫn là "build"): khu vẽ riêng kiểu node (Blender). Module là node kéo được; kéo dây từ socket của chân module,
    các pad phù hợp trên board sáng lên (xanh = an toàn, cam = có lưu ý), thả vào pad để nối.
    Chấm điểm chân dựa trên cờ trong boards.js (strap/usb/uart/jtag/adc…). */
 (function () {
@@ -13,13 +13,33 @@
     if (!d.svg && !d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
     if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { d.svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); if (B.boardId) draw(); }).catch(() => {});
   }
-  const B = { boardId: null, bus: {}, mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "" };
+  const B = { boardId: null, bus: {}, mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "", brot: 0, needPlace: false };
   const CATS = window.MOD_CATS || [];
-  // tên hiển thị góc phải dưới khung vẽ
+  // tên hiển thị góc phải trên khung vẽ
   const ARR_NAMES = ["Gần chân nhất", "Vòng cung cân bằng", "Tách Bus / GPIO"];
   const STYLE_NAMES = ["Vuông góc gọn", "Vuông góc tách nhóm", "Cong mềm (Node)", "Vát 45° kiểu PCB"];
-  const pinByName = n => A.pins.find(p => p.name === n);
   const board = () => A.state.b;
+
+  /* ---------- Xoay 0-90-180-270° (theo chiều kim đồng hồ) ----------
+     Board vẽ trong <g transform> rồi đặt lại vào góc phần tư dương: khung board luôn là [0, bw()] × [0, bh()].
+     PADS là bản sao chân board đã đổi sang toạ độ khung vẽ, mọi phép tính dây dùng PADS thay cho A.pins. */
+  const ROT_SIDE = { L: "T", T: "R", R: "B", B: "L" };
+  const rotSide = (sd, r) => { for (let i = 0; i < ((r || 0) / 90 | 0) % 4; i++) sd = ROT_SIDE[sd] || sd; return sd; };
+  const brot = () => B.brot || 0;
+  const bw = () => brot() % 180 ? board().h : board().w;
+  const bh = () => brot() % 180 ? board().w : board().h;
+  function bpt(x, y) { const b = board(), r = brot(); return r === 90 ? { x: b.h - y, y: x } : r === 180 ? { x: b.w - x, y: b.h - y } : r === 270 ? { x: y, y: b.w - x } : { x, y }; }
+  const bTransform = () => { const b = board(), r = brot(); return r === 90 ? `translate(${b.h} 0) rotate(90)` : r === 180 ? `translate(${b.w} ${b.h}) rotate(180)` : r === 270 ? `translate(0 ${b.w}) rotate(270)` : ""; };
+  let PADS = [], padsKey = "";
+  function pads() {
+    const key = board().id + ":" + brot();
+    if (key !== padsKey) {
+      PADS = []; padsKey = key;
+      for (const h of board().headers) for (const p of h.pins) { const q = bpt(p.x, p.y); PADS.push(Object.assign(Object.create(p), { x: q.x, y: q.y, side: rotSide(h.side, brot()) })); }
+    }
+    return PADS;
+  }
+  const pinByName = n => pads().find(p => p.name === n);
   const supported = b => ["ESP32", "RP2", "AVR"].includes(b.family);
   const modOK = (m, b) => !m.family || m.family.includes(b.family);
 
@@ -58,13 +78,13 @@
   const roleOf = (m, label) => (M[m.type].pins.find(x => x[0] === label) || [])[1];
   const getPin = (m, label) => { const r = roleOf(m, label); return SHARED.includes(r) ? B.bus[r] : m.pins[label]; };
   function setPin(m, label, name) { const r = roleOf(m, label); if (SHARED.includes(r)) { if (name) B.bus[r] = name; else delete B.bus[r]; } else if (name) m.pins[label] = name; else delete m.pins[label]; }
-  function best(role, b, taken) { let top = null, ts = -1e8; for (const p of A.pins) { if (taken.has(p.name) && !POWER.includes(role)) continue; const s = score(p, role, b); if (s > ts) { ts = s; top = p; } } return top; }
+  function best(role, b, taken) { let top = null, ts = -1e8; for (const p of pads()) { if (taken.has(p.name) && !POWER.includes(role)) continue; const s = score(p, role, b); if (s > ts) { ts = s; top = p; } } return top; }
   function autoAssign(m) {
     const b = board(), taken = used();
     for (const [label, role] of M[m.type].pins) {
       if (getPin(m, label)) continue;
       let p = null;
-      if (b.family === "RP2" && role === "i2s.ws") { const bl = pinByName(getPin(m, M[m.type].pins.find(x => x[1] === "i2s.bclk")[0]) || ""); p = bl && A.pins.find(x => x.gpio === bl.gpio + 1 && !taken.has(x.name)); }
+      if (b.family === "RP2" && role === "i2s.ws") { const bl = pinByName(getPin(m, M[m.type].pins.find(x => x[1] === "i2s.bclk")[0]) || ""); p = bl && pads().find(x => x.gpio === bl.gpio + 1 && !taken.has(x.name)); }
       p = p || best(role, b, taken);
       if (p) { setPin(m, label, p.name); taken.add(p.name); }
     }
@@ -103,7 +123,7 @@
   const busNo = (n, kind) => { const p = pinByName(n || ""); const m = p && p.fn.join(" ").match(new RegExp(kind + "(\\d)")); return m ? +m[1] : 0; };
   const PFX = { button: "BTN", led: "LED1", buzzer: "BUZ", sevseg: "SEG", ssd1306: "OLED", ldr: "LDR", dht22: "DHT", st7789: "TFT", ws2812: "LED", hcsr04: "US", vl53l0x: "TOF", mpu6050: "MPU", max98357a: "I2S", inmp441: "MIC" };
   function code() {
-    const b = board(), f = b.family, L = [`// ${b.name} – Pindex Connect (pindex.pages.dev)`];
+    const b = board(), f = b.family, L = [`// ${b.name} – Pindex Wiring (pindex.pages.dev)`];
     const has = r => B.mods.some(m => M[m.type].pins.some(x => x[1] === r));
     if (has("spi.sck")) {
       L.push("", "// SPI (dùng chung)", `#define SPI_SCK   ${val(B.bus["spi.sck"])}`, `#define SPI_MOSI  ${val(B.bus["spi.mosi"])}`);
@@ -140,13 +160,21 @@
   const modH = d => d.h || (HH + d.pins.length * RH);
   const svg = () => $("#bsvg");
   const toSvg = e => { const s = svg(), pt = s.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(s.getScreenCTM().inverse()); };
+  const mrot = m => m.rot || 0;
+  const mw = m => mrot(m) % 180 ? modH(M[m.type]) : modW(M[m.type]);     // kích thước khung sau khi xoay
+  const mh = m => mrot(m) % 180 ? modW(M[m.type]) : modH(M[m.type]);
+  const rotPt = (x, y, cx, cy, r) => { const dx = x - cx, dy = y - cy; return r === 90 ? { x: cx - dy, y: cy + dx } : r === 180 ? { x: cx - dx, y: cy - dy } : r === 270 ? { x: cx + dy, y: cy - dx } : { x, y }; };
+  const mCenter = m => ({ x: m.pos.x + mw(m) / 2, y: m.pos.y + mh(m) / 2 });
   function sockPos(m, k) {
-    const d = M[m.type], pin = d.pins[k];
+    const d = M[m.type], pin = d.pins[k], r = mrot(m), c = mCenter(m);
+    const x0 = c.x - modW(d) / 2, y0 = c.y - modH(d) / 2;             // góc trên-trái khi chưa xoay
+    let u, dir;
     if (d.svg && pin[3] != null) {
       const [vx, vy, vw, vh] = d.vb.length === 4 ? d.vb : [0, 0, d.vb[0], d.vb[1]];
-      return { x: m.pos.x + (pin[3] - vx) / vw * d.w, y: m.pos.y + (pin[4] - vy) / vh * d.h, dir: pin[5] || d.pinDir || "T", k, m };
-    }
-    return { x: m.pos.x, y: m.pos.y + HH + k * RH + RH / 2, dir: "L", k, m };
+      u = { x: x0 + (pin[3] - vx) / vw * d.w, y: y0 + (pin[4] - vy) / vh * d.h }; dir = pin[5] || d.pinDir || "T";
+    } else { u = { x: x0, y: y0 + HH + k * RH + RH / 2 }; dir = "L"; }
+    const q = rotPt(u.x, u.y, c.x, c.y, r);
+    return { x: q.x, y: q.y, dir: rotSide(dir, r), k, m };
   }
   const wirePath = (a, p) => {
     if (a.dir === "T" || a.dir === "B") {
@@ -157,19 +185,46 @@
     return `M${a.x} ${a.y} C${a.x - dx} ${a.y} ${p.x + dx} ${p.y} ${p.x} ${p.y}`;
   };
   let boardBox = null;
-  const sideOf = p => (board().headers.find(h => h.pins.includes(p)) || {}).side || "R";
-  const boardBounds = b => {
-    let y0 = 0, y1 = b.h;
-    for (const pt of b.parts || []) { if (pt.y != null) { y0 = Math.min(y0, pt.y); y1 = Math.max(y1, pt.y + (pt.h || 0)); } }
-    return { y0, y1 };
-  };
-  const modSideOf = m => (m.pos.x + modW(M[m.type]) / 2 < board().w / 2) ? "L" : "R";
+  const sideOf = p => p.side || "R";
+  const modSideOf = m => (m.pos.x + mw(m) / 2 < bw() / 2) ? "L" : "R";
+
+  // Đặt linh kiện quanh board, cân 2 cột trái/phải, rồi thu khung nhìn vừa đủ nên linh kiện mới luôn hiện trong màn hình.
+  // Linh kiện đã kéo tay (manual) thì giữ chỗ; linh kiện mới xếp tiếp bên dưới cột đó.
+  function autoPlace() {
+    if (!boardBox) return;
+    const auto = B.mods.filter(m => !m.manual || !m.pos); if (!auto.length) return;
+    const totalWires = B.mods.reduce((n, m) => n + M[m.type].pins.length, 0);
+    const corridor = Math.max(14, (6 + totalWires * 0.8) * B.spread), vGap = 8 * B.spread;
+    const man = B.mods.filter(m => m.manual && m.pos), hs = { L: 0, R: 0 }, cols = { L: [], R: [] };
+    for (const m of man) hs[modSideOf(m)] += mh(m) + vGap;
+    for (const m of auto) { const sd = hs.L < hs.R ? "L" : "R"; cols[sd].push(m); hs[sd] += mh(m) + vGap; }
+    const cy = boardBox.y + boardBox.h / 2, xL = Math.min(0, boardBox.x) - corridor, xR = Math.max(bw(), boardBox.x + boardBox.w) + corridor;
+    for (const sd of ["L", "R"]) {
+      const col = cols[sd]; if (!col.length) continue;
+      const mine = man.filter(m => modSideOf(m) === sd), H = col.reduce((n, m) => n + mh(m), 0) + (col.length - 1) * vGap;
+      let y = mine.length ? Math.max(...mine.map(m => m.pos.y + mh(m))) + vGap : cy - H / 2;
+      for (const m of col) {
+        m.pos = { x: Math.round((sd === "L" ? xL - mw(m) : xR) * 10) / 10, y: Math.round(y * 10) / 10 };
+        m.manual = false; delete m.route; y += mh(m) + vGap;
+      }
+    }
+  }
+  function rotateMod(i) {
+    const m = B.mods[i]; if (!m) return;
+    const c = mCenter(m); m.rot = (mrot(m) + 90) % 360; m.pos = { x: c.x - mw(m) / 2, y: c.y - mh(m) / 2 };
+    delete m.route; save(); refresh();
+  }
+  function rotateBoard() {
+    B.brot = (brot() + 90) % 360;
+    for (const m of B.mods) { m.manual = false; delete m.route; }       // board đổi hình dạng: xếp lại toàn bộ linh kiện
+    B.needPlace = true; B.cam = null; save(); refresh();
+  }
 
   // 3 phương án tự động sắp xếp linh kiện quanh main board (nhấn Sắp xếp tự nhảy ngay không ghi chú)
   function arrangeModules() {
     if (!B.mods.length) return;
     B.mods.forEach(autoAssign);
-    const b = board(), mode = B.arrMode % 3;
+    const b = board(), BW = bw(), BH = bh(), mode = B.arrMode % 3;
     B.arrMode = (B.arrMode + 1) % 3; B.arrLast = mode;
     const L = [], R = [];
     for (const [idx, m] of B.mods.entries()) {
@@ -178,12 +233,12 @@
       for (const [label, role] of d.pins) {
         const p = pinByName(getPin(m, label) || "");
         if (!p) continue;
-        const sd = sideOf(p), isL = sd === "L" || (sd !== "R" && p.x < b.w / 2);
+        const sd = sideOf(p), isL = sd === "L" || (sd !== "R" && p.x < BW / 2);
         if (isL) { left++; if (!POWER.includes(role)) sigL++; }
         else { right++; if (!POWER.includes(role)) sigR++; }
         sumY += p.y; cnt++;
       }
-      const avgY = cnt ? sumY / cnt : b.h / 2;
+      const avgY = cnt ? sumY / cnt : BH / 2;
       let goLeft;
       if (mode === 0) {
         // Phương án 1: Ưu tiên tuyệt đối phía có nhiều chân cắm hơn
@@ -213,19 +268,19 @@
     const totalWires = B.mods.reduce((s, m) => s + M[m.type].pins.length, 0);
     const corridor = Math.max(16, (7 + totalWires * 0.9) * B.spread);
     const bx0 = boardBox ? Math.min(0, boardBox.x) : -6;
-    const bx1 = boardBox ? Math.max(b.w, boardBox.x + boardBox.w) : b.w + 6;
+    const bx1 = boardBox ? Math.max(BW, boardBox.x + boardBox.w) : BW + 6;
     const placeCol = (col, isLeft) => {
       if (!col.length) return;
       const vGap = Math.max(9, (mode === 1 ? 10 : 7.5) * B.spread);
-      const totalH = col.reduce((s, x) => s + modH(x.d), 0) + (col.length - 1) * vGap;
-      let y = b.h / 2 - totalH / 2;
+      const totalH = col.reduce((s, x) => s + mh(x.m), 0) + (col.length - 1) * vGap;
+      let y = BH / 2 - totalH / 2;
       const mid = (col.length - 1) / 2;
       col.forEach(({ m, d }, i) => {
-        const w = modW(d), h = modH(d);
+        const w = mw(m), h = mh(m);
         // Mode 1: cong vòng cung quanh board; Mode 2: so le bậc thang
         const archOff = mode === 1 ? Math.abs(i - mid) * 7 : mode === 2 ? (i % 2) * 8 : 0;
         const x = isLeft ? (bx0 - corridor - w + archOff) : (bx1 + corridor - archOff);
-        m.pos = { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+        m.pos = { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 }; m.manual = true;   // bố cục đã chọn: giữ nguyên khi thêm linh kiện
         delete m.route;
         y += h + vGap;
       });
@@ -239,7 +294,7 @@
   // Tiền tính toán toàn bộ làn dây (pre-compute):
   // B.style = 0 (Vuông góc 1 - Ngắn nhất), 1 (Vuông góc 2 - Tách nhóm), 2 (Dây cong mềm Blender Node), 3 (Bẻ góc 45 độ PCB)
   function computeRoutes() {
-    const b = board(), { y0, y1 } = boardBounds(b), sp = B.spread;
+    const b = { w: bw(), h: bh() }, y0 = Math.min(0, boardBox ? boardBox.y : 0), y1 = Math.max(b.h, boardBox ? boardBox.y + boardBox.h : b.h), sp = B.spread;
     const step = 1.25 * sp, baseGap = 2.6 * sp, pinStep = 1.12 * sp;
     const items = [];
     for (const [mi, m] of B.mods.entries()) {
@@ -250,7 +305,7 @@
         const a = sockPos(m, k), pSide = sideOf(p);
         const pinOrder = mSide === "R" ? k : (nPins - 1 - k);
         const ay = a.dir === "T" ? m.pos.y - (2.1 * sp + pinOrder * pinStep)
-                 : a.dir === "B" ? m.pos.y + modH(d) + (2.1 * sp + pinOrder * pinStep) : a.y;
+                 : a.dir === "B" ? m.pos.y + mh(m) + (2.1 * sp + pinOrder * pinStep) : a.y;
         const sameSide = (mSide === "R" && pSide === "R") || (mSide === "L" && pSide === "L");
         const band = POWER.includes(role) ? 2 : SHARED.includes(role) ? 1 : 0;
         items.push({ key: `${mi}:${label}`, mi, m, d, k, label, role, a, p, mSide, pSide, ay, sameSide, band });
@@ -291,7 +346,9 @@
     for (const w of items) {
       const ov = (w.m.route || {})[w.label] || {};
       const rx = ov.rx ?? w.rx ?? (b.w + baseGap), lx = ov.lx ?? w.lx ?? -baseGap, yv = ov.yv ?? w.yv ?? (y0 - baseGap);
-      const { a, p, ay, mSide, pSide } = w, start = (a.dir === "T" || a.dir === "B") ? [[a.x, a.y], [a.x, ay]] : [[a.x, a.y]];
+      const { a, p, ay, mSide, pSide } = w, stub = 2.1 * B.spread + (w.k % 6) * 0.6 * B.spread;
+      // chân hướng lên/xuống: ra một đoạn dọc; chân hướng trái/phải (linh kiện đã xoay): ra một đoạn ngang
+      const start = (a.dir === "T" || a.dir === "B") ? [[a.x, a.y], [a.x, ay]] : [[a.x, a.y], [a.x + (a.dir === "R" ? stub : -stub), a.y]];
       const sy = start[start.length - 1][1];
       let pts;
       if (mSide === "R" && pSide === "R") pts = [...start, [rx, sy], [rx, p.y], [p.x, p.y]];
@@ -349,10 +406,12 @@
 
   function draw() {
     const s = svg(); s.innerHTML = "";
-    A.drawPCB(s, true);                                   // board không nhãn lớn, chỉ pad + tên nhỏ
-    const vb = s.viewBox.baseVal; boardBox = { x: vb.x, y: vb.y, w: vb.width, h: vb.height };
-    let ny = boardBox.y + 4;                               // vị trí mặc định cho node mới: cột bên phải board
-    for (const m of B.mods) { const d = M[m.type]; if (!m.pos) m.pos = { x: boardBox.x + boardBox.w + 26, y: ny }; ny = Math.max(ny, m.pos.y) + modH(d) + (d.svg ? 12 : 4); }
+    const bg = el("g", { class: "brd" }, s); if (brot()) bg.setAttribute("transform", bTransform());
+    A.drawPCB(bg, true);                                  // board không nhãn lớn, chỉ pad + tên nhỏ
+    const [vx, vy, vw, vh] = (bg.getAttribute("viewBox") || "0 0 0 0").split(" ").map(Number); bg.removeAttribute("viewBox");
+    const c1 = bpt(vx, vy), c2 = bpt(vx + vw, vy + vh);
+    boardBox = { x: Math.min(c1.x, c2.x), y: Math.min(c1.y, c2.y), w: Math.abs(c2.x - c1.x), h: Math.abs(c2.y - c1.y) };
+    if (B.needPlace || B.mods.some(m => !m.pos)) { autoPlace(); B.needPlace = false; B.cam = null; save(); }
     const glow = el("g", { id: "glow" }, s), wires = el("g", { id: "wires" }, s), nodes = el("g", {}, s);
     const { map: routeMap, count: lane } = computeRoutes();
     for (const [mi, m] of B.mods.entries()) {
@@ -376,7 +435,8 @@
       const head = el("g", { class: "bhead", "data-m": mi }, g);
       if (d.svg) {
         // Vẽ trực tiếp ảnh SVG của module, nối dây thẳng vào chân trên SVG
-        el("image", { href: d.svgData || d.svg, x: m.pos.x, y: m.pos.y, width: w, height: h, preserveAspectRatio: "none" }, head);
+        const c = mCenter(m), img = el("image", { href: d.svgData || d.svg, x: c.x - w / 2, y: c.y - h / 2, width: w, height: h, preserveAspectRatio: "none" }, head);
+        if (mrot(m)) img.setAttribute("transform", `rotate(${mrot(m)} ${c.x} ${c.y})`);
         d.pins.forEach(([label, role], k) => {
           const a = sockPos(m, k), n = getPin(m, label), armed = B.arm && B.arm.m === mi && B.arm.label === label;
           const rc = COLOR[role] || d.color;
@@ -385,21 +445,24 @@
           so.addEventListener("pointerdown", e => startWire(e, mi, label));
         });
       } else {
-        el("rect", { x: m.pos.x, y: m.pos.y, width: NW, height: h, rx: 1, class: "modbox", stroke: d.color }, g);
-        el("rect", { x: m.pos.x, y: m.pos.y, width: NW, height: HH - .4, rx: 1, fill: d.color }, head);
-        el("text", { x: m.pos.x + 1.2, y: m.pos.y + HH / 2 - .2, "dominant-baseline": "central", "font-size": 1.5, class: "modt" }, head, d.short);
-        el("text", { x: m.pos.x + NW - 1.2, y: m.pos.y + HH / 2 - .2, "text-anchor": "end", "dominant-baseline": "central", "font-size": 1.1, class: "modt" }, head, d.vcc);
+        // hộp linh kiện: vẽ ở toạ độ chưa xoay rồi xoay cả nhóm quanh tâm
+        const c = mCenter(m), o = { x: c.x - w / 2, y: c.y - h / 2 }, tf = mrot(m) ? { transform: `rotate(${mrot(m)} ${c.x} ${c.y})` } : {};
+        const bx = el("g", tf, g); if (mrot(m)) head.setAttribute("transform", tf.transform);
+        el("rect", { x: o.x, y: o.y, width: NW, height: h, rx: 1, class: "modbox", stroke: d.color }, bx);
+        el("rect", { x: o.x, y: o.y, width: NW, height: HH - .4, rx: 1, fill: d.color }, head);
+        el("text", { x: o.x + 1.2, y: o.y + HH / 2 - .2, "dominant-baseline": "central", "font-size": 1.5, class: "modt" }, head, d.short);
+        el("text", { x: o.x + NW - 1.2, y: o.y + HH / 2 - .2, "text-anchor": "end", "dominant-baseline": "central", "font-size": 1.1, class: "modt" }, head, d.vcc);
         d.pins.forEach(([label], k) => {
-          const a = sockPos(m, k), n = getPin(m, label), armed = B.arm && B.arm.m === mi && B.arm.label === label;
-          el("text", { x: a.x + 2, y: a.y, "dominant-baseline": "central", "font-size": 1.25, class: "mptxt" }, g, label);
-          el("text", { x: a.x + NW - 1, y: a.y, "text-anchor": "end", "dominant-baseline": "central", "font-size": 1.1, class: "mpval" }, g, n || "kéo ●");
+          const a = { x: o.x, y: o.y + HH + k * RH + RH / 2 }, n = getPin(m, label), armed = B.arm && B.arm.m === mi && B.arm.label === label;
+          el("text", { x: a.x + 2, y: a.y, "dominant-baseline": "central", "font-size": 1.25, class: "mptxt" }, bx, label);
+          el("text", { x: a.x + NW - 1, y: a.y, "text-anchor": "end", "dominant-baseline": "central", "font-size": 1.1, class: "mpval" }, bx, n || "kéo ●");
           const rc = COLOR[d.pins[k][1]] || d.color;
-          const so = el("circle", { cx: a.x, cy: a.y, r: .95, fill: n ? rc : "var(--surface)", stroke: rc, "stroke-width": .45, class: "sock" + (armed ? " armed" : ""), "data-m": mi, "data-l": label }, g);
+          const so = el("circle", { cx: a.x, cy: a.y, r: .95, fill: n ? rc : "var(--surface)", stroke: rc, "stroke-width": .45, class: "sock" + (armed ? " armed" : ""), "data-m": mi, "data-l": label }, bx);
           so.addEventListener("pointerdown", e => startWire(e, mi, label));
         });
       }
       head.addEventListener("pointerdown", e => { if (e.button !== 2) startNode(e, mi); });
-      if (B.selM === mi) el("rect", { x: m.pos.x - 1, y: m.pos.y - 1, width: w + 2, height: h + 2, rx: 1, class: "bsel" }, g);
+      if (B.selM === mi) el("rect", { x: m.pos.x - 1, y: m.pos.y - 1, width: mw(m) + 2, height: mh(m) + 2, rx: 1, class: "bsel" }, g);
     }
     // dây đang chọn: tên 2 chân ở 2 đầu, góc trái trên khung vẽ
     const wi = $("#bwinfo"), sw = B.selW && B.mods[B.selW.m];
@@ -412,11 +475,14 @@
       }
     }
     const nm = $("#bname");
-    if (nm) nm.innerHTML = `<div><span>Bố cục:</span> ${esc(B.arrLast == null ? "Tự do" : ARR_NAMES[B.arrLast])}</div><div><span>Dây:</span> ${esc(STYLE_NAMES[B.style])}</div>`;
+    if (nm) {   // tên bố cục / kiểu dây: góc phải TRÊN khung vẽ
+      nm.innerHTML = `<div><span>Bố cục:</span> ${esc(B.arrLast == null ? "Tự do" : ARR_NAMES[B.arrLast])}</div><div><span>Dây:</span> ${esc(STYLE_NAMES[B.style])}</div>${brot() ? `<div><span>Board:</span> ${brot()}°</div>` : ""}`;
+      nm.style.top = svg().getBoundingClientRect().top - svg().parentElement.getBoundingClientRect().top + 10 + "px";
+    }
     if (B.arm) showGlow(B.mods[B.arm.m], B.arm.label);
     // khung nhìn: board + toàn bộ node cả bên Trái lẫn bên Phải, có thể pan/zoom
-    const minX = B.mods.map(m => m.pos.x - 8), maxX = B.mods.map(m => m.pos.x + modW(M[m.type]) + 8);
-    const minY = B.mods.map(m => m.pos.y - 10), maxY = B.mods.map(m => m.pos.y + modH(M[m.type]) + 10);
+    const minX = B.mods.map(m => m.pos.x - 8), maxX = B.mods.map(m => m.pos.x + mw(m) + 8);
+    const minY = B.mods.map(m => m.pos.y - 10), maxY = B.mods.map(m => m.pos.y + mh(m) + 10);
     const pad = 4 + lane * 1.2 * B.spread;
     const world = { x: Math.min(boardBox.x - pad, ...minX), y: Math.min(boardBox.y - pad, ...minY), w: 0, h: 0 };
     world.w = Math.max(boardBox.x + boardBox.w + (B.mods.length ? pad : 50), ...maxX) - world.x;
@@ -437,13 +503,13 @@
   }
   function showGlow(m, label) {
     const g = $("#glow"); g.innerHTML = ""; const role = roleOf(m, label), b = board(), taken = used(), cur = getPin(m, label);
-    for (const p of A.pins) {
+    for (const p of pads()) {
       const s = score(p, role, b); if (s <= -1e8) continue;
       const busy = taken.has(p.name) && p.name !== cur && !SHARED.includes(role);
       el("circle", { cx: p.x, cy: p.y, r: 1.9, class: "glow " + (busy ? "busy" : s >= 90 ? "ok" : "warn") }, g);
     }
   }
-  function nearestPad(pt) { let best = null, bd = 2.6; for (const p of A.pins) { const d = Math.hypot(p.x - pt.x, p.y - pt.y); if (d < bd) { bd = d; best = p; } } return best; }
+  function nearestPad(pt) { let best = null, bd = 2.6; for (const p of pads()) { const d = Math.hypot(p.x - pt.x, p.y - pt.y); if (d < bd) { bd = d; best = p; } } return best; }
   // chân linh kiện gần con trỏ nhất – để rút đầu dây phía linh kiện sang chân khác
   function nearestSock(pt, skip) {
     let best = null, bd = 2.6;
@@ -497,7 +563,7 @@
   }
   function dragSeg(e, mi, label, pts) {
     e.stopPropagation(); e.preventDefault();
-    const m = B.mods[mi], b = board(), s = svg(), pt = toSvg(e);
+    const m = B.mods[mi], b = { w: bw(), h: bh() }, s = svg(), pt = toSvg(e);
     let seg = -1, bd = 1e9;                                   // đoạn gần con trỏ nhất (bỏ đoạn đầu & cuối vì gắn vào socket/pad)
     for (let i = 2; i < pts.length - 1; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
       const d = Math.abs(x0 - x1) < .01 ? Math.abs(pt.x - x0) + Math.max(0, Math.min(y0, y1) - pt.y, pt.y - Math.max(y0, y1)) : Math.abs(pt.y - y0) + Math.max(0, Math.min(x0, x1) - pt.x, pt.x - Math.max(x0, x1));
@@ -515,7 +581,7 @@
     e.stopPropagation(); e.preventDefault();
     const m = B.mods[mi], s = svg(), p0 = toSvg(e), o = { ...m.pos };
     B.selM = mi; B.selW = null; draw();                       // chọn linh kiện (Delete để xoá)
-    const mv = ev => { const pt = toSvg(ev); m.pos = { x: o.x + pt.x - p0.x, y: o.y + pt.y - p0.y }; B.arrLast = null; draw(); };
+    const mv = ev => { const pt = toSvg(ev); m.pos = { x: o.x + pt.x - p0.x, y: o.y + pt.y - p0.y }; m.manual = true; B.arrLast = null; draw(); };
     const up = () => { s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up); save(); };
     s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
   }
@@ -569,9 +635,11 @@
         tools.id = "btools"; tools.className = "btools";
         tools.innerHTML = `<button type="button" class="bbtn" id="barr" title="Đổi cách sắp xếp linh kiện">🧲 Sắp xếp</button>`
           + `<button type="button" class="bbtn" id="bstyle" title="Đổi kiểu đi dây">🔀 Đi dây</button>`
+          + `<button type="button" class="bbtn" id="brot" title="Xoay board 90°">⟳ Xoay board</button>`
           + `<label class="bslider"><span>↔ Dãn dây</span><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}"></label>`;
         bar.insertBefore(tools, zoomBox);
         $("#barr").onclick = () => arrangeModules();
+        $("#brot").onclick = () => rotateBoard();
         $("#bstyle").onclick = () => {
           B.style = (B.style + 1) % 4;
           for (const m of B.mods) delete m.route;
@@ -590,15 +658,16 @@
       e.preventDefault();
       if (node) {
         const i = +node.dataset.m; B.selM = i; B.selW = null; draw();
-        ctxMenu(e, [["🗑 Xoá linh kiện", () => removeMod(i)], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["✨ Tự nối chân", () => autoMod(i)]]);
+        ctxMenu(e, [["⟳ Xoay 90°", () => rotateMod(i)], ["🗑 Xoá linh kiện", () => removeMod(i)], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["✨ Tự nối chân", () => autoMod(i)]]);
       } else if (w) {
         const i = +w.dataset.wm, l = w.dataset.wl; selectWire(i, l);
         ctxMenu(e, [["🔌 Xoá nối dây", () => removeWire(i, l)], ["✨ Tự nối lại chân này", () => rewire(i, l)], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["✨ Tự nối chân linh kiện", () => autoMod(i)]]);
-      } else if (B.mods.length) ctxMenu(e, [["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }], ["🔌 Xoá hết nối dây", () => { B.mods.forEach((m, j) => unwireMod(j, true)); save(); refresh(); A.toast("Đã xoá hết nối dây"); }]]);
+      } else ctxMenu(e, [["⟳ Xoay board 90°", rotateBoard], ...(B.mods.length ? [["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }], ["🔌 Xoá hết nối dây", () => { B.mods.forEach((m, j) => unwireMod(j, true)); save(); refresh(); A.toast("Đã xoá hết nối dây"); }]] : [])]);
     });
     document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); }, true);
     addEventListener("keydown", e => {
       if (e.key === "Escape") closeMenu();
+      if (A.state.tab === "build" && (e.key === "r" || e.key === "R") && !e.ctrlKey && !e.metaKey && B.selM != null && !(e.target.closest && e.target.closest("input, textarea, select, [contenteditable]"))) { e.preventDefault(); rotateMod(B.selM); return; }
       if (A.state.tab !== "build" || !["Delete", "Backspace"].includes(e.key) || e.target.closest("input, textarea, select, [contenteditable]")) return;
       if (B.selW || B.selM != null) { e.preventDefault(); deleteSel(); }
     });
@@ -638,7 +707,7 @@
   function bindAddBtns(root) {
     root.querySelectorAll("[data-add]").forEach(x => x.onclick = () => {
       const k = x.dataset.add, i = B.mods.findIndex(m => m.type === k);
-      if (i >= 0) B.mods.splice(i, 1); else B.mods.push({ type: k, pins: {} });
+      if (i >= 0) B.mods.splice(i, 1); else { B.mods.push({ type: k, pins: {} }); B.cam = null; }
       cleanBus(); B.arm = null; save(); refresh();
     });
   }
@@ -658,7 +727,7 @@
             <div id="mcats">${renderCatList(b)}</div>
           </div>
         </div>
-        <p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân.</p>
+        <p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân / Xoay. Phím R xoay linh kiện đang chọn.</p>
         <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Tự nối chân</button>` : ""}
         ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
       : `<pre class="code bcode">${esc(code())}</pre><button class="btn-share" data-copy>Copy #define</button>`}
@@ -680,33 +749,34 @@
   function refresh() { draw(); side(); }
 
   /* ---------- Lưu / export ---------- */
-  const dump = () => ({ board: board().id, bus: B.bus, mods: B.mods, spread: B.spread, style: B.style });
+  const dump = () => ({ board: board().id, bus: B.bus, mods: B.mods, spread: B.spread, style: B.style, brot: brot() });
   function load(o) {
     if (!o || o.board !== board().id) { A.toast("File này của board khác."); return; }
     B.bus = o.bus || {}; B.mods = (o.mods || []).filter(m => M[m.type]);
     if (typeof o.spread === "number") B.spread = o.spread;
     if (typeof o.style === "number") B.style = o.style % 4;
+    B.brot = [0, 90, 180, 270].includes(o.brot) ? o.brot : 0;
     if ($("#bspread")) $("#bspread").value = B.spread;
     B.cam = null; save();
   }
   function save() { try { localStorage.setItem("build:" + board().id, JSON.stringify(dump())); } catch (e) { } }
-  function restore() { B.boardId = board().id; B.bus = {}; B.mods = []; B.arm = null; B.cam = null; try { const o = JSON.parse(localStorage.getItem("build:" + B.boardId) || "null"); if (o) load(o); } catch (e) { } }
+  function restore() { B.boardId = board().id; B.bus = {}; B.mods = []; B.arm = null; B.cam = null; B.brot = 0; try { const o = JSON.parse(localStorage.getItem("build:" + B.boardId) || "null"); if (o) load(o); } catch (e) { } }
   const dl = (name, href) => { const a = document.createElement("a"); a.href = href; a.download = name; a.click(); };
   async function exportAs(kind) {
     const b = board();
     if (kind === "json") return dl(`pindex-${b.id}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
-    if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Connect"); } catch (e) { A.toast(u); } return; }
+    if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Wiring"); } catch (e) { A.toast(u); } return; }
     const keep = { ...B.cam }; B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
     const img = new Image(); img.src = A.svgDataUrl(svg()); await img.decode(); B.cam = keep; draw();
     const lines = code().split("\n"), W = 1600, ih = Math.round(img.height * W / img.width), lh = 28, c = document.createElement("canvas");
     c.width = W; c.height = ih + 80 + lines.length * lh + 40;
     const g = c.getContext("2d");
     g.fillStyle = getComputedStyle(document.body).backgroundColor; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, W, ih);
-    g.fillStyle = getComputedStyle(document.body).color; g.font = "bold 34px sans-serif"; g.fillText(`${b.name} · Pindex Connect`, 40, ih + 50);
+    g.fillStyle = getComputedStyle(document.body).color; g.font = "bold 34px sans-serif"; g.fillText(`${b.name} · Pindex Wiring`, 40, ih + 50);
     g.font = "22px Consolas, monospace"; lines.forEach((l, i) => g.fillText(l, 40, ih + 90 + i * lh));
     dl(`pindex-${b.id}.png`, c.toDataURL("image/png"));
   }
-  function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Connect không hợp lệ."); } }
+  function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Wiring không hợp lệ."); } }
 
   let inited = false;
   window.BUILD = {

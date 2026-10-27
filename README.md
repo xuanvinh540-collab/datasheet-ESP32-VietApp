@@ -36,12 +36,14 @@ Không cần máy chủ. Mở trang **trên máy có thư mục dự án** (Chro
 
 - Mật khẩu mặc định **`pindex`**. Đổi bằng nút **Đổi mật khẩu** (ít nhất 4 ký tự) rồi **Lưu vào file**; mật khẩu được băm SHA-256 vào `js/admin-auth.js`.
 - **Link mua hàng:** sửa link tiếp thị cho từng board, từng vùng (Việt Nam / Quốc tế).
+- **Bài viết:** thêm, sửa, xoá bài Tin tức / Hướng dẫn cho trang chủ (bấm logo để xem). Soạn bằng markdown đơn giản, có xem trước và nút chèn ảnh.
+- **Cài đặt:** bật/tắt khung thẻ "Mua board" (mặc định tắt, chỉ còn nút Mua board màu cyan cho board đang xem).
 - **Giao diện:** màu ban ngày và ban đêm (9 màu mỗi chế độ), font chữ chính, font chữ số, cỡ chữ cơ bản. Xem trước ngay.
 - **✎ Sửa trực tiếp trên trang:** nhấp phải vào bất kỳ chữ, khung hay ảnh nào để đổi màu chữ, màu nền, font, cỡ chữ, độ đậm, kích thước.
   Màu áp riêng cho chế độ đang xem (ngày hoặc đêm); font và kích thước áp cho cả hai. Ảnh thumbnail "Mua board" có thêm nút **Thay ảnh**
   (ảnh được thu nhỏ còn 1000px, lưu WebP vào `img/uploads/`).
-- Bấm **Lưu vào file** → chọn thư mục dự án → admin ghi `js/affiliates.js`, `css/custom.css`, `js/images.js`, `js/admin-auth.js`.
-- **Commit và push** thì trang thật mới đổi.
+- Bấm **Lưu vào file** → chọn thư mục dự án → admin ghi `js/affiliates.js`, `css/custom.css`, `js/images.js`, `js/admin-auth.js`, `js/posts.js`, `js/settings.js`. Sau đó **commit và push** thì trang thật mới đổi.
+- **Từ xa (máy bất kỳ, cả điện thoại):** mở `pindex.pages.dev/?edit`, sửa, bấm **☁ Lưu lên GitHub**. Lần đầu dán một GitHub token *fine-grained* chỉ cho repo này, quyền *Contents: Read and write*. Token chỉ nằm trong trình duyệt đó (xoá ở tab Cài đặt), không bao giờ vào repo. Mọi thay đổi gộp thành 1 commit trên `main`, Cloudflare tự deploy sau khoảng 1 phút.
 
 Khách truy cập không tải mã admin (chỉ có một đoạn nạp nhỏ), và không ai ghi được gì vào trang thật trừ người có quyền push lên GitHub.
 

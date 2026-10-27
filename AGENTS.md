@@ -30,11 +30,15 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
 3. **Thông số chip** (8 tab) + bảng **linh kiện khi tự làm mạch** cho ESP32-S3 và ESP32-C3 (`js/specs.js`).
 4. **Tab Tính toán**: điện trở LED, phân áp ADC, pull-up I2C, mạch RC.
 5. **Tab Tài liệu**: link datasheet/schematic gốc của hãng.
-6. **⚡ Tab Connect** (trước gọi là Build; mã vẫn dùng id `build`, `js/build.js` tải khi bấm lần đầu): ghép 14 module (vẽ bằng `svg/*.svg`) vào board; kéo node, kéo dây từ socket tới pad (pad xanh = an toàn, cam = có lưu ý), dây đi vòng ngoài board, màu theo tín hiệu, kéo thân dây theo trục, nắm đầu dây đổi/thả ra để gỡ; tab Code sinh **chỉ `#define` chân + dòng khởi tạo bus** (không viết cả chương trình); export PNG / JSON / link `#build=`. Hỗ trợ ESP32, Pico, Uno; Raspberry Pi chưa. Nút 🧲 Sắp xếp (3 bố cục) và 🔀 Đi dây (4 kiểu), tên đang dùng hiện ở góc phải dưới khung vẽ; chọn linh kiện/dây rồi Delete, hoặc chuột phải để xoá.
+6. **⚡ Wiring** (trước gọi là Build rồi Connect; mã vẫn dùng id `build`; mở bằng nút ⚡ Wiring đứng trước PCB trong thanh chọn kiểu xem, không còn tab riêng trên thanh tab, `js/build.js` tải khi bấm lần đầu): ghép 14 module (vẽ bằng `svg/*.svg`) vào board; kéo node, kéo dây từ socket tới pad (pad xanh = an toàn, cam = có lưu ý), dây đi vòng ngoài board, màu theo tín hiệu, kéo thân dây theo trục, nắm đầu dây đổi/thả ra để gỡ; tab Code sinh **chỉ `#define` chân + dòng khởi tạo bus** (không viết cả chương trình); export PNG / JSON / link `#build=`. Hỗ trợ ESP32, Pico, Uno; Raspberry Pi chưa. Nút 🧲 Sắp xếp (3 bố cục) và 🔀 Đi dây (4 kiểu), tên đang dùng hiện ở góc phải TRÊN khung vẽ; chọn linh kiện/dây rồi Delete, hoặc chuột phải để xoá.
+   Xoay 0/90/180/270°: linh kiện (`m.rot`, chuột phải "Xoay 90°" hoặc phím R) xoay quanh tâm, `m.pos` là góc trên-trái của khung ĐÃ xoay (`mw/mh`);
+   board (`B.brot`, nút ⟳ Xoay board hoặc chuột phải nền) vẽ trong `<g transform>`, mọi phép tính dây dùng `pads()` (chân đã đổi toạ độ + `side`), `bw()/bh()` thay cho `b.w/b.h`.
+   Linh kiện mới (không có `pos`) được `autoPlace()` xếp cân 2 cột trái/phải quanh board và camera thu lại vừa khung; linh kiện kéo tay có `manual:true` thì giữ chỗ.
 7b. **Sơ đồ chân linh kiện**: dưới danh sách board có mục 🧩 Linh kiện (thu gọn 3 hàng / mở rộng theo nhóm `MOD_CATS`), mỗi module thành "board" giả `mod-<mã>` (`modBoard()` trong `app.js`), URL `/#mod-<mã>/<chân>`, không có trang SEO riêng. `js/modules.js` giờ tải sẵn trong `index.html`.
 7. **Song ngữ**: nút cờ VN/EN. **4 giao diện** (ô chọn góc phải): *Pindex* (mặc định, lá ô liu + dark), *8-bit* (tông đại dương retro), *Hổ phách*, *Simple*; nút ☀/☾ sáng/tối.
 8. **Chia sẻ** board/chân (Web Share API hoặc copy link).
-9. **Thẻ "Mua board"** ngay dưới khung xem board: ảnh board thật (`BOARD_PHOTOS`) hoặc icon vẽ từ dữ liệu PCB,
+9. **Nút "Mua board" màu cyan** (`#buyBtn`, cạnh tên board) dẫn tới link của board đang xem. **Khung thẻ "Mua board"** (`#buyBox`) mặc định ẩn, chỉ hiện khi `js/settings.js` có `showBuyCards: true` (admin tab Cài đặt). Mục Thông số chip nằm ngay dưới khung xem board, trước khung thẻ.
+   Khung thẻ: ảnh board thật (`BOARD_PHOTOS`) hoặc icon vẽ từ dữ liệu PCB,
    link tiếp thị liên kết lấy từ `js/affiliates.js` theo **vùng** (`vn` Shopee / `intl` AliExpress).
    Vùng đoán theo múi giờ rồi ngôn ngữ, người dùng đổi được và lưu vào `localStorage.region`.
    Link luôn mang `rel="noopener sponsored nofollow"` và có dòng công khai là link tiếp thị.
@@ -45,7 +49,9 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
    (nhấp phải vào phần tử) ghi `css/custom.css`; thay thumbnail Mua board ghi `js/images.js` + `img/uploads/`.
    `css/custom.css` dòng đầu là `/*CUSTOM {json} */` để admin mở lại sửa tiếp – **đừng sửa tay**, mọi quy tắc trong đó
    được kiểm tra giá trị (màu hex, font trong danh sách, px) và chỉ áp cho giao diện mặc định (`[data-skin="pinout"]`).
-   Ghi bằng File System Access API (Chrome/Edge). **Không có máy chủ**: sửa xong vẫn phải commit & push.
+   Tab "Bài viết" ghi `js/posts.js` (ảnh chèn vào `img/uploads/post-*.*`, link tuyệt đối `/img/...`); tab "Cài đặt" ghi `js/settings.js`.
+   Ghi bằng File System Access API (Chrome/Edge) rồi commit & push, HOẶC "☁ Lưu lên GitHub" (Git Data API, 1 commit trên main; token fine-grained lưu ở localStorage `pindex-gh`, không bao giờ vào repo). `collectFiles()` gom mọi file thay đổi cho cả hai cách.
+11. **Trang chủ** (`js/home.js` + `js/posts.js`, tải lười khi bấm logo; KHÔNG phải trang mặc định): giới thiệu, 6 thẻ tính năng, tab Tin tức / Hướng dẫn. URL `#home` và `#home/<id bài>`. `mdToHtml` là markdown rút gọn luôn thoát HTML trước, chặn `javascript:`.
 
 ## 4. Cấu trúc thư mục
 ```
@@ -58,6 +64,9 @@ js/build.js, modules.js Tab Build + thư viện module
 js/affiliates.js        Link tiếp thị liên kết theo vùng (vn / intl) – trang admin ghi đè nguyên file này
 js/admin.js             Trang admin (tải lười): link mua hàng, màu/font, sửa trực tiếp bằng nhấp phải, thay thumbnail
 js/admin-auth.js        Mật khẩu admin đã băm SHA-256 (null = mặc định "pindex")
+js/settings.js          window.SITE (showBuyCards) – admin ghi
+js/posts.js             Bài viết trang chủ (Tin tức / Hướng dẫn) – admin ghi
+js/home.js              Trang chủ + markdown rút gọn
 js/images.js            Ảnh thumbnail Mua board đã thay (khoá "buy:<id>")
 css/custom.css          Chỉnh giao diện do admin ghi – không sửa tay
 js/specs.js             Thông số chip theo board id (HTML chuỗi)

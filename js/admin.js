@@ -40,7 +40,10 @@
 
   /* ---------- trạng thái ---------- */
   let S = fresh(), AFF = {}, IMGPATH = {}, pendingUp = {}, tok = null;
-  let rootDir = null, panel = null, liveOn = false, tab = "link", dirty = { aff: false, css: false, img: false, auth: null };
+  let rootDir = null, panel = null, liveOn = false, tab = "link", dirty = { aff: false, css: false, img: false, auth: null, posts: false, site: false };
+  let POSTS = [], SITE = {}, editId = null;
+  const GH = { repo: "xuanvinh540-collab/datasheet-ESP32-VietApp", branch: "main", key: "pindex-gh" };
+  const anyDirty = () => dirty.aff || dirty.css || dirty.img || dirty.auth || dirty.posts || dirty.site || Object.keys(pendingUp).length;
   function fresh() { return { v: 1, day: {}, night: {}, font: {}, rules: { all: {}, day: {}, night: {} } }; }
 
   /* ---------- mật khẩu: mặc định "pindex", đổi được trong admin. Không cần bảo mật cao: admin chỉ ghi vào
@@ -115,6 +118,7 @@
 .adm-sub { display: grid; gap: 8px; padding: 4px 6px 6px; } .adm-sub label { display: grid; grid-template-columns: 70px 1fr; gap: 8px; align-items: center; font-size: 12.5px; }
 .adm-sub input[type=range] { width: 100%; } .adm-sub .adm-btns { justify-content: space-between; }
 @media (max-width: 620px) { .adm-row { grid-template-columns: 1fr auto; } .adm-row span { grid-column: 1 / -1; } .adm-c { grid-template-columns: minmax(0, 1fr) 44px 76px; } }`;
+  style.textContent += `.adm-prow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #dde}.adm-prow span{white-space:nowrap;font-size:12px;opacity:.75}.adm-md{display:grid;grid-template-columns:1fr 1fr;gap:10px}.adm-md textarea{width:100%;font:13px/1.5 ui-monospace,monospace;min-height:320px;box-sizing:border-box}.adm-prev{border:1px solid #ccd;border-radius:8px;padding:8px 12px;overflow:auto;max-height:420px;background:#fff;color:#111}.adm-prev img{max-width:100%}@media(max-width:700px){.adm-md{grid-template-columns:1fr}}`;
   document.head.appendChild(style);
 
   /* ---------- tiện ích ghi file vào thư mục dự án ---------- */
@@ -143,6 +147,31 @@
   function authText(a) {
     return '/* Mật khẩu admin (đã băm SHA-256, không lưu mật khẩu thật). null = dùng mật khẩu mặc định "pindex".\n'
       + '   Đổi bằng nút "Đổi mật khẩu" trong trang admin rồi bấm Lưu vào file. */\nwindow.ADMIN_AUTH = ' + JSON.stringify(a) + ";\n";
+  }
+  function postsText() {
+    return '/* Bài viết cho trang chủ (tab Tin tức / Hướng dẫn). Sửa bằng trang admin, tab "Bài viết" – admin ghi đè nguyên file này.\n   type: "news" (tin tức) hoặc "guide" (hướng dẫn). body viết kiểu markdown đơn giản: # tiêu đề, **đậm**, _nghiêng_, `mã`,\n   - danh sách, 1. danh sách số, [chữ](link), ![mô tả](ảnh), và khối mã giữa hai dòng ```. */\nwindow.POSTS = ' + JSON.stringify(POSTS.filter(x => x.id && x.title), null, 2) + ";\n";
+  }
+  function siteText() {
+    return "/* Cài đặt trang, sửa bằng admin (tab Cài đặt). showBuyCards: hiện khung thẻ \"Mua board\" (mặc định ẩn, chỉ còn nút Mua board màu cyan). */\nwindow.SITE = " + JSON.stringify(SITE, null, 2) + ";\n";
+  }
+  // Toàn bộ file cần ghi (đường dẫn → chuỗi hoặc Blob), dùng chung cho Lưu vào thư mục và Lưu lên GitHub
+  function collectFiles() {
+    const f = Object.assign({}, pendingUp);
+    if (dirty.aff) f["js/affiliates.js"] = affText();
+    if (dirty.css) f["css/custom.css"] = cssText();
+    if (dirty.img) f["js/images.js"] = imgText();
+    if (dirty.auth) f["js/admin-auth.js"] = authText(dirty.auth);
+    if (dirty.posts) f["js/posts.js"] = postsText();
+    if (dirty.site) f["js/settings.js"] = siteText();
+    return f;
+  }
+  function afterSave() {
+    pendingUp = {};
+    if (dirty.auth) window.ADMIN_AUTH = dirty.auth;
+    window.AFFILIATE = JSON.parse(JSON.stringify(AFF)); window.IMG_MAP = Object.assign({}, IMGPATH);
+    window.POSTS = JSON.parse(JSON.stringify(POSTS)); window.SITE = Object.assign({}, SITE);
+    dirty = { aff: false, css: false, img: false, auth: null, posts: false, site: false };
+    if (window.APP) { APP.redrawBuy(); }
   }
   const fontOf = k => FONTS.find(f => f[0] === k);
   const fontUrl = f => "https://fonts.googleapis.com/css2?family=" + f[3] + "&display=swap";
@@ -189,6 +218,10 @@
       if (m) { const j = JSON.parse(m[1]); S = Object.assign(fresh(), j); S.rules = Object.assign({ all: {}, day: {}, night: {} }, j.rules); S.day = j.day || {}; S.night = j.night || {}; S.font = j.font || {}; }
     } catch (e) { }
     AFF = JSON.parse(JSON.stringify(window.AFFILIATE || {}));
+    if (!window.POSTS) await loadScript("js/posts.js?" + Date.now());
+    if (!window.mdToHtml) await loadScript("js/home.js?" + Date.now());
+    POSTS = JSON.parse(JSON.stringify(window.POSTS || []));
+    SITE = Object.assign({ showBuyCards: false }, window.SITE || {});
     IMGPATH = Object.assign({}, window.IMG_MAP || {});
   }
   function readTokens() {
@@ -237,17 +270,40 @@
     if (!window.showDirectoryPicker) { setStatus("Lưu trực tiếp cần Chrome hoặc Edge."); return; }
     try {
       await ensureRoot(); setStatus("đang lưu…");
-      for (const [path, blob] of Object.entries(pendingUp)) await writeFile(path, blob);
-      pendingUp = {};
-      if (dirty.aff) await writeFile("js/affiliates.js", affText());
-      if (dirty.css) await writeFile("css/custom.css", cssText());
-      if (dirty.img) await writeFile("js/images.js", imgText());
-      if (dirty.auth) { await writeFile("js/admin-auth.js", authText(dirty.auth)); window.ADMIN_AUTH = dirty.auth; }
-      window.AFFILIATE = JSON.parse(JSON.stringify(AFF)); window.IMG_MAP = Object.assign({}, IMGPATH);
-      dirty = { aff: false, css: false, img: false, auth: null };
-      if (window.APP) { APP.redrawBuy(); }
+      for (const [path, data] of Object.entries(collectFiles())) await writeFile(path, data);
+      afterSave();
       setStatus("đã lưu — nhớ commit & push để trang thật đổi");
     } catch (e) { setStatus(e && e.name === "AbortError" ? "chưa lưu" : "lỗi: " + (e && e.message || e)); }
+  }
+
+  /* ---------- lưu lên GitHub (dùng từ xa, máy nào cũng được) ----------
+     Token cá nhân GitHub (fine-grained, chỉ repo này, quyền Contents: read & write) giữ trong trình duyệt này,
+     không bao giờ ghi vào repo. Mọi file thay đổi gộp thành 1 commit trên nhánh main → Cloudflare tự deploy. */
+  const ghTok = () => { try { return localStorage.getItem(GH.key) || ""; } catch (e) { return ""; } };
+  async function gh(path, opt) {
+    const r = await fetch("https://api.github.com/repos/" + GH.repo + path, Object.assign({ headers: { Authorization: "Bearer " + ghTok(), Accept: "application/vnd.github+json", "Content-Type": "application/json" } }, opt));
+    if (!r.ok) throw new Error("GitHub " + r.status + (r.status === 401 ? " (token sai hoặc hết hạn)" : r.status === 403 || r.status === 404 ? " (token thiếu quyền ghi repo)" : ""));
+    return r.json();
+  }
+  const b64 = async d => { const buf = new Uint8Array(typeof d === "string" ? new TextEncoder().encode(d) : await d.arrayBuffer()); let s = ""; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000)); return btoa(s); };
+  async function saveGitHub() {
+    if (!ghTok()) {
+      const t = prompt("Dán GitHub token (fine-grained, chỉ repo " + GH.repo + ", quyền Contents: Read and write).\nToken chỉ lưu trong trình duyệt này.");
+      if (!t) return; try { localStorage.setItem(GH.key, t.trim()); } catch (e) { setStatus("trình duyệt chặn lưu token"); return; }
+    }
+    const files = collectFiles(), paths = Object.keys(files);
+    if (!paths.length) { setStatus("không có gì thay đổi"); return; }
+    try {
+      setStatus("đang đẩy lên GitHub…");
+      const ref = await gh("/git/ref/heads/" + GH.branch), head = await gh("/git/commits/" + ref.object.sha);
+      const tree = [];
+      for (const p of paths) { const bl = await gh("/git/blobs", { method: "POST", body: JSON.stringify({ content: await b64(files[p]), encoding: "base64" }) }); tree.push({ path: p, mode: "100644", type: "blob", sha: bl.sha }); }
+      const t = await gh("/git/trees", { method: "POST", body: JSON.stringify({ base_tree: head.tree.sha, tree }) });
+      const c = await gh("/git/commits", { method: "POST", body: JSON.stringify({ message: "admin: cập nhật " + paths.join(", "), tree: t.sha, parents: [ref.object.sha] }) });
+      await gh("/git/refs/heads/" + GH.branch, { method: "PATCH", body: JSON.stringify({ sha: c.sha }) });
+      afterSave();
+      setStatus("đã đẩy lên GitHub — trang thật đổi sau khoảng 1 phút");
+    } catch (e) { setStatus("lỗi: " + (e && e.message || e)); }
   }
 
   /* ---------- bảng admin ---------- */
@@ -255,8 +311,8 @@
     liveOn = false;
     panel = document.createElement("div"); panel.className = "adm adm-ui";
     panel.innerHTML = `<div class="adm-bar"><b>Admin · Pindexio</b><span class="adm-st">chưa sửa</span>
-        <button data-a="live" class="adm-primary">✎ Sửa trực tiếp trên trang</button><button data-a="pw">Đổi mật khẩu</button><button data-a="save" class="adm-primary">Lưu vào file</button><button data-a="x">Thoát</button></div>
-      <div class="adm-tabs" role="tablist"><button data-tab="link" role="tab">Link mua hàng</button><button data-tab="theme" role="tab">Giao diện</button></div>
+        <button data-a="live" class="adm-primary">✎ Sửa trực tiếp trên trang</button><button data-a="pw">Đổi mật khẩu</button><button data-a="save" class="adm-primary" title="Ghi vào thư mục dự án trên máy này (Chrome/Edge), sau đó commit & push">Lưu vào file</button><button data-a="gh" class="adm-primary" title="Commit thẳng lên GitHub, dùng được từ máy bất kỳ">☁ Lưu lên GitHub</button><button data-a="x">Thoát</button></div>
+      <div class="adm-tabs" role="tablist"><button data-tab="link" role="tab">Link mua hàng</button><button data-tab="posts" role="tab">Bài viết</button><button data-tab="set" role="tab">Cài đặt</button><button data-tab="theme" role="tab">Giao diện</button></div>
       <div class="adm-body"><div class="adm-in" id="admTab"></div></div>`;
     document.body.appendChild(panel);
     statusEls = [panel.querySelector(".adm-st")];
@@ -264,7 +320,8 @@
       const a = e.target.dataset.a, t = e.target.dataset.tab;
       if (t) { tab = t; paintTab(); }
       if (a === "save") saveAll();
-      if (a === "x") { if ((dirty.aff || dirty.css || dirty.img) && !confirm("Còn chỉnh sửa chưa lưu. Thoát luôn?")) return; location.reload(); }
+      if (a === "gh") saveGitHub();
+      if (a === "x") { if (anyDirty() && !confirm("Còn chỉnh sửa chưa lưu. Thoát luôn?")) return; location.reload(); }
       if (a === "live") startLive();
       if (a === "pw") { const pw = await askPw("Mật khẩu admin mới (ít nhất 4 ký tự)", true); if (pw != null) { dirty.auth = makeAuth(pw); setStatus("chưa lưu mật khẩu mới — bấm Lưu vào file"); } }
     };
@@ -273,7 +330,8 @@
   function paintTab() {
     panel.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
     const box = $("#admTab");
-    if (tab === "link") paintLinks(box); else paintTheme(box);
+    box.oninput = box.onchange = box.onclick = null;
+    if (tab === "link") paintLinks(box); else if (tab === "posts") paintPosts(box); else if (tab === "set") paintSettings(box); else paintTheme(box);
   }
   function paintLinks(box) {
     box.innerHTML = Object.keys(AFF).map(r => `<section><h3>${esc(AFF[r].label || r)} <input type="text" class="adm-shop" data-r="${r}" value="${esc(AFF[r].shop || "")}" placeholder="Tên sàn" style="width:150px"></h3>
@@ -287,6 +345,74 @@
       dirty.aff = true; setStatus("chưa lưu");
     };
   }
+  /* ---------- tab Bài viết ---------- */
+  const slug = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "bai-" + Date.now();
+  const today = () => new Date().toISOString().slice(0, 10);
+  function paintPosts(box) {
+    const p = editId != null && POSTS.find(x => x.id === editId);
+    if (!p) {
+      editId = null;
+      const list = POSTS.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      box.innerHTML = `<div class="adm-btns" style="justify-content:flex-start"><button data-p="new" class="adm-primary">+ Bài mới</button></div>
+        ${list.map(x => `<div class="adm-prow"><span>${x.type === "guide" ? "📘 Hướng dẫn" : "📰 Tin tức"} · ${esc(x.date)}</span><b style="flex:1">${esc(x.title)}</b><button data-p="edit" data-id="${esc(x.id)}">Sửa</button><button data-p="del" data-id="${esc(x.id)}">Xoá</button></div>`).join("") || "<p>Chưa có bài.</p>"}
+        <p class="adm-note">Bài hiện ở trang chủ (bấm logo). Lưu xong: "Lưu lên GitHub" đẩy thẳng lên trang thật, "Lưu vào file" thì còn phải commit & push.</p>`;
+      box.onclick = e => {
+        const b = e.target.closest("[data-p]"); if (!b) return;
+        if (b.dataset.p === "new") { const n = { id: "", type: "news", date: today(), title: "", summary: "", body: "" }; POSTS.push(n); editId = ""; paintPosts(box); }
+        if (b.dataset.p === "edit") { editId = b.dataset.id; paintPosts(box); }
+        if (b.dataset.p === "del" && confirm("Xoá bài này?")) { POSTS = POSTS.filter(x => x.id !== b.dataset.id); dirty.posts = true; setStatus("chưa lưu"); paintPosts(box); }
+      };
+      return;
+    }
+    box.innerHTML = `<div class="adm-post">
+      <label class="adm-row"><span>Loại</span><select data-f="type"><option value="news">Tin tức</option><option value="guide">Hướng dẫn</option></select><span>Ngày</span><input type="date" data-f="date" value="${esc(p.date)}"></label>
+      <label class="adm-row"><span>Tiêu đề</span><input type="text" data-f="title" value="${esc(p.title)}"></label>
+      <label class="adm-row"><span>Mô tả ngắn</span><input type="text" data-f="summary" value="${esc(p.summary || "")}"></label>
+      <label class="adm-row"><span>Đường dẫn</span><input type="text" data-f="id" value="${esc(p.id)}" placeholder="tự tạo từ tiêu đề"></label>
+      <div class="adm-btns" style="justify-content:flex-start"><button data-p="img">🖼 Chèn ảnh</button><span class="adm-note">Markdown: ## tiêu đề, **đậm**, _nghiêng_, \`mã\`, - danh sách, [chữ](link)</span></div>
+      <div class="adm-md"><textarea data-f="body" rows="16" spellcheck="false">${esc(p.body || "")}</textarea><div class="adm-prev post-body"></div></div>
+      <div class="adm-btns" style="justify-content:flex-start"><button data-p="back" class="adm-primary">✓ Xong</button></div></div>`;
+    box.querySelector('[data-f="type"]').value = p.type;
+    const prev = box.querySelector(".adm-prev"), ta = box.querySelector("textarea");
+    const draw = () => { prev.innerHTML = window.mdToHtml ? mdToHtml(ta.value) : ""; };
+    draw();
+    box.oninput = box.onchange = e => {
+      const f = e.target.dataset.f; if (!f) return;
+      p[f] = e.target.value; if (f === "title" && !box.querySelector('[data-f="id"]').value) {}
+      if (f === "body") draw();
+      dirty.posts = true; setStatus("chưa lưu");
+    };
+    box.onclick = async e => {
+      const b = e.target.closest("[data-p]"); if (!b) return;
+      if (b.dataset.p === "back") {
+        if (!p.title.trim()) { alert("Bài cần có tiêu đề."); return; }
+        let id = slug(p.id || p.title), n = 2; const base = id;
+        while (POSTS.some(x => x !== p && x.id === id)) id = base + "-" + n++;
+        p.id = id; editId = null; dirty.posts = true; paintPosts(box);
+      }
+      if (b.dataset.p === "img") {
+        const f = await pickImage(); if (!f) return;
+        const path = "img/uploads/post-" + Date.now() + "." + (f.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+        pendingUp[path] = f; dirty.posts = true; setStatus("chưa lưu");
+        const ins = "\n![" + f.name.replace(/\.[^.]+$/, "") + "](/" + path + ")\n", at = ta.selectionStart || ta.value.length;
+        ta.value = ta.value.slice(0, at) + ins + ta.value.slice(at); p.body = ta.value;
+        const url = URL.createObjectURL(f); draw(); prev.querySelectorAll('img[src="/' + path + '"]').forEach(i => i.src = url);   // xem trước trước khi lưu
+      }
+    };
+  }
+  const pickImage = () => new Promise(ok => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/png,image/jpeg,image/webp,image/svg+xml"; i.onchange = () => ok(i.files[0] && i.files[0].size < 3e6 ? i.files[0] : (i.files[0] && alert("Ảnh cần nhỏ hơn 3 MB."), null)); i.click(); });
+
+  /* ---------- tab Cài đặt ---------- */
+  function paintSettings(box) {
+    box.innerHTML = `<section><h3>Mua board</h3>
+      <label class="adm-row"><input type="checkbox" data-s="showBuyCards"${SITE.showBuyCards ? " checked" : ""}> <span style="flex:1">Hiện khung thẻ "Mua board" (tiếp thị liên kết) dưới sơ đồ chân</span></label>
+      <p class="adm-note">Tắt (mặc định): chỉ hiện nút "Mua board" màu cyan, dẫn tới link của board đang xem.</p></section>
+      <section><h3>GitHub</h3><p class="adm-note">Repo ${esc(GH.repo)}, nhánh ${GH.branch}. Token ${ghTok() ? "đã lưu trong trình duyệt này" : "chưa có (sẽ hỏi khi bấm Lưu lên GitHub)"}.</p>
+      ${ghTok() ? '<button data-s="forget">Quên token trên máy này</button>' : ""}</section>`;
+    box.onchange = e => { const k = e.target.dataset.s; if (k === "showBuyCards") { SITE.showBuyCards = e.target.checked; window.SITE = Object.assign({}, SITE); if (window.APP) APP.redrawBuy(); dirty.site = true; setStatus("chưa lưu"); } };
+    box.onclick = e => { if (e.target.dataset.s === "forget") { try { localStorage.removeItem(GH.key); } catch (x) { } paintSettings(box); } };
+  }
+
   function paintTheme(box) {
     const rows = (t, label) => {
       const own = t === "light" ? S.day : S.night;
@@ -326,7 +452,7 @@
       const a = e.target.dataset.a;
       if (a === "save") saveAll();
       if (a === "back") stopLive();
-      if (a === "x") { if ((dirty.aff || dirty.css || dirty.img) && !confirm("Còn chỉnh sửa chưa lưu. Thoát luôn?")) return; location.reload(); }
+      if (a === "x") { if (anyDirty() && !confirm("Còn chỉnh sửa chưa lưu. Thoát luôn?")) return; location.reload(); }
     };
     document.addEventListener("contextmenu", onCtx, true);
     document.addEventListener("pointermove", onMove, true);

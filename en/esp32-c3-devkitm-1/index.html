@@ -15,7 +15,7 @@
 <meta property="og:locale" content="en_US"><meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ESP32-C3-DevKitM-1 Pinout – GPIO, ADC, I2C, SPI reference | Pindex"><meta name="twitter:description" content="ESP32-C3-DevKitM-1 pinout: every pin's functions, boot/strapping warnings, electrical limits and companion parts from the Espressif datasheet. Single-core RISC-V 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG."><meta name="twitter:image" content="https://pindex.pages.dev/og/esp32-c3-devkitm-1.png">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"ESP32-C3-DevKitM-1 Pinout – GPIO, ADC, I2C, SPI reference | Pindex","name":"ESP32-C3-DevKitM-1 Pinout – GPIO, ADC, I2C, SPI reference | Pindex","description":"ESP32-C3-DevKitM-1 pinout: every pin's functions, boot/strapping warnings, electrical limits and companion parts from the Espressif datasheet. Single-core RISC-V 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG.","url":"https://pindex.pages.dev/en/esp32-c3-devkitm-1/","inLanguage":"en","image":"https://pindex.pages.dev/og/esp32-c3-devkitm-1.png","publisher":{"@type":"Organization","name":"Pindex"},"dateModified":"2026-10-26","about":{"@type":"Product","name":"ESP32-C3-DevKitM-1","brand":{"@type":"Brand","name":"Espressif"},"description":"Single-core RISC-V 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG."}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"ESP32-C3-DevKitM-1 Pinout – GPIO, ADC, I2C, SPI reference | Pindex","name":"ESP32-C3-DevKitM-1 Pinout – GPIO, ADC, I2C, SPI reference | Pindex","description":"ESP32-C3-DevKitM-1 pinout: every pin's functions, boot/strapping warnings, electrical limits and companion parts from the Espressif datasheet. Single-core RISC-V 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG.","url":"https://pindex.pages.dev/en/esp32-c3-devkitm-1/","inLanguage":"en","image":"https://pindex.pages.dev/og/esp32-c3-devkitm-1.png","publisher":{"@type":"Organization","name":"Pindex"},"dateModified":"2026-10-27","about":{"@type":"Product","name":"ESP32-C3-DevKitM-1","brand":{"@type":"Brand","name":"Espressif"},"description":"Single-core RISC-V 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG."}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pindex","item":"https://pindex.pages.dev/en/"},{"@type":"ListItem","position":2,"name":"ESP32-C3-DevKitM-1","item":"https://pindex.pages.dev/en/esp32-c3-devkitm-1/"}]}</script>
 
 <script>window.PAGE_BOARD="esp32-c3-devkitm-1";window.PAGE_LANG="en";</script><!--/SEO-->
@@ -26,11 +26,11 @@
 <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=100">
-<link rel="stylesheet" href="css/retro.css?v=100" id="skin-8bit" disabled>
-<link rel="stylesheet" href="css/pinout.css?v=100" id="skin-pinout">
-<link rel="stylesheet" href="css/amber.css?v=100" id="skin-amber" disabled>
-<link rel="stylesheet" href="css/custom.css?v=100" id="custom-css">
+<link rel="stylesheet" href="css/app.css?v=102">
+<link rel="stylesheet" href="css/retro.css?v=102" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=102" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=102" id="skin-amber" disabled>
+<link rel="stylesheet" href="css/custom.css?v=102" id="custom-css">
 </head>
 <body>
 <header class="appbar">
@@ -39,7 +39,6 @@
     <button data-tab="pins" role="tab">Sơ đồ chân</button>
     <button data-tab="calc" role="tab">Tính toán</button>
     <button data-tab="docs" role="tab">Tài liệu</button>
-    <button data-tab="build" role="tab" class="tab-build">⚡ Connect</button>
   </nav>
   <div class="daynight langsw" id="langSw" role="group" aria-label="Ngôn ngữ"><button data-l="vi" title="Tiếng Việt"><svg viewBox="0 0 30 20" width="22" height="15" aria-hidden="true"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.2,8.3 20.7,8.3 17.1,10.9 18.4,15.2 15,12.6 11.6,15.2 12.9,10.9 9.3,8.3 13.8,8.3" fill="#ff0"/></svg></button><button data-l="en" title="English"><svg viewBox="0 0 60 30" width="22" height="15" aria-hidden="true"><clipPath id="gbc"><rect width="60" height="30"/></clipPath><g clip-path="url(#gbc)"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" stroke="#c8102e" stroke-width="2.4"/><path d="M30,0V30M0,15H60" stroke="#fff" stroke-width="10"/><path d="M30,0V30M0,15H60" stroke="#c8102e" stroke-width="6"/></g></svg></button></div>
   <div class="daynight" role="group" aria-label="Sáng / tối"><button id="tLight" aria-label="Giao diện sáng">☀</button><button id="tDark" aria-label="Giao diện tối">☾</button></div>
@@ -52,9 +51,9 @@
     <div class="layout">
       <div class="stage card">
         <div class="stage-head">
-          <div><h1 id="bTitle">ESP32-C3-DevKitM-1</h1><p id="bSub" class="muted small"></p></div>
+          <div><h1 id="bTitle">ESP32-C3-DevKitM-1</h1><p id="bSub" class="muted small"></p><a id="buyBtn" class="buy-btn" hidden target="_blank" rel="noopener sponsored nofollow"></a></div>
           <div class="seg" role="group" aria-label="Kiểu hình">
-            <button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
+            <button id="viewWire" class="wire-btn" title="Ghép linh kiện và nối dây">⚡ Wiring</button><button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
           </div>
         </div>
         <div class="toolbar">
@@ -69,6 +68,11 @@
       </div>
       <aside class="detail card" id="detail"><div class="grab" aria-hidden="true"></div><div id="detailBody"></div></aside>
     </div>
+    <section class="card spec" id="spec" hidden>
+      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
+      <div class="chips" id="specTabs" role="tablist"></div>
+      <div id="specBody"></div>
+    </section>
     <section class="card buy" id="buyBox" hidden>
       <div class="buy-h"><h2>Mua board</h2><div class="buy-shop" id="buyShop" role="group" aria-label="Vùng mua hàng"></div><p class="muted small">Link tiếp thị liên kết tới Shopee. Bạn trả đúng giá niêm yết; Pindex có thể nhận hoa hồng từ người bán. Pindex không bán hàng và không bảo hành sản phẩm.</p></div>
       <div class="buy-row" id="buyRow"></div>
@@ -77,15 +81,12 @@
 <p class="muted">Single-core RISC-V 160 MHz, 400 KB SRAM, 4 MB flash, Wi-Fi 4 + BLE 5, USB Serial/JTAG.</p><dl class="facts"><dt>Logic</dt><dd>3.3 V, not 5 V tolerant</dd><dt>Current per pin</dt><dd>20 mA default (IO2–IO5: 10 mA), 40 mA max</dd><dt>ADC</dt><dd>2 × 12-bit SAR: ADC1 5 channels (IO0–IO4, calibrated), ADC2 1 channel (IO5)</dd><dt>Power input</dt><dd>5V via Micro-USB or the 5V pin</dd><dt>Flashing</dt><dd>USB-UART (CP2102N) or USB Serial/JTAG (IO18/IO19)</dd><dt>Default Arduino pins</dt><dd>SDA IO8 · SCL IO9 · MOSI IO6 · MISO IO5 · SCK IO4 · SS IO7 (arduino-esp32, esp32c3)</dd></dl>
 <div class="tw"><table><thead><tr><th>Pin</th><th>Header</th><th>GPIO</th><th>Type</th><th>Functions</th><th>Notes</th></tr></thead><tbody><tr><td><b>GND</b></td><td>J1-1</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>3V3</b></td><td>J1-2</td><td>–</td><td>Power</td><td>3.3 V LDO output</td><td>Board 3.3 V LDO output. The chip needs a ≥ 0.5 A supply.</td></tr><tr><td><b>3V3</b></td><td>J1-3</td><td>–</td><td>Power</td><td>3.3 V LDO output</td><td>Board 3.3 V LDO output. The chip needs a ≥ 0.5 A supply.</td></tr><tr><td><b>IO2</b></td><td>J1-4</td><td>2</td><td>Strapping ⚠</td><td>ADC1_CH2, FSPIQ</td><td>Strapping: floating at reset. It doesn't decide the boot mode, but the datasheet recommends pulling it HIGH because of possible glitches.</td></tr><tr><td><b>IO3</b></td><td>J1-5</td><td>3</td><td>Analog</td><td>ADC1_CH3</td><td></td></tr><tr><td><b>GND</b></td><td>J1-6</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>RST</b></td><td>J1-7</td><td>–</td><td>Control</td><td>CHIP_EN</td><td>Pull LOW to reset the chip. Connected to the RST button.</td></tr><tr><td><b>GND</b></td><td>J1-8</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>IO0</b></td><td>J1-9</td><td>0</td><td>Analog</td><td>ADC1_CH0, XTAL_32K_P</td><td></td></tr><tr><td><b>IO1</b></td><td>J1-10</td><td>1</td><td>Analog</td><td>ADC1_CH1, XTAL_32K_N</td><td></td></tr><tr><td><b>IO10</b></td><td>J1-11</td><td>10</td><td>GPIO</td><td>FSPICS0</td><td></td></tr><tr><td><b>GND</b></td><td>J1-12</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>5V</b></td><td>J1-13</td><td>–</td><td>Power</td><td>5V from USB</td><td>Connected to 5V from the Micro-USB port. Never feed 5V into any GPIO.</td></tr><tr><td><b>5V</b></td><td>J1-14</td><td>–</td><td>Power</td><td>5V from USB</td><td>Connected to 5V from the Micro-USB port. Never feed 5V into any GPIO.</td></tr><tr><td><b>GND</b></td><td>J1-15</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GND</b></td><td>J3-1</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>TX</b></td><td>J3-2</td><td>21</td><td>UART/I2C</td><td>U0TXD, IO21</td><td>UART0 TX wired to the onboard CP2102 USB-UART: the chip prints its ROM log here at boot. Best left alone.</td></tr><tr><td><b>RX</b></td><td>J3-3</td><td>20</td><td>UART/I2C</td><td>U0RXD, IO20</td><td>UART0 RX wired to the onboard CP2102 USB-UART: used for flashing and logs. Best left alone.</td></tr><tr><td><b>GND</b></td><td>J3-4</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>IO9</b></td><td>J3-5</td><td>9</td><td>Strapping ⚠</td><td>Arduino SCL, BOOT button</td><td>Strapping: weak pull-up by default. LOW at reset = download mode (BOOT button). Don't attach loads that pull it LOW, and no large capacitor.</td></tr><tr><td><b>IO8</b></td><td>J3-6</td><td>8</td><td>Strapping ⚠</td><td>Arduino SDA, RGB LED (WS2812)</td><td>Strapping: floating at reset; must be HIGH to enter download mode, and also controls ROM log printing. The RGB LED is on this pin.</td></tr><tr><td><b>GND</b></td><td>J3-7</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>IO7</b></td><td>J3-8</td><td>7</td><td>GPIO</td><td>FSPID · MTDO, Arduino SS</td><td></td></tr><tr><td><b>IO6</b></td><td>J3-9</td><td>6</td><td>GPIO</td><td>FSPICLK · MTCK, Arduino MOSI</td><td></td></tr><tr><td><b>IO5</b></td><td>J3-10</td><td>5</td><td>Analog</td><td>ADC2_CH0, FSPIWP · MTDI, Arduino MISO</td><td>ADC2 is not factory-calibrated and is not operable on some chip revisions (see errata). For analog readings use IO0–IO4 (ADC1).</td></tr><tr><td><b>IO4</b></td><td>J3-11</td><td>4</td><td>Analog</td><td>ADC1_CH4, FSPIHD · MTMS, Arduino SCK</td><td></td></tr><tr><td><b>GND</b></td><td>J3-12</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>IO18</b></td><td>J3-13</td><td>18</td><td>USB</td><td>USB_D-</td><td>USB D− of USB Serial/JTAG (enabled by default). To use it as GPIO you must disable the USB function; outputs a ~50 µs HIGH glitch at power-up.</td></tr><tr><td><b>IO19</b></td><td>J3-14</td><td>19</td><td>USB</td><td>USB_D+</td><td>USB D+ of USB Serial/JTAG (enabled by default, with USB pull-up). To use it as GPIO you must disable the USB function.</td></tr><tr><td><b>GND</b></td><td>J3-15</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr></tbody></table></div>
 <h3>Manufacturer documents</h3><ul class="seo-links"><li><a href="https://documentation.espressif.com/esp32-c3_datasheet_en.pdf" rel="noopener" target="_blank">ESP32-C3 Series Datasheet v2.4</a></li><li><a href="https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf" rel="noopener" target="_blank">ESP32-C3-MINI-1 Datasheet</a></li><li><a href="https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32c3/esp32-c3-devkitm-1/user_guide.html" rel="noopener" target="_blank">DevKitM-1 User Guide</a></li><li><a href="https://dl.espressif.com/dl/schematics/SCH_ESP32-C3-DEVKITM-1_V1_20200915A.pdf" rel="noopener" target="_blank">DevKitM-1 Schematic</a></li><li><a href="https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32c3/index.html" rel="noopener" target="_blank">ESP32-C3 Hardware Design Guidelines</a></li><li><a href="https://www.espressif.com/sites/default/files/documentation/esp32-c3_technical_reference_manual_en.pdf" rel="noopener" target="_blank">ESP32-C3 Technical Reference Manual</a></li><li><a href="https://www.espressif.com/sites/default/files/documentation/esp32-c3_errata_en.pdf" rel="noopener" target="_blank">ESP32-C3 Errata</a></li></ul><h3>All boards</h3><ul class="seo-links"><li><a href="../../en/esp32-c3-devkitm-1/" aria-current="page">ESP32-C3-DevKitM-1</a> <span class="muted small">ESP32-C3 (MINI-1)</span></li><li><a href="../../en/esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span></li><li><a href="../../en/esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="../../en/lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="../../en/pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="../../en/pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="../../en/raspberry-pi-40pin/">Raspberry Pi 4 / 5 (40-pin GPIO)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="../../en/arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li></ul></section><!--/SEOBODY-->
-    <section class="card spec" id="spec" hidden>
-      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
-      <div class="chips" id="specTabs" role="tablist"></div>
-      <div id="specBody"></div>
-    </section>
     <section class="card spec" id="ref" hidden>
       <h2>Linh kiện đi kèm khi tự làm mạch</h2><div id="refBody"></div>
     </section>
   </section>
+
+  <section data-panel="home" id="home" hidden></section>
 
   <section data-panel="calc" id="calc" hidden>
     <div class="grid2">
@@ -129,18 +130,19 @@
   <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
   <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
 </div>
-<script src="js/i18n-data.js?v=100"></script>
-<script src="js/i18n.js?v=100"></script>
-<script src="js/boards.js?v=100"></script>
-<script src="js/specs.js?v=100"></script>
-<script src="js/learn.js?v=100"></script>
-<script src="js/modules.js?v=100"></script>
-<script src="js/affiliates.js?v=100"></script>
-<script src="js/seo-body.js?v=100"></script>
+<script src="js/i18n-data.js?v=102"></script>
+<script src="js/i18n.js?v=102"></script>
+<script src="js/boards.js?v=102"></script>
+<script src="js/specs.js?v=102"></script>
+<script src="js/learn.js?v=102"></script>
+<script src="js/modules.js?v=102"></script>
+<script src="js/settings.js?v=102"></script>
+<script src="js/affiliates.js?v=102"></script>
+<script src="js/seo-body.js?v=102"></script>
 <script>/* Trang admin chỉ tải khi cần: Ctrl+Shift+E, thêm ?edit vào URL, hoặc bấm logo 5 lần liền (dùng được trên điện thoại).
-   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=100";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
-<script src="js/images.js?v=100"></script>
-<script src="js/app.js?v=100"></script>
+   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=102";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
+<script src="js/images.js?v=102"></script>
+<script src="js/app.js?v=102"></script>
 
 </body>
 </html>
