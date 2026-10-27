@@ -543,10 +543,14 @@ main { padding-top: 12px; }
 }
 
 /* Nút "Mua board này" màu cyan dưới tên board (link tiếp thị liên kết) */
-.buy-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 14px; border-radius: 999px; background: #00AEEF; color: #031a35 !important;
-  font: 700 13.5px var(--sans); text-decoration: none; box-shadow: 0 2px 10px rgba(0,174,239,.4); }
-.buy-btn:hover { background: #22c0ff; }
-.buy-btn:focus-visible { outline: 3px solid #031a35; outline-offset: 2px; }
+/* nút Mua board: nhỏ, chìm, góc phải dưới khung xem board (link tiếp thị của board đang xem) */
+.canvas-wrap { position: relative; }
+.buy-btn { position: absolute; right: 22px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(0, 174, 239, .16); border: 1px solid rgba(0, 174, 239, .45); color: #7fd6f7 !important; font: 600 12px var(--sans); text-decoration: none; opacity: .8;
+  backdrop-filter: blur(3px); transition: opacity .15s, background .15s; }
+.buy-btn:hover { opacity: 1; background: rgba(0, 174, 239, .32); color: #fff !important; }
+.buy-btn:focus-visible { outline: 2px solid #00AEEF; outline-offset: 2px; }
+.buy-btn svg { width: 14px; height: 14px; }
 /* Nút Wiring trong nhóm PCB / Kiến trúc / Schematic */
 .seg .wire-btn { background: #f5d63d !important; color: #1b1f0a !important; font-weight: 800; }
 .seg .wire-btn:hover { background: #ffe35a !important; }

@@ -26,11 +26,11 @@
 <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=102">
-<link rel="stylesheet" href="css/retro.css?v=102" id="skin-8bit" disabled>
-<link rel="stylesheet" href="css/pinout.css?v=102" id="skin-pinout">
-<link rel="stylesheet" href="css/amber.css?v=102" id="skin-amber" disabled>
-<link rel="stylesheet" href="css/custom.css?v=102" id="custom-css">
+<link rel="stylesheet" href="css/app.css?v=103">
+<link rel="stylesheet" href="css/retro.css?v=103" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=103" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=103" id="skin-amber" disabled>
+<link rel="stylesheet" href="css/custom.css?v=103" id="custom-css">
 </head>
 <body>
 <header class="appbar">
@@ -51,7 +51,7 @@
     <div class="layout">
       <div class="stage card">
         <div class="stage-head">
-          <div><h1 id="bTitle">ESP32-C3-DevKitM-1</h1><p id="bSub" class="muted small"></p><a id="buyBtn" class="buy-btn" hidden target="_blank" rel="noopener sponsored nofollow"></a></div>
+          <div><h1 id="bTitle">ESP32-C3-DevKitM-1</h1><p id="bSub" class="muted small"></p></div>
           <div class="seg" role="group" aria-label="Kiểu hình">
             <button id="viewWire" class="wire-btn" title="Ghép linh kiện và nối dây">⚡ Wiring</button><button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
           </div>
@@ -62,7 +62,7 @@
         </div>
         <div class="chips" id="filters"></div>
         <div class="oem" id="oem" hidden></div>
-        <div class="canvas" id="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ chân board"></svg></div>
+        <div class="canvas-wrap"><div class="canvas" id="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ chân board"></svg></div><a id="buyBtn" class="buy-btn" hidden target="_blank" rel="noopener sponsored nofollow"></a></div>
         <div class="stage-foot"><div class="legend" id="legend"></div><span id="count" class="muted small"></span></div>
         <p id="bNote" class="note small"></p>
       </div>
@@ -130,19 +130,19 @@
   <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
   <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
 </div>
-<script src="js/i18n-data.js?v=102"></script>
-<script src="js/i18n.js?v=102"></script>
-<script src="js/boards.js?v=102"></script>
-<script src="js/specs.js?v=102"></script>
-<script src="js/learn.js?v=102"></script>
-<script src="js/modules.js?v=102"></script>
-<script src="js/settings.js?v=102"></script>
-<script src="js/affiliates.js?v=102"></script>
-<script src="js/seo-body.js?v=102"></script>
+<script src="js/i18n-data.js?v=103"></script>
+<script src="js/i18n.js?v=103"></script>
+<script src="js/boards.js?v=103"></script>
+<script src="js/specs.js?v=103"></script>
+<script src="js/learn.js?v=103"></script>
+<script src="js/modules.js?v=103"></script>
+<script src="js/settings.js?v=103"></script>
+<script src="js/affiliates.js?v=103"></script>
+<script src="js/seo-body.js?v=103"></script>
 <script>/* Trang admin chỉ tải khi cần: Ctrl+Shift+E, thêm ?edit vào URL, hoặc bấm logo 5 lần liền (dùng được trên điện thoại).
-   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=102";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
-<script src="js/images.js?v=102"></script>
-<script src="js/app.js?v=102"></script>
+   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=103";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
+<script src="js/images.js?v=103"></script>
+<script src="js/app.js?v=103"></script>
 
 </body>
 </html>

@@ -37,7 +37,7 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
 7b. **Sơ đồ chân linh kiện**: dưới danh sách board có mục 🧩 Linh kiện (thu gọn 3 hàng / mở rộng theo nhóm `MOD_CATS`), mỗi module thành "board" giả `mod-<mã>` (`modBoard()` trong `app.js`), URL `/#mod-<mã>/<chân>`, không có trang SEO riêng. `js/modules.js` giờ tải sẵn trong `index.html`.
 7. **Song ngữ**: nút cờ VN/EN. **4 giao diện** (ô chọn góc phải): *Pindex* (mặc định, lá ô liu + dark), *8-bit* (tông đại dương retro), *Hổ phách*, *Simple*; nút ☀/☾ sáng/tối.
 8. **Chia sẻ** board/chân (Web Share API hoặc copy link).
-9. **Nút "Mua board" màu cyan** (`#buyBtn`, cạnh tên board) dẫn tới link của board đang xem. **Khung thẻ "Mua board"** (`#buyBox`) mặc định ẩn, chỉ hiện khi `js/settings.js` có `showBuyCards: true` (admin tab Cài đặt). Mục Thông số chip nằm ngay dưới khung xem board, trước khung thẻ.
+9. **Nút "Mua tại đây"** (`#buyBtn`, icon giỏ hàng, nhỏ và chìm, góc phải dưới khung xem board trong `.canvas-wrap`) dẫn tới link của board đang xem. **Khung thẻ "Mua board"** (`#buyBox`) mặc định ẩn, chỉ hiện khi `js/settings.js` có `showBuyCards: true` (admin tab Cài đặt). Mục Thông số chip nằm ngay dưới khung xem board, trước khung thẻ.
    Khung thẻ: ảnh board thật (`BOARD_PHOTOS`) hoặc icon vẽ từ dữ liệu PCB,
    link tiếp thị liên kết lấy từ `js/affiliates.js` theo **vùng** (`vn` Shopee / `intl` AliExpress).
    Vùng đoán theo múi giờ rồi ngôn ngữ, người dùng đổi được và lưu vào `localStorage.region`.

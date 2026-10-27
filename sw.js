@@ -1,5 +1,5 @@
 // Cache để mở offline: mạng trước, lỗi mạng thì lấy cache
-const C = "pindex-v102";
+const C = "pindex-v103";
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(["./", "index.html", "404.html", "css/app.css", "css/retro.css", "css/pinout.css", "css/amber.css", "css/custom.css", "js/boards.js", "js/settings.js", "js/affiliates.js", "js/posts.js", "js/home.js", "js/images.js", "js/seo-body.js", "js/app.js", "js/specs.js", "js/learn.js", "js/i18n.js", "js/i18n-data.js", "js/modules.js", "js/build.js", "icon.svg"]))); });
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", e => {
