@@ -18,8 +18,6 @@
     ["--line", "Đường kẻ"], ["--accent", "Màu nhấn (nút, đang chọn)"], ["--navy", "Navy (nút chọn, tiêu đề bảng)"], ["--cyan", "Cyan"]];
   // [khoá, tên hiển thị, font-family, tham số Google Fonts (nếu chưa có sẵn trong trang)]
   const FONTS = [
-    ["ubuntu", "Ubuntu", '"Ubuntu", system-ui, sans-serif'],
-    ["ubuntu-mono", "Ubuntu Mono", '"Ubuntu Mono", ui-monospace, monospace'],
     ["plex-sans", "IBM Plex Sans", '"IBM Plex Sans", system-ui, sans-serif'],
     ["plex-mono", "IBM Plex Mono", '"IBM Plex Mono", ui-monospace, monospace'],
     ["vt323", "VT323 (pixel)", '"VT323", monospace'],
