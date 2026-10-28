@@ -13,12 +13,21 @@
     if (!d.svg && !d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
     if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { d.svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); if (B.boardId) draw(); }).catch(() => {});
   }
-  const B = { boardId: null, bus: {}, mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "", brot: 0, needPlace: false };
+  const B = { boardId: null, buses: [{}], mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "", brot: 0, needPlace: false, bb: { on: false, n: 1, board: null } };
+  Object.defineProperty(B, "bus", { get() { return B.buses[CUR] || (B.buses[CUR] = {}); }, set(v) { B.buses[CUR] = v; } });
   const CATS = window.MOD_CATS || [];
   // tên hiển thị góc phải trên khung vẽ
   const ARR_NAMES = ["Gần chân nhất", "Vòng cung cân bằng", "Tách Bus / GPIO"];
   const STYLE_NAMES = ["Vuông góc gọn", "Vuông góc tách nhóm", "Cong mềm (Node)", "Vát 45° kiểu PCB"];
-  const board = () => A.state.b;
+  /* ---------- Nhiều board trong một mạch (chế độ breadboard) ----------
+     Host 0 = board chính (A.state.b), host k = B.bb.extra[k-1]. Mỗi linh kiện có m.host; mỗi host có bus SPI/I2C riêng (B.buses[k]).
+     Các hàm chấm điểm / tự nối chân dùng board() và B.bus của host hiện hành CUR – withHost() đổi host tạm thời. */
+  let CUR = 0;
+  const hostBoard = h => h ? window.BOARDS.find(x => x.id === ((B.bb.extra || [])[h - 1] || {}).id) || A.state.b : A.state.b;
+  const board = () => hostBoard(CUR);
+  const hostOf = m => (m && m.host) || 0;
+  function withHost(h, fn) { const p = CUR; CUR = h; try { return fn(); } finally { CUR = p; } }
+  const hosts = () => [0, ...(B.bb.extra || []).map((x, i) => i + 1)];
 
   /* ---------- Xoay 0-90-180-270° (theo chiều kim đồng hồ) ----------
      Board vẽ trong <g transform> rồi đặt lại vào góc phần tư dương: khung board luôn là [0, bw()] × [0, bh()].
@@ -74,12 +83,14 @@
     if (b.family === "RP2" && /ADC\d/.test(fn) && role !== "adc") s -= 10;
     return s;
   }
-  const used = () => new Set([...Object.values(B.bus), ...B.mods.flatMap(m => Object.entries(m.pins).filter(([l]) => { const r = roleOf(m, l); return r && !POWER.includes(r); }).map(x => x[1]))].filter(Boolean));
+  const used = () => new Set([...Object.values(B.bus), ...B.mods.filter(m => hostOf(m) === CUR).flatMap(m => Object.entries(m.pins).filter(([l]) => { const r = roleOf(m, l); return r && !POWER.includes(r); }).map(x => x[1]))].filter(Boolean));
   const roleOf = (m, label) => (M[m.type].pins.find(x => x[0] === label) || [])[1];
-  const getPin = (m, label) => { const r = roleOf(m, label); return SHARED.includes(r) ? B.bus[r] : m.pins[label]; };
-  function setPin(m, label, name) { const r = roleOf(m, label); if (SHARED.includes(r)) { if (name) B.bus[r] = name; else delete B.bus[r]; } else if (name) m.pins[label] = name; else delete m.pins[label]; }
+  const getPin = (m, label) => withHost(hostOf(m), () => { const r = roleOf(m, label); return SHARED.includes(r) ? B.bus[r] : m.pins[label]; });
+  function setPin(m, label, name) { return withHost(hostOf(m), () => setPinH(m, label, name)); }
+  function setPinH(m, label, name) { const r = roleOf(m, label); if (SHARED.includes(r)) { if (name) B.bus[r] = name; else delete B.bus[r]; } else if (name) m.pins[label] = name; else delete m.pins[label]; }
   function best(role, b, taken) { let top = null, ts = -1e8; for (const p of pads()) { if (taken.has(p.name) && !POWER.includes(role)) continue; const s = score(p, role, b); if (s > ts) { ts = s; top = p; } } return top; }
-  function autoAssign(m) {
+  function autoAssign(m) { return withHost(hostOf(m), () => autoAssignH(m)); }
+  function autoAssignH(m) {
     const b = board(), taken = used();
     for (const [label, role] of M[m.type].pins) {
       if (getPin(m, label)) continue;
@@ -91,7 +102,10 @@
   }
 
   /* ---------- Cảnh báo ---------- */
-  function warnings() {
+  const forHosts = fn => hosts().flatMap(h => { const all = B.mods, mine = all.filter(m => hostOf(m) === h); if (h && !mine.length) return []; B.mods = mine; try { return withHost(h, () => fn(h)); } finally { B.mods = all; } });
+  const warnings = () => forHosts(h => warnFor().map(([t, x]) => [t, (hosts().length > 1 ? `[${board().name}] ` : "") + x]));
+  const code = () => forHosts(h => [codeFor()]).join("\n\n");
+  function warnFor() {
     const b = board(), out = [];
     if (b.logic !== "5 V") out.push(["info", "Board chạy logic 3.3 V: không nối thẳng tín hiệu 5 V vào GPIO."]);
     const busy = {};
@@ -122,7 +136,7 @@
   const val = n => { const p = pinByName(n || ""); if (!p) return "-1 /* chưa nối */"; return board().family === "AVR" && /^A\d/.test(p.name) ? p.name : String(p.gpio); };
   const busNo = (n, kind) => { const p = pinByName(n || ""); const m = p && p.fn.join(" ").match(new RegExp(kind + "(\\d)")); return m ? +m[1] : 0; };
   const PFX = { button: "BTN", led: "LED1", buzzer: "BUZ", sevseg: "SEG", ssd1306: "OLED", ldr: "LDR", dht22: "DHT", st7789: "TFT", ws2812: "LED", hcsr04: "US", vl53l0x: "TOF", mpu6050: "MPU", max98357a: "I2S", inmp441: "MIC" };
-  function code() {
+  function codeFor() {
     const b = board(), f = b.family, L = [`// ${b.name} – Pindex Wiring (pindexio.com)`];
     const has = r => B.mods.some(m => M[m.type].pins.some(x => x[1] === r));
     if (has("spi.sck")) {
@@ -405,6 +419,7 @@
   }
 
   function draw() {
+    if (B.bb.on && window.BBOARD && BBOARD.ok()) return BBOARD.draw();
     const s = svg(); s.innerHTML = "";
     const bg = el("g", { class: "brd" }, s); if (brot()) bg.setAttribute("transform", bTransform());
     A.drawPCB(bg, true);                                  // board không nhãn lớn, chỉ pad + tên nhỏ
@@ -416,7 +431,7 @@
     const { map: routeMap, count: lane } = computeRoutes();
     for (const [mi, m] of B.mods.entries()) {
       const d = M[m.type], w = modW(d), h = modH(d);
-      d.pins.forEach(([label, role]) => { const p = pinByName(getPin(m, label) || ""); if (!p) return;
+      d.pins.forEach(([label, role]) => { if (hostOf(m)) return; const p = pinByName(getPin(m, label) || ""); if (!p) return;
         const c = COLOR[role] || d.color, info = routeMap[`${mi}:${label}`]; if (!info) return;
         const { pts, w: wObj } = info;
         const isSel = B.selW && B.selW.m === mi && B.selW.label === label, tag = { "data-wm": mi, "data-wl": label };
@@ -569,11 +584,21 @@
       const d = Math.abs(x0 - x1) < .01 ? Math.abs(pt.x - x0) + Math.max(0, Math.min(y0, y1) - pt.y, pt.y - Math.max(y0, y1)) : Math.abs(pt.y - y0) + Math.max(0, Math.min(x0, x1) - pt.x, pt.x - Math.max(x0, x1));
       if (d < bd) { bd = d; seg = i; } }
     if (seg < 0) return;
-    const [x0, y0] = pts[seg - 1], [x1] = pts[seg], vert = Math.abs(x0 - x1) < .01;
-    const key = vert ? (x0 > b.w / 2 ? "rx" : "lx") : "yv", top = y0 < b.h / 2;
-    const clamp = v => key === "rx" ? Math.min(Math.max(v, b.w + 1), 220) : key === "lx" ? Math.min(Math.max(v, -220), -1) : top ? Math.min(Math.max(v, -90), -1) : Math.max(Math.min(v, b.h + 90), b.h + 1);
+    // làn của một đoạn: đoạn dọc → rx/lx, đoạn ngang vòng trên/dưới board → yv (đoạn ngang đầu tiên gắn chân linh kiện thì không kéo)
+    const lane = i => {
+      if (i < 2 || i > pts.length - 2) return null;
+      const [x0, y0] = pts[i - 1], [x1] = pts[i], vert = Math.abs(x0 - x1) < .01;
+      if (!vert && i === 2) return null;
+      const key = vert ? (x0 > b.w / 2 ? "rx" : "lx") : "yv", top = y0 < b.h / 2;
+      return { vert, key, clamp: v => key === "rx" ? Math.min(Math.max(v, b.w + 1), 220) : key === "lx" ? Math.min(Math.max(v, -220), -1) : top ? Math.min(Math.max(v, -90), -1) : Math.max(Math.min(v, b.h + 90), b.h + 1) };
+    };
+    // kéo 2 trục cùng lúc: đoạn đang nắm + đoạn vuông góc liền kề ở đầu gần con trỏ (góc cua đi theo chuột)
+    const L1 = lane(seg) || lane(seg + 1); if (!L1) return;
+    const [ax, ay] = pts[seg - 1], [bx, by] = pts[seg], near = Math.hypot(pt.x - ax, pt.y - ay) < Math.hypot(pt.x - bx, pt.y - by) ? seg - 1 : seg + 1;
+    let L2 = lane(near); if (!L2 || L2.vert === L1.vert || L2.key === L1.key) L2 = lane(near === seg - 1 ? seg + 1 : seg - 1);
+    if (L2 && (L2.vert === L1.vert || L2.key === L1.key)) L2 = null;
     m.route = m.route || {}; m.route[label] = { ...(m.route[label] || {}) };
-    const mv = ev => { const q = toSvg(ev); m.route[label][key] = clamp(vert ? q.x : q.y); draw(); };
+    const mv = ev => { const q = toSvg(ev), r = m.route[label]; for (const L of [L1, L2]) if (L) r[L.key] = L.clamp(L.vert ? q.x : q.y); draw(); };
     const up = () => { s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up); save(); };
     s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
   }
@@ -587,7 +612,7 @@
   }
 
   /* ---------- Chọn & xoá: Delete/Backspace hoặc chuột phải ---------- */
-  function selectWire(mi, label, quiet) { B.selW = { m: mi, label }; B.selM = null; if (!quiet) draw(); }
+  function selectWire(mi, label, quiet) { B.selW = { m: mi, label }; B.selM = null; B.selX = null; if (!quiet) draw(); }
   function removeMod(i) {
     const d = M[B.mods[i].type]; B.mods.splice(i, 1);
     B.selM = B.selW = null; B.arm = null; cleanBus(); save(); refresh(); A.toast("Đã xoá " + d.short);
@@ -628,7 +653,7 @@
   // dãn dây / kiểu dây: thanh công cụ + menu chuột phải
   function setSpread(v) {
     B.spread = Math.round(Math.min(2.8, Math.max(0.6, v)) * 10) / 10;
-    const r = $("#bspread"), o = $("#bspreadv"); if (r) r.value = B.spread; if (o) o.textContent = "×" + B.spread;
+    for (const [i, v] of [["#bspread", "#bspreadv"], ["#bbspread", "#bbspreadv"]]) { const r = $(i), o = $(v); if (r) r.value = B.spread; if (o) o.textContent = "×" + B.spread; }
     draw(); save();
   }
   function cycleStyle() { B.style = (B.style + 1) % 4; for (const m of B.mods) delete m.route; save(); draw(); }
@@ -636,9 +661,9 @@
 
   /* ---------- Cài đặt xuất ảnh ---------- */
   const RATIOS = { auto: [1200, 0, "Tự do"], "16:9": [1600, 900, "16:9"], "3:2": [1500, 1000, "3:2"], "1:1": [1200, 1200, "1:1"], "9:16": [900, 1600, "9:16"] };
-  const EXP_DEF = { scale: 2, bg: "orig", ratio: "auto", wire: true, sch: true, code: true, logo: true };
-  const EXP = (() => { try { const o = { ...EXP_DEF, ...JSON.parse(localStorage.getItem("build:exp") || "{}") }; if (!["orig", "white", "none"].includes(o.bg)) o.bg = "orig"; if (!RATIOS[o.ratio]) o.ratio = "auto"; return o; } catch (e) { return { ...EXP_DEF }; } })();
-  const saveExp = () => { try { localStorage.setItem("build:exp", JSON.stringify(EXP)); } catch (e) { } };
+  const EXP_DEF = { scale: 2, bg: "white", ratio: "auto", wire: true, sch: true, code: true, logo: true };
+  const EXP = (() => { try { const o = { ...EXP_DEF, ...JSON.parse(localStorage.getItem("build:exp2") || "{}") }; if (!["orig", "white", "none"].includes(o.bg)) o.bg = "white"; if (!RATIOS[o.ratio]) o.ratio = "auto"; return o; } catch (e) { return { ...EXP_DEF }; } })();
+  const saveExp = () => { try { localStorage.setItem("build:exp2", JSON.stringify(EXP)); } catch (e) { } };
   function toggleSet(on) {
     const p = $("#bset"), bt = $("#bsetBtn"); if (!p) return;
     on = on == null ? p.hidden : on; p.hidden = !on; if (bt) bt.setAttribute("aria-expanded", on);
@@ -711,6 +736,8 @@
   function deleteSel() {
     if (B.selW) removeWire(B.selW.m, B.selW.label);
     else if (B.selM != null && B.mods[B.selM]) removeMod(B.selM);
+    else if (B.bb.on && B.selX && B.selX.t === "board") removeExtra(B.selX.k);
+    else if (B.bb.on && B.selX && B.selX.t === "bb" && window.BBOARD) { if (B.bb.n <= 1) return A.toast("Cần giữ ít nhất 1 breadboard."); B.bb.sel = B.selX.i; BBOARD.removeBB(); B.selX = null; save(); refresh(); A.toast("Đã xoá breadboard"); }
   }
   function initCanvas() {
     const s = svg();
@@ -722,9 +749,13 @@
         tools.id = "btools"; tools.className = "btools";
         // thanh công cụ kiểu KiCad: nút phẳng icon + chữ, ngăn nhóm bằng vạch dọc
         const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${tip}"><i aria-hidden="true">${ic}</i><span>${t}</span></button>`;
-        tools.innerHTML = tb("barr", "🧲", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "🔀", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "⟳", "Xoay board", "Xoay board 90°")
-          + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label>`
-          + `<span class="bsep"></span>` + tb("bpng", "⬇", "PNG", "Xuất ảnh PNG theo cài đặt")
+        // chế độ: Nối dây (mặc định) | Breadboard – bấm Breadboard lần nữa để đổi 1 → 2 → 3 tấm
+        tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "🔌", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + `</span><span class="bsep"></span>`
+          + `<span class="bwtools">` + tb("barr", "🧲", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "🔀", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "⟳", "Xoay board", "Xoay board 90°")
+          + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label></span>`
+          + `<span class="bbtools" hidden>` + tb("bbstyle", "🔀", "Đi dây", "Đổi kiểu dây: vuông góc / tách / cong / vát 45°") + `<label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bbspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bbspreadv">×${B.spread}</output></label>`
+          + `<label class="bslider bop" title="Độ rõ linh kiện"><i aria-hidden="true">◐</i><input id="bbop" type="range" min="0.1" max="1" step="0.05" value="${B.bb.op ?? .5}" aria-label="Độ rõ linh kiện"><output id="bbopv">${Math.round((B.bb.op ?? .5) * 100)}%</output></label></span>`
+          + `<span class="bsep"></span>` + tb("breset", "⟲", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "⬇", "PNG", "Xuất ảnh PNG theo cài đặt")
           + `<button type="button" class="bbtn" id="bsetBtn" aria-expanded="false" title="Cài đặt xuất ảnh"><i aria-hidden="true">⚙</i><span>Cài đặt</span></button>`;
         bar.insertBefore(tools, zoomBox);
         bar.appendChild(settingsPanel());
@@ -733,6 +764,13 @@
         $("#bstyle").onclick = () => cycleStyle();
         $("#bspread").oninput = e => setSpread(+e.target.value);
         $("#bpng").onclick = () => exportAs("png");
+        $("#breset").onclick = () => resetView();
+        $("#bmwire").onclick = () => { if (B.bb.on) { B.bb.on = false; B.cam = null; save(); refresh(); } };
+        $("#bbtog").onclick = () => toggleBB();
+        $("#bbspread").oninput = e => setSpread(+e.target.value);
+        $("#bbstyle").onclick = () => { cycleStyle(); A.toast("Dây: " + STYLE_NAMES[B.style]); };
+        $("#bbop").oninput = e => { B.bb.op = +e.target.value; $("#bbopv").textContent = Math.round(B.bb.op * 100) + "%"; svg().querySelectorAll(".bbmod > g[opacity], .bbmcu[opacity]").forEach(g => g.setAttribute("opacity", B.bb.op)); const w = svg().querySelector("#wires"); if (w) w.setAttribute("opacity", Math.max(.25, B.bb.op)); };
+        $("#bbop").onchange = () => save();
         $("#bsetBtn").onclick = () => toggleSet();
       }
     }
@@ -742,14 +780,21 @@
     if (!$("#bwinfo")) { const wi = document.createElement("div"); wi.id = "bwinfo"; wi.className = "bwinfo"; wi.hidden = true; s.after(wi); }
     // chuột phải: menu Xoá / Tự nối chân
     s.addEventListener("contextmenu", e => {
-      const node = e.target.closest(".bnode"), w = e.target.closest("[data-wm]");
+      const node = e.target.closest(".bnode"), w = e.target.closest("[data-wm]"), mcu = B.bb.on && e.target.closest(".bbmcu");
       e.preventDefault();
-      if (node) {
+      if (mcu) {
+        const k = +mcu.dataset.h; B.selX = { t: "board", k }; B.selM = B.selW = null; B.bb.cur = k; draw();
+        ctxMenu(e, k ? [["🗑 Xoá board " + hostBoard(k).name, () => removeExtra(k), "Del"]] : [["★ Board chính – đổi trong danh sách Dev board", () => { }]]);
+      } else if (node) {
         const i = +node.dataset.m; B.selM = i; B.selW = null; draw();
-        ctxMenu(e, [["⟳ Xoay 90°", () => rotateMod(i), "R"], ["✨ Tự nối chân", () => autoMod(i)], "-", ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["🗑 Xoá linh kiện", () => removeMod(i), "Del"], ...WIRE_ITEMS()]);
+        const mv = B.bb.on ? hosts().filter(h => h !== hostOf(B.mods[i])).map(h => ["🔁 Cắm vào " + hostBoard(h).name, () => { const m = B.mods[i]; unwireMod(i, true); m.host = h; autoAssign(m); cleanBus(); save(); refresh(); }]) : [];
+        ctxMenu(e, [...mv, ...(mv.length ? ["-"] : []), ["⟳ Xoay 90°", () => rotateMod(i), "R"], ["✨ Tự nối chân", () => autoMod(i)], "-", ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["🗑 Xoá linh kiện", () => removeMod(i), "Del"], ...WIRE_ITEMS()]);
       } else if (w) {
         const i = +w.dataset.wm, l = w.dataset.wl; selectWire(i, l);
         ctxMenu(e, [["✨ Tự nối lại chân này", () => rewire(i, l)], ["✨ Tự nối chân linh kiện", () => autoMod(i)], "-", ["🔌 Xoá nối dây", () => removeWire(i, l), "Del"], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ...WIRE_ITEMS()]);
+      } else if (B.bb.on && window.BBOARD) {
+        const bi = BBOARD.bbAt(toSvg(e));
+        ctxMenu(e, [["＋ Thêm breadboard", () => { if (B.bb.n >= 3) return A.toast("Tối đa 3 breadboard."); B.bb.n++; B.cam = null; save(); refresh(); }], ...(B.bb.n > 1 ? [["－ Xoá breadboard này", () => { B.bb.sel = bi; BBOARD.removeBB(); save(); refresh(); }]] : []), ...WIRE_ITEMS().filter(x => x === "-" || !/kiểu đi dây/.test(x[0])), "-", ["⬇ Xuất ảnh PNG", () => exportAs("png")]]);
       } else ctxMenu(e, [["🧲 Sắp xếp linh kiện", arrangeModules], ["⟳ Xoay board 90°", rotateBoard], ...(B.mods.length ? ["-", ["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }], ["🔌 Xoá hết nối dây", () => { B.mods.forEach((m, j) => unwireMod(j, true)); save(); refresh(); A.toast("Đã xoá hết nối dây"); }]] : []), ...WIRE_ITEMS(), "-", ["⬇ Xuất ảnh PNG", () => exportAs("png")]]);
     });
     document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); if (!e.target.closest(".bset, #bsetBtn")) toggleSet(false); }, true);
@@ -757,7 +802,7 @@
       if (e.key === "Escape") { closeMenu(); toggleSet(false); }
       if (A.state.tab === "build" && (e.key === "r" || e.key === "R") && !e.ctrlKey && !e.metaKey && B.selM != null && !(e.target.closest && e.target.closest("input, textarea, select, [contenteditable]"))) { e.preventDefault(); rotateMod(B.selM); return; }
       if (A.state.tab !== "build" || !["Delete", "Backspace"].includes(e.key) || e.target.closest("input, textarea, select, [contenteditable]")) return;
-      if (B.selW || B.selM != null) { e.preventDefault(); deleteSel(); }
+      if (B.selW || B.selM != null || (B.bb.on && B.selX)) { e.preventDefault(); deleteSel(); }
     });
     // kéo nền = di chuyển khung nhìn; cuộn = zoom; chạm pad khi đang chọn socket = nối
     s.addEventListener("pointerdown", e => {
@@ -770,12 +815,66 @@
       const up = () => { s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up); };
       s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
     });
+    s.addEventListener("pointermove", e => { if (B.bb.on && window.BBOARD && e.buttons === 0) BBOARD.hover(toSvg(e)); });
     s.addEventListener("wheel", e => { e.preventDefault(); zoom(e.deltaY < 0 ? 1 / 1.15 : 1.15, toSvg(e)); }, { passive: false });
     $("#bzin").onclick = () => zoom(1 / 1.3); $("#bzout").onclick = () => zoom(1.3); $("#bfit").onclick = () => { B.cam = null; draw(); };
   }
+  // breadboard: tải js/breadboard.js lần đầu bật
+  function syncBB() {
+    const on = !!(B.bb.on && window.BBOARD && BBOARD.ok()), t = $("#bbtog"), w = $("#bmwire");
+    if (t) { t.setAttribute("aria-pressed", on); t.querySelector("span").textContent = on ? `Breadboard ×${B.bb.n}` : "Breadboard"; } if (w) w.setAttribute("aria-pressed", !on);
+    const wt = document.querySelector(".bwtools"), bt = document.querySelector(".bbtools"); if (wt) wt.hidden = on; if (bt) bt.hidden = !on;
+    const op = $("#bbop"); if (op) { op.value = B.bb.op ?? .5; $("#bbopv").textContent = Math.round((B.bb.op ?? .5) * 100) + "%"; }
+  }
+  // Reset: board chính về nguyên trạng, linh kiện xếp lại, khung nhìn vừa màn hình (giữ nguyên các mối nối)
+  // Reset: xoá hết linh kiện và dây, board chính về chỗ cũ, breadboard còn 1 tấm
+  function resetView() {
+    if (B.mods.length && !confirm("Xoá hết linh kiện và dây nối, chỉ giữ board chính và 1 breadboard?")) return;
+    B.mods = []; B.buses = [{}]; B.brot = 0; B.arrLast = null; B.arm = null;
+    if (window.BBOARD) BBOARD.resetAll(); else B.bb = { ...B.bb, n: 1, board: null };
+    B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
+  }
+  async function toggleBB() {
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=109"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
+    if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
+    B.cam = null; B.selM = B.selW = null; save(); refresh();
+  }
+  window.BUILD_API = { B, M, A, el, COLOR, esc, svg, toSvg, save, refresh, draw: () => draw(), hostBoard, hostOf, hosts, getPin, autoAssign, unwireMod, selectWire, closeMenu };
   function zoom(f, c) { const k = B.cam; c = c || { x: k.x + k.w / 2, y: k.y + k.h / 2 }; k.x = c.x - (c.x - k.x) * f; k.y = c.y - (c.y - k.y) * f; k.w *= f; k.h *= f; svg().setAttribute("viewBox", `${k.x} ${k.y} ${k.w} ${k.h}`); }
 
   /* ---------- Thanh bên ---------- */
+  // icon board tí hon: thân PCB + 2 hàng chân, màu theo dòng chip
+  const BD_COL = { ESP32: "#24272b", RP2: "#2e7d4f", AVR: "#1c6fa8" };
+  const bdIcon = x => `<svg class="bdico" viewBox="0 0 30 26" aria-hidden="true"><rect x="3" y="4" width="24" height="18" rx="2" fill="${BD_COL[x.family] || "#3a3d36"}" stroke="#0006"/>${[0, 1, 2, 3, 4, 5].map(i => `<circle cx="${6 + i * 3.6}" cy="7" r="1" fill="#d9b64a"/><circle cx="${6 + i * 3.6}" cy="19" r="1" fill="#d9b64a"/>`).join("")}<rect x="11" y="10" width="8" height="6" rx="1" fill="#111" stroke="#666" stroke-width=".5"/></svg>`;
+  function boardItems(b, q) {
+    const extra = (B.bb.extra || []).map(x => x.id);
+    const L = window.BOARDS.filter(x => !x.mod && (!q || x.name.toLowerCase().includes(q) || x.family.toLowerCase().includes(q) || "board dev".includes(q)));
+    if (!L.length) return "";
+    const items = L.map(x => {
+      const main = x.id === b.id, ex = extra.includes(x.id), canBB = ["ESP32", "RP2"].includes(x.family), ok = B.bb.on ? canBB || main : supported(x);
+      const mark = main ? "★" : ex ? "✓" : B.bb.on ? "+" : "⇄", tip = main ? "Board chính" : B.bb.on ? (ex ? "Bỏ board này khỏi mạch" : "Cắm thêm board vào cùng mạch") : "Đổi board chính";
+      return `<button class="mitem bdi${main || ex ? " on" : ""}" data-bd="${x.id}"${ok ? "" : " disabled"} title="${tip}" style="--mc:#f5d63d"><span>${mark}</span>${bdIcon(x)}<span class="mn">${esc(x.name.replace(/^Raspberry Pi /, "RPi "))}</span><span class="mi">${esc(x.family === "Raspberry Pi" ? "RPi" : x.family)}</span></button>`;
+    }).join("");
+    return `<div class="mcat"><div class="mcat-h"><span aria-hidden="true">🧠</span> Dev board ${B.bb.on ? "· ★ chính, + cắm thêm" : "· ⇄ đổi board chính"}</div><div class="mlist">${items}</div></div>`;
+  }
+  // bỏ board phụ thứ k: linh kiện của nó chuyển về board chính
+  function removeExtra(k) {
+    if (!k) return A.toast("Không xoá được board chính – đổi board chính trong danh sách Dev board.");
+    const name = hostBoard(k).name;
+    B.mods.forEach((m, i) => { if (hostOf(m) === k) { unwireMod(i, true); m.host = 0; m.fresh = true; delete m.bb; } else if (hostOf(m) > k) m.host--; });
+    B.bb.extra.splice(k - 1, 1); B.buses.splice(k, 1); B.bb.cur = 0; B.selX = null; cleanBus(); save(); refresh(); A.toast("Đã bỏ " + name);
+  }
+  function boardClick(id) {
+    const b = A.state.b;
+    if (!B.bb.on) { if (id === b.id) return; A.selectBoard(id); window.BUILD.open(); return; }
+    if (id === b.id) return A.toast("Đây là board chính.");
+    B.bb.extra = B.bb.extra || [];
+    const k = B.bb.extra.findIndex(x => x.id === id) + 1;
+    if (k) return removeExtra(k);
+    else { if (B.bb.extra.length >= 2) return A.toast("Tối đa 3 board trong một mạch."); B.bb.extra.push({ id }); B.buses.push({}); B.bb.cur = B.bb.extra.length; }
+    save(); refresh();
+  }
   function renderCatList(b) {
     const q = (B.q || "").trim().toLowerCase();
     return CATS.map(([catName, icon, keys]) => {
@@ -790,12 +889,13 @@
         return `<button class="mitem${on ? " on" : ""}" data-add="${k}"${ok ? "" : " disabled"} style="--mc:${d.color}"><span>${on ? "✓" : "+"}</span><img src="${esc(d.svg)}" alt="" loading="lazy"><span class="mn">${esc(d.short)}</span><span class="mi">${esc(d.iface.split(" ")[0])}</span></button>`;
       }).join("");
       return `<div class="mcat"><div class="mcat-h"><span aria-hidden="true">${icon}</span> ${esc(catName)}</div><div class="mlist">${items}</div></div>`;
-    }).join("") || `<div class="muted small">Không tìm thấy linh kiện phù hợp.</div>`;
+    }).join("") + boardItems(b, q) || `<div class="muted small">Không tìm thấy linh kiện phù hợp.</div>`;   // Dev board để cuối danh sách
   }
   function bindAddBtns(root) {
+    root.querySelectorAll("[data-bd]").forEach(x => x.onclick = () => boardClick(x.dataset.bd));
     root.querySelectorAll("[data-add]").forEach(x => x.onclick = () => {
       const k = x.dataset.add, i = B.mods.findIndex(m => m.type === k);
-      if (i >= 0) B.mods.splice(i, 1); else { B.mods.push({ type: k, pins: {} }); B.cam = null; }
+      if (i >= 0) B.mods.splice(i, 1); else { B.mods.push({ type: k, pins: {}, ...(B.bb.on ? { fresh: true, host: Math.min(B.bb.cur || 0, (B.bb.extra || []).length) } : {}) }); if (!B.bb.on) B.cam = null; }
       cleanBus(); B.arm = null; save(); refresh();
     });
   }
@@ -808,7 +908,7 @@
     const cards = B.mods.map((m, i) => { const d = M[m.type]; return `<div class="bcard" style="--mc:${d.color}"><div class="bc-h"><b>${esc(d.name)}</b><span>${esc(d.iface)} · ${esc(d.vcc)}</span><button class="icon-btn bx" data-del="${i}" aria-label="Bỏ">✕</button></div>
       <table class="btbl">${d.pins.map(([label]) => { const n = getPin(m, label); return `<tr><th>${esc(label)}</th><td>${n ? `<b>${esc(n)}</b>` : '<span class="muted">chưa nối</span>'}</td><td>${n ? `<button class="tap" data-un="${i}" data-l="${esc(label)}" title="Gỡ dây">✕</button>` : ""}</td></tr>`; }).join("")}</table></div>`; }).join("");
     box.innerHTML = `<div class="seg btabs"><button data-tab="mods" aria-pressed="${B.tab === "mods"}">Module</button><button data-tab="code" aria-pressed="${B.tab === "code"}">Code</button></div>
-      ${B.tab === "mods" ? `<div class="mdrop">
+      ${B.tab === "mods" ? `        <div class="mdrop">
           <button type="button" class="mdrop-btn" id="mdropBtn"><span>🧩 Linh kiện (${B.mods.length}/${Object.keys(M).length})</span><span>${B.dropOpen ? "▴" : "▾"}</span></button>
           <div class="mdrop-body" id="mdropBody"${B.dropOpen ? "" : " hidden"}>
             <label class="msearch"><span>⌕</span><input id="mq" type="search" placeholder="Tìm linh kiện, I2C, SPI..." value="${esc(B.q)}" autocomplete="off"></label>
@@ -833,23 +933,32 @@
     box.querySelectorAll("[data-exp]").forEach(x => x.onclick = () => exportAs(x.dataset.exp));
     box.querySelector("input[type=file]").onchange = e => { const f = e.target.files[0]; if (f) f.text().then(t => { load(JSON.parse(t)); refresh(); }); };
   }
-  function cleanBus() { const need = new Set(B.mods.flatMap(m => M[m.type].pins.map(x => x[1]))); for (const r in B.bus) if (!need.has(r)) delete B.bus[r]; }
-  function refresh() { draw(); side(); }
+  function cleanBus() { for (const h of hosts()) withHost(h, () => { const need = new Set(B.mods.filter(m => hostOf(m) === h).flatMap(m => M[m.type].pins.map(x => x[1]))); for (const r in B.bus) if (!need.has(r)) delete B.bus[r]; }); }
+  function refresh() { draw(); side(); syncBB(); }
 
   /* ---------- Lưu / export ---------- */
-  const dump = () => ({ board: board().id, bus: B.bus, mods: B.mods, spread: B.spread, style: B.style, brot: brot() });
+  const dump = () => ({ board: A.state.b.id, bus: B.buses[0] || {}, buses: B.buses, mods: B.mods, spread: B.spread, style: B.style, brot: brot(), bb: B.bb });
   function load(o) {
     if (!o || o.board !== board().id) { A.toast("File này của board khác."); return; }
-    B.bus = o.bus || {}; B.mods = (o.mods || []).filter(m => M[m.type]);
+    B.buses = Array.isArray(o.buses) ? o.buses.map(x => x || {}) : [o.bus || {}]; B.mods = (o.mods || []).filter(m => M[m.type]);
     if (typeof o.spread === "number") B.spread = o.spread;
     if (typeof o.style === "number") B.style = o.style % 4;
     B.brot = [0, 90, 180, 270].includes(o.brot) ? o.brot : 0;
+    B.bb = o.bb && typeof o.bb === "object" ? { on: !!o.bb.on, n: Math.min(3, Math.max(1, o.bb.n | 0 || 1)), board: o.bb.board || null, extra: Array.isArray(o.bb.extra) ? o.bb.extra.filter(x => window.BOARDS.some(b => b.id === x.id)) : [], cur: 0, op: typeof o.bb.op === "number" ? o.bb.op : .5, sel: 0 } : { on: false, n: 1, board: null };
     if ($("#bspread")) { $("#bspread").value = B.spread; $("#bspreadv").textContent = "×" + B.spread; }
     B.cam = null; save();
   }
   function save() { try { localStorage.setItem("build:" + board().id, JSON.stringify(dump())); } catch (e) { } }
-  function restore() { B.boardId = board().id; B.bus = {}; B.mods = []; B.arm = null; B.cam = null; B.brot = 0; try { const o = JSON.parse(localStorage.getItem("build:" + B.boardId) || "null"); if (o) load(o); } catch (e) { } }
+  function restore() { CUR = 0; B.boardId = board().id; B.buses = [{}]; B.mods = []; B.arm = null; B.cam = null; B.brot = 0; B.bb = { on: false, n: 1, board: null, extra: [], cur: 0 }; try { const o = JSON.parse(localStorage.getItem("build:" + B.boardId) || "null"); if (o) load(o); } catch (e) { } }
   const dl = (name, href) => { const a = document.createElement("a"); a.href = href; a.download = name; a.click(); };
+  // ảnh ngoài (ảnh board thật) không tải được trong SVG xuất ảnh: nhúng thành data URL trước khi chụp
+  const IMG_CACHE = {};
+  async function inlineImages(root) {
+    for (const im of root.querySelectorAll("image")) {
+      const h = im.getAttribute("href"); if (!h || h.startsWith("data:")) continue;
+      try { IMG_CACHE[h] = IMG_CACHE[h] || await fetch(h).then(r => r.blob()).then(bl => new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); })); im.setAttribute("href", IMG_CACHE[h]); } catch (e) { }
+    }
+  }
   async function exportAs(kind) {
     const b = board();
     if (kind === "json") return dl(`pindex-${b.id}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
@@ -858,6 +967,7 @@
     let img = null, logo = null;
     if (EXP.wire) {
       const keep = { ...B.cam }; B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
+      await inlineImages(svg());
       let u = A.svgDataUrl(svg());
       u ="data:image/svg+xml;charset=utf-8," + encodeURIComponent(decodeURIComponent(u.split(",").slice(1).join(",")).replace(/(<svg[^>]*?)\sstyle="background:[^"]*"/, "$1"));   // bỏ nền tối để vùng đấu dây cùng màu nền ảnh
       img = new Image(); img.src = u; await img.decode(); B.cam = keep; draw();
@@ -883,7 +993,11 @@
     const others = [];
     if (EXP.sch && B.mods.length) { const L = schemLayout(); others.push(leaf("Sơ đồ nguyên lý", L.w, L.h, g => L.draw(g, ink, muted))); }
     if (EXP.code) {
-      const lines = code().split("\n"), lh = 20, mg = document.createElement("canvas").getContext("2d"); mg.font = "14px Consolas, monospace";
+      // khối code hẹp lại: dòng dài (comment hay code) tự xuống hàng, dòng nối thụt vào
+      const wrap = (l, W = 40) => { if (l.length <= W) return [l]; const cm = l.trim().startsWith("//"), out = []; let r = l;
+        while (r.length > W) { let k = r.lastIndexOf(" ", W); if (k < W * .5) k = W; out.push(r.slice(0, k)); r = (cm ? "//   " : "    ") + r.slice(k).trimStart(); }
+        return [...out, r]; };
+      const lines = code().split("\n").flatMap(l => wrap(l)), lh = 20, mg = document.createElement("canvas").getContext("2d"); mg.font = "14px Consolas, monospace";
       others.push(leaf("Code #define", Math.max(200, ...lines.map(l => mg.measureText(l).width)) + 4, lines.length * lh, g => {
         g.font = "14px Consolas, monospace"; g.textBaseline = "middle"; lines.forEach((l, i) => { g.fillStyle = l.trim().startsWith("//") ? muted : ink; g.fillText(l, 0, i * lh + lh / 2); });
       }));
@@ -939,6 +1053,8 @@
       if (B.boardId !== board().id) restore();
       if (h) importHash(h);
       refresh();
+      if (B.bb.on && !window.BBOARD) { B.bb.on = false; toggleBB(); }
+      syncBB();
     }
   };
 })();

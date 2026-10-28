@@ -3,7 +3,7 @@
    ☾ Ban đêm: xanh ô liu tối pha chút xanh lá, để mắt dễ chịu và phân biệt hẳn với ban ngày */
 :root {
   --sans: "Ubuntu", system-ui, sans-serif; --mono: "Ubuntu Mono", ui-monospace, monospace;
-  --bg: #0a2a56; --surface: #e8f0f8; --surface2: #d4e3f1; --fg: #06213f; --muted: #35618f; --line: #9bbbd8;
+  --bg: #1b4f8f; --surface: #e8f0f8; --surface2: #d4e3f1; --fg: #06213f; --muted: #35618f; --line: #9bbbd8;
   --navy: #041E42; --navy-2: #064273; --cyan: #00AEEF; --cyan-2: #00C2F7;
   --accent: #0098da; --accent-fg: #fff;
   --c-power: #e8392f; --c-gnd: #46586b; --c-gpio: #00a37a; --c-adc: #8257e0; --c-comm: #00AEEF;

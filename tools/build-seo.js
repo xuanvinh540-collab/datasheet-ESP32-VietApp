@@ -22,6 +22,7 @@ function bumpVersion() {
   };
   sub("index.html", /((?:css|js)\/[a-z0-9-]+\.(?:css|js)\?v=)\d+/g);
   sub("js/app.js", /(js\/[a-z0-9-]+\.js\?v=)\d+/g);
+  sub("js/build.js", /(js\/[a-z0-9-]+\.js\?v=)\d+/g);   // breadboard.js tải động từ build.js
   sub("sw.js", /(pindex-v)\d+/g);
   console.log("Phiên bản cache →", v);
   return v;
