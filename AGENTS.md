@@ -134,7 +134,7 @@ git add -A && git commit -m "..." && git push origin main       # Cloudflare t�
 - Trang chủ còn liệt kê "Sơ đồ chân linh kiện" theo `MOD_CATS`; linh kiện chỉ có URL hash `#mod-<mã>`, không có trang tĩnh riêng.
 - Song ngữ: chạy `node tools/check-i18n.js` (hoặc script tương đương) sau khi thêm chữ tiếng Việt; hiện **0 câu chưa dịch**.
 - Android: chưa lên Play Store (người dùng chưa có phí 25 USD). Dùng PWA; có thể đóng gói APK bằng PWABuilder. iOS cần tài khoản Apple Developer + máy Mac.
-- Bài PR soạn sẵn: `W:\AI\Pindex-bai-dang-PR.md`. Video quảng bá: `W:\AI\Pindexio\video_pr\pindex-video\` (dự án HyperFrames riêng, không nằm trong repo này).
+- Bài PR soạn sẵn: `W:\AI\_archive_pindex\Pindex-bai-dang-PR.md` (đã cất vào archive). Video quảng bá: `W:\AI\Pindexio\video_pr\pindex-video\` (dự án HyperFrames riêng, không nằm trong repo này).
 
 ## 10. Việc đang dở / ý tưởng tiếp
 - **Link tiếp thị liên kết còn là link tìm kiếm**, chưa có hoa hồng. Thay link rút gọn thật (`s.shopee.vn/…`,
