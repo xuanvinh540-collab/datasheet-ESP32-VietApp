@@ -36,7 +36,7 @@ function head({ title, desc, url, en, viUrl, enUrl, base, board, img }) {
     "@context": "https://schema.org", "@type": board ? "TechArticle" : "WebSite",
     headline: title, name: title, description: desc, url, inLanguage: en ? "en" : "vi", image: SITE + img,
     publisher: { "@type": "Organization", name: "Pindex", url: SITE, logo: { "@type": "ImageObject", url: SITE + "icon-512.png", width: 512, height: 512 } }, dateModified: today,
-    ...(board ? { about: { "@type": "Product", name: board.name, brand: { "@type": "Brand", name: board.vendor }, description: T(board.summary, en) } } : {})
+    ...(board ? { about: { "@type": "Thing", name: board.name, description: T(board.summary, en) }   /* không dùng Product: Google đòi offers/review/rating, Pindex không bán hàng */ } : {})
   };
   const crumbs = {
     "@context": "https://schema.org", "@type": "BreadcrumbList",

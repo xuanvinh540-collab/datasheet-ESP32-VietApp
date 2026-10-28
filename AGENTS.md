@@ -6,7 +6,7 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
 **Pindexio** (pindexio.com, chữ thương hiệu PIN·DEX·IO): web tra cứu sơ đồ chân vi điều khiển bằng **tiếng Việt + tiếng Anh**, dữ liệu lấy từ **datasheet của hãng**. Chạm một chân → chức năng, cảnh báo (strapping/USB/JTAG/ADC2…), thông số điện, linh kiện đi kèm, nguồn trích dẫn. Tối ưu điện thoại/iPad, cài được như app (PWA).
 
 - Người dùng chính: dân làm mạch/IoT Việt Nam.
-- Repo: `github.com/xuanvinh540-collab/datasheet-ESP32-VietApp` (nhánh `main`). Thư mục máy: `W:\AI\datasheet-ESP32-VietApp`.
+- Repo: `github.com/xuanvinh540-collab/datasheet-ESP32-VietApp` (nhánh `main`). Thư mục máy: `W:\AI\Pindexio\site`.
 - Triển khai: **Cloudflare Pages** `pindex` (`pindex.pages.dev`, tên miền chính **pindexio.com** gắn qua Custom domains; trang pages.dev tự chuyển sang tên miền chính bằng đoạn JS đầu `index.html`), tự build khi push `main`. Còn Worker cũ `pin-explorer-vn.xuanvinh540.workers.dev` (bản cũ, không tự cập nhật) và GitHub Pages (bản cũ).
 - **Web tĩnh thuần**: HTML + CSS + JS không build, không framework, không server. Không thêm bundler/npm trừ khi người dùng yêu cầu.
 
@@ -115,7 +115,7 @@ Mỗi board là object: `id, tag, name, vendor, chip, family (ESP32|RP2|AVR|Rasp
 ## 8. Quy trình làm việc / triển khai
 ```bash
 # chạy thử cục bộ (cần server vì dùng fetch/WebGL/SW)
-cd W:\AI\datasheet-ESP32-VietApp && python -m http.server 8765      # http://127.0.0.1:8765/
+cd W:\AI\Pindexio\site && python -m http.server 8765      # http://127.0.0.1:8765/
 
 # sau khi sửa boards.js / specs.js / i18n-data.js
 python -I tools/og.py            # ảnh chia sẻ og/*.png
@@ -134,7 +134,7 @@ git add -A && git commit -m "..." && git push origin main       # Cloudflare t�
 - Trang chủ còn liệt kê "Sơ đồ chân linh kiện" theo `MOD_CATS`; linh kiện chỉ có URL hash `#mod-<mã>`, không có trang tĩnh riêng.
 - Song ngữ: chạy `node tools/check-i18n.js` (hoặc script tương đương) sau khi thêm chữ tiếng Việt; hiện **0 câu chưa dịch**.
 - Android: chưa lên Play Store (người dùng chưa có phí 25 USD). Dùng PWA; có thể đóng gói APK bằng PWABuilder. iOS cần tài khoản Apple Developer + máy Mac.
-- Bài PR soạn sẵn: `W:\AI\Pindex-bai-dang-PR.md`. Video quảng bá: `W:\AI\pindex-video\` (dự án HyperFrames riêng, không nằm trong repo này).
+- Bài PR soạn sẵn: `W:\AI\Pindex-bai-dang-PR.md`. Video quảng bá: `W:\AI\Pindexio\video_pr\pindex-video\` (dự án HyperFrames riêng, không nằm trong repo này).
 
 ## 10. Việc đang dở / ý tưởng tiếp
 - **Link tiếp thị liên kết còn là link tìm kiếm**, chưa có hoa hồng. Thay link rút gọn thật (`s.shopee.vn/…`,
