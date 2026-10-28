@@ -678,3 +678,7 @@ main { padding-top: 12px; }
 .mitem.bdi > span:first-child { color: #f5d63d; }
 .bb-endhit { fill: transparent; cursor: grab; }
 .bb-ends .bb-end.grab { stroke: #fff; stroke-width: .18; }
+
+/* dòng thống kê lượt truy cập cuối trang chủ: nhỏ, nét mỏng */
+.home-stat { margin: 6px 0 0; padding-top: 8px; border-top: 1px solid var(--line); text-align: center; font: 11px var(--mono); color: var(--muted); opacity: .85; }
+.home-stat[hidden] { display: none; }

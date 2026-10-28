@@ -556,14 +556,14 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=115");
-    if (!window.BUILD) await loadJs("js/build.js?v=115");
+    if (!window.MODULES) await loadJs("js/modules.js?v=118");
+    if (!window.BUILD) await loadJs("js/build.js?v=118");
     setTab("build"); BUILD.open(h);
   }
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS) await loadJs("js/posts.js?v=115");
-    if (!window.HOME) await loadJs("js/home.js?v=115");
+    if (!window.POSTS) await loadJs("js/posts.js?v=118");
+    if (!window.HOME) await loadJs("js/home.js?v=118");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());
@@ -609,5 +609,7 @@
   addEventListener("hashchange", fromHash);
   if (fromHash() !== "home") setTab("pins");
   calc();
+  // đếm 1 lượt/phiên theo nước (functions/api/hit.js), không lưu IP
+  try { if (location.protocol === "https:" && !sessionStorage.getItem("pxhit")) { sessionStorage.setItem("pxhit", "1"); if (navigator.sendBeacon) navigator.sendBeacon("/api/hit"); } } catch (e) { }
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => { });
 })();

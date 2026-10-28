@@ -80,7 +80,21 @@
       <section class="home-feats">${feats.map(([i, t, d]) => `<div class="card home-feat"><span aria-hidden="true">${i}</span><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}</section>
       <section class="card home-posts"><div class="home-ptabs" role="tablist">${Object.entries(TYPE).map(([k, v]) => `<button role="tab" data-pt="${k}" aria-selected="${k === tab}">${v[E ? 1 : 0]}</button>`).join("")}</div>
         <div class="home-plist">${list.length ? list.map(x => `<a class="home-pcard" href="#home/${encodeURIComponent(x.id)}"><span class="post-meta">${fmtDate(x.date)}</span><b>${esc(x.title)}</b><span>${esc(x.summary || "")}</span><span class="home-more">${E ? "Read" : "Đọc tiếp"} →</span></a>`).join("")
-          : `<p class="muted">${E ? "No posts yet." : "Chưa có bài viết."}</p>`}</div></section></div>`;
+          : `<p class="muted">${E ? "No posts yet." : "Chưa có bài viết."}</p>`}</div></section><p class="home-stat" id="homeStat" hidden></p></div>`;
+    homeStats(E);
+  }
+
+  // top 3 nước có nhiều lượt truy cập: một dòng nhỏ cuối trang chủ, lỗi mạng thì không hiện gì
+  let statCache = null;
+  async function homeStats(E) {
+    const el = document.getElementById("homeStat"); if (!el) return;
+    try {
+      statCache = statCache || await (await fetch("/api/stats")).json();
+      if (!statCache.top || !statCache.top.length) return;
+      const lang = E ? "en" : "vi", nm = new Intl.DisplayNames([lang], { type: "region" }), nf = new Intl.NumberFormat(lang);
+      el.textContent = (E ? "Visits" : "Lượt truy cập") + " · " + statCache.top.map(([c, n]) => nm.of(c) + " " + nf.format(n)).join(" · ");
+      el.hidden = false;
+    } catch (e) { }
   }
 
   document.addEventListener("click", e => {
