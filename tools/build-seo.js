@@ -35,7 +35,7 @@ function head({ title, desc, url, en, viUrl, enUrl, base, board, img }) {
   const ld = {
     "@context": "https://schema.org", "@type": board ? "TechArticle" : "WebSite",
     headline: title, name: title, description: desc, url, inLanguage: en ? "en" : "vi", image: SITE + img,
-    publisher: { "@type": "Organization", name: "Pindex" }, dateModified: today,
+    publisher: { "@type": "Organization", name: "Pindex", url: SITE, logo: { "@type": "ImageObject", url: SITE + "icon-512.png", width: 512, height: 512 } }, dateModified: today,
     ...(board ? { about: { "@type": "Product", name: board.name, brand: { "@type": "Brand", name: board.vendor }, description: T(board.summary, en) } } : {})
   };
   const crumbs = {
@@ -82,10 +82,10 @@ function page({ board, en }) {
     ? (en ? `${name} Pinout – GPIO, ADC, I2C, SPI reference | Pindex` : `Sơ đồ chân ${name} (Pinout) – GPIO, ADC, I2C, SPI | Pindex`)
     : (en ? "Pindex – Microcontroller pinout reference (ESP32, Pico, Arduino, Raspberry Pi)" : "Pindex – Tra cứu sơ đồ chân ESP32, Pico, Arduino, Raspberry Pi");
   const desc = board
-    ? (en ? `${name} pinout: every pin's functions, boot/strapping warnings, electrical limits and companion parts from the ${board.vendor} datasheet. ${T(board.summary, true)}`
-          : `Sơ đồ chân ${name}: chức năng từng chân, cảnh báo strapping, giới hạn điện và linh kiện đi kèm theo datasheet ${board.vendor}. ${board.summary}`)
-    : (en ? "Interactive pinout reference built from manufacturer datasheets: ESP32-C3 DevKitM-1, ESP32-C3 Super Mini, ESP32-S3, LilyGO, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno."
-          : "Tra cứu sơ đồ chân tương tác theo datasheet hãng: ESP32-C3 DevKitM-1, ESP32-C3 Super Mini, ESP32-S3, LilyGO, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno.");
+    ? (en ? `${name} pinout on Pindex – a platform to look up pins, pair modules and plan wiring: every pin's functions, boot/strapping warnings and safe pins from the ${board.vendor} datasheet, plus a breadboard wiring planner with ready #define code.`
+          : `Sơ đồ chân ${name} trên Pindex – nền tảng tra cứu chân, ghép linh kiện và đi dây: chức năng từng chân, cảnh báo strapping, chân an toàn theo datasheet ${board.vendor}, kèm công cụ đấu dây breadboard và code #define.`)
+    : (en ? "Pindex – a platform to look up microcontroller pinouts, pair modules and plan wiring: ESP32-C3, ESP32-S3, LilyGO, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno, built from manufacturer datasheets."
+          : "Pindex – nền tảng tra cứu sơ đồ chân, ghép linh kiện và đi dây cho vi điều khiển: ESP32-C3, ESP32-S3, LilyGO, Raspberry Pi Pico 2 W, Raspberry Pi, Arduino Uno theo datasheet hãng.");
   let html = tpl.replace(/<!--SEO-->[\s\S]*?<!--\/SEO-->/, head({ title, desc: desc.slice(0, 300), url, en, viUrl, enUrl, base, board, img: `og/${board ? board.id : "home"}.png` }))
     .replace(/<!--SEOBODY-->[\s\S]*?<!--\/SEOBODY-->/, body(board, en, base))
     .replace(/<html lang="[a-z]+"/, `<html lang="${en ? "en" : "vi"}"`);
