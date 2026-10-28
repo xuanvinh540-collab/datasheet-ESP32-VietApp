@@ -615,11 +615,98 @@
     closeMenu();
     const st = svg().parentElement, r = st.getBoundingClientRect(), mn = document.createElement("div");
     mn.className = "bmenu"; mn.setAttribute("role", "menu");
-    items.forEach(([t, fn]) => { const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "menuitem"); b.textContent = t; b.onclick = () => { closeMenu(); fn(); }; mn.appendChild(b); });
+    items.forEach(it => {
+      if (it === "-") { if (mn.lastChild && mn.lastChild.tagName === "BUTTON") mn.appendChild(Object.assign(document.createElement("hr"), { className: "bmsep" })); return; }
+      const [t, fn, key] = it, b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "menuitem");
+      b.innerHTML = `<span>${esc(t)}</span>${key ? `<kbd>${key}</kbd>` : ""}`; b.onclick = () => { closeMenu(); fn(); }; mn.appendChild(b);
+    });
     st.appendChild(mn);
     const x = Math.min(e.clientX - r.left, r.width - mn.offsetWidth - 8), y = Math.min(e.clientY - r.top, r.height - mn.offsetHeight - 8);
     mn.style.left = Math.max(8, x) + "px"; mn.style.top = Math.max(8, y) + "px";
     mn.querySelector("button").focus();
+  }
+  // dãn dây / kiểu dây: thanh công cụ + menu chuột phải
+  function setSpread(v) {
+    B.spread = Math.round(Math.min(2.8, Math.max(0.6, v)) * 10) / 10;
+    const r = $("#bspread"), o = $("#bspreadv"); if (r) r.value = B.spread; if (o) o.textContent = "×" + B.spread;
+    draw(); save();
+  }
+  function cycleStyle() { B.style = (B.style + 1) % 4; for (const m of B.mods) delete m.route; save(); draw(); }
+  const WIRE_ITEMS = () => ["-", ["🔀 Đổi kiểu đi dây", cycleStyle], ["↔ Dãn dây rộng hơn", () => setSpread(B.spread + 0.2), "+"], ["↕ Thu dây gọn hơn", () => setSpread(B.spread - 0.2), "−"]];
+
+  /* ---------- Cài đặt xuất ảnh ---------- */
+  const RATIOS = { auto: [1200, 0, "Tự do"], "16:9": [1600, 900, "16:9"], "3:2": [1500, 1000, "3:2"], "1:1": [1200, 1200, "1:1"], "9:16": [900, 1600, "9:16"] };
+  const EXP_DEF = { scale: 2, bg: "orig", ratio: "auto", wire: true, sch: true, code: true, logo: true };
+  const EXP = (() => { try { const o = { ...EXP_DEF, ...JSON.parse(localStorage.getItem("build:exp") || "{}") }; if (!["orig", "white", "none"].includes(o.bg)) o.bg = "orig"; if (!RATIOS[o.ratio]) o.ratio = "auto"; return o; } catch (e) { return { ...EXP_DEF }; } })();
+  const saveExp = () => { try { localStorage.setItem("build:exp", JSON.stringify(EXP)); } catch (e) { } };
+  function toggleSet(on) {
+    const p = $("#bset"), bt = $("#bsetBtn"); if (!p) return;
+    on = on == null ? p.hidden : on; p.hidden = !on; if (bt) bt.setAttribute("aria-expanded", on);
+  }
+  function settingsPanel() {
+    const p = document.createElement("div"); p.id = "bset"; p.className = "bset"; p.hidden = true; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "Cài đặt xuất ảnh");
+    const opt = (k, v, inner) => `<button type="button" data-v="${v}" aria-pressed="${String(EXP[k]) === String(v)}">${inner}</button>`;
+    const ico = r => { const [w, h, t] = RATIOS[r]; return `<i class="rico${h ? "" : " auto"}"${h ? ` style="width:${Math.round(18 * Math.min(1, w / h))}px;height:${Math.round(18 * Math.min(1, h / w))}px"` : ""}></i>${t}`; };
+    const chk = (k, t) => `<label class="bchk"><input type="checkbox" data-c="${k}"${EXP[k] ? " checked" : ""}> ${t}</label>`;
+    p.innerHTML = `<div class="bset-t">Xuất ảnh PNG</div>
+      <fieldset><legend>Khung ảnh</legend><div class="bopts bratio" data-k="ratio">${Object.keys(RATIOS).map(r => opt("ratio", r, ico(r))).join("")}</div></fieldset>
+      <fieldset><legend>Độ phân giải</legend><div class="bopts" data-k="scale">${[1, 2, 3, 4].map(s => opt("scale", s, s + "×")).join("")}</div><div class="bpx" id="bsetPx"></div></fieldset>
+      <fieldset><legend>Nền</legend><div class="bopts" data-k="bg">${opt("bg", "orig", '<i class="bsw" style="background:var(--canvas)"></i>Nguyên bản')}${opt("bg", "white", '<i class="bsw" style="background:#fff"></i>Trắng')}${opt("bg", "none", '<i class="bsw bchecker"></i>Không nền')}</div></fieldset>
+      <fieldset><legend>Nội dung</legend><div class="bchks">${chk("wire", "Sơ đồ đấu dây")}${chk("sch", "Sơ đồ nguyên lý")}${chk("code", "Code #define")}${chk("logo", "Logo pindexio")}</div></fieldset>
+      <div class="bset-f"><button type="button" class="bbtn" id="bsetClose">Đóng</button><button type="button" class="bbtn primary" id="bsetPng"><i>⬇</i><span>Xuất PNG</span></button></div>`;
+    const px = () => { const [w, h] = RATIOS[EXP.ratio]; p.querySelector("#bsetPx").textContent = h ? `${w * EXP.scale} × ${h * EXP.scale} px` : `Rộng ${w * EXP.scale} px, cao theo nội dung`; };
+    p.querySelectorAll(".bopts button").forEach(b => b.onclick = () => {
+      const k = b.parentElement.dataset.k; EXP[k] = k === "scale" ? +b.dataset.v : b.dataset.v; saveExp();
+      b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); px();
+    });
+    p.querySelectorAll("[data-c]").forEach(c => c.onchange = () => { EXP[c.dataset.c] = c.checked; saveExp(); });
+    p.querySelector("#bsetClose").onclick = () => toggleSet(false);
+    p.querySelector("#bsetPng").onclick = () => exportAs("png");
+    px();
+    return p;
+  }
+
+  // sơ đồ nguyên lý gọn kiểu KiCad: MCU giữa, linh kiện chia hai bên cho cân, nối ngang thẳng; nguồn/GND vẽ ký hiệu
+  function schemLayout() {
+    const RH = 22, HD = 26, GAP = 26, MW = 130, DW = 150, LINK = 120, isPwr = r => r === "gnd" || r.startsWith("pwr");
+    const items = B.mods.map((m, i) => ({ m, i, d: M[m.type], h: HD + M[m.type].pins.length * RH + 8 }));
+    const tot = items.reduce((s, x) => s + x.h, 0), side = { L: [], R: [] }, hgt = { L: 0, R: 0 };
+    for (const it of items) { const s = items.length > 1 && tot > 260 && hgt.L < hgt.R ? "L" : "R"; side[s].push(it); hgt[s] += it.h + GAP; }
+    const two = side.L.length > 0, mx = two ? DW + LINK : 0, W = mx + MW + LINK + DW + 8, top = 30;
+    const H = top + Math.max(hgt.L, hgt.R, 60) + 4;
+    return { w: W, h: H, draw(g, ink, muted) {
+      g.save(); g.lineWidth = 1.6; g.textBaseline = "middle";
+      const box = (x, y, w, h) => { g.fillStyle = "rgba(245,214,61,.12)"; g.fillRect(x, y, w, h); g.strokeStyle = ink; g.strokeRect(x, y, w, h); };
+      const mt = 4, mh = H - mt - 4; box(mx, mt, MW, mh);
+      g.fillStyle = ink; g.font = "bold 13px sans-serif"; g.textAlign = "center"; g.fillText(board().name, mx + MW / 2, mt + 14, MW - 8);
+      g.fillStyle = muted; g.font = "11px sans-serif"; g.fillText("U1", mx + MW / 2, mt + mh - 10);
+      for (const s of ["L", "R"]) {
+        let y = top; const dir = s === "R" ? 1 : -1, edge = s === "R" ? mx + MW : mx, xd = s === "R" ? edge + LINK : edge - LINK - DW, din = s === "R" ? xd : xd + DW;
+        for (const { m, i, d, h } of side[s]) {
+          box(xd, y, DW, h - 8);
+          g.fillStyle = ink; g.font = "bold 12.5px sans-serif"; g.textAlign = "center"; g.fillText(d.short, xd + DW / 2, y + 12, DW - 30);
+          g.fillStyle = muted; g.font = "10.5px sans-serif"; g.textAlign = s === "R" ? "right" : "left"; g.fillText("U" + (i + 2), s === "R" ? xd + DW - 5 : xd + 5, y + 12);
+          d.pins.forEach(([label, role], k) => {
+            const py = y + HD + k * RH + RH / 2, n = getPin(m, label), col = COLOR[role] || ink;
+            g.fillStyle = ink; g.font = "12px Consolas, monospace"; g.textAlign = s === "R" ? "left" : "right"; g.fillText(label, din + dir * 8, py);
+            g.strokeStyle = ink; g.beginPath();
+            if (!n) { const c = din - dir * 10; g.moveTo(din, py); g.lineTo(c, py); g.moveTo(c - 4, py - 4); g.lineTo(c + 4, py + 4); g.moveTo(c + 4, py - 4); g.lineTo(c - 4, py + 4); g.stroke(); return; }
+            if (isPwr(role)) {   // ký hiệu nguồn ngay cạnh chân, không kéo dây về MCU
+              const sx = din - dir * 26; g.strokeStyle = col; g.moveTo(din, py); g.lineTo(sx, py); g.stroke(); g.strokeStyle = ink; g.beginPath();
+              if (role === "gnd") for (const [o, l] of [[0, 7], [4, 4.5], [8, 2]]) { g.moveTo(sx - dir * o, py - l); g.lineTo(sx - dir * o, py + l); }
+              else { g.moveTo(sx, py - 7); g.lineTo(sx, py + 7); }
+              g.stroke(); g.fillStyle = ink; g.font = "bold 11px sans-serif"; g.textAlign = s === "R" ? "right" : "left"; g.fillText(role === "gnd" ? "GND" : n, sx - dir * (role === "gnd" ? 12 : 4), py);
+              return;
+            }
+            g.strokeStyle = col; g.lineWidth = 2; g.moveTo(edge, py); g.lineTo(din, py); g.stroke(); g.lineWidth = 1.6;
+            g.fillStyle = ink; g.beginPath(); g.arc(edge, py, 2.6, 0, 7); g.fill();
+            g.font = "bold 12px Consolas, monospace"; g.textAlign = s === "R" ? "right" : "left"; g.fillText(n, edge - dir * 6, py);
+          });
+          y += h + GAP;
+        }
+      }
+      g.restore();
+    } };
   }
   function deleteSel() {
     if (B.selW) removeWire(B.selW.m, B.selW.label);
@@ -633,20 +720,20 @@
       if (!$("#btools")) {
         const tools = document.createElement("div");
         tools.id = "btools"; tools.className = "btools";
-        tools.innerHTML = `<button type="button" class="bbtn" id="barr" title="Đổi cách sắp xếp linh kiện">🧲 Sắp xếp</button>`
-          + `<button type="button" class="bbtn" id="bstyle" title="Đổi kiểu đi dây">🔀 Đi dây</button>`
-          + `<button type="button" class="bbtn" id="brot" title="Xoay board 90°">⟳ Xoay board</button>`
-          + `<label class="bslider"><span>↔ Dãn dây</span><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}"></label>`;
+        // thanh công cụ kiểu KiCad: nút phẳng icon + chữ, ngăn nhóm bằng vạch dọc
+        const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${tip}"><i aria-hidden="true">${ic}</i><span>${t}</span></button>`;
+        tools.innerHTML = tb("barr", "🧲", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "🔀", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "⟳", "Xoay board", "Xoay board 90°")
+          + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label>`
+          + `<span class="bsep"></span>` + tb("bpng", "⬇", "PNG", "Xuất ảnh PNG theo cài đặt")
+          + `<button type="button" class="bbtn" id="bsetBtn" aria-expanded="false" title="Cài đặt xuất ảnh"><i aria-hidden="true">⚙</i><span>Cài đặt</span></button>`;
         bar.insertBefore(tools, zoomBox);
+        bar.appendChild(settingsPanel());
         $("#barr").onclick = () => arrangeModules();
         $("#brot").onclick = () => rotateBoard();
-        $("#bstyle").onclick = () => {
-          B.style = (B.style + 1) % 4;
-          for (const m of B.mods) delete m.route;
-          save(); draw();
-        };
-        $("#bspread").oninput = e => { B.spread = +e.target.value; draw(); };
-        $("#bspread").onchange = () => save();
+        $("#bstyle").onclick = () => cycleStyle();
+        $("#bspread").oninput = e => setSpread(+e.target.value);
+        $("#bpng").onclick = () => exportAs("png");
+        $("#bsetBtn").onclick = () => toggleSet();
       }
     }
     if (!$("#btitle")) { const t = document.createElement("div"); t.id = "btitle"; t.className = "btitle"; $("#bboard").after(t); }
@@ -659,15 +746,15 @@
       e.preventDefault();
       if (node) {
         const i = +node.dataset.m; B.selM = i; B.selW = null; draw();
-        ctxMenu(e, [["⟳ Xoay 90°", () => rotateMod(i)], ["🗑 Xoá linh kiện", () => removeMod(i)], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["✨ Tự nối chân", () => autoMod(i)]]);
+        ctxMenu(e, [["⟳ Xoay 90°", () => rotateMod(i), "R"], ["✨ Tự nối chân", () => autoMod(i)], "-", ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["🗑 Xoá linh kiện", () => removeMod(i), "Del"], ...WIRE_ITEMS()]);
       } else if (w) {
         const i = +w.dataset.wm, l = w.dataset.wl; selectWire(i, l);
-        ctxMenu(e, [["🔌 Xoá nối dây", () => removeWire(i, l)], ["✨ Tự nối lại chân này", () => rewire(i, l)], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ["✨ Tự nối chân linh kiện", () => autoMod(i)]]);
-      } else ctxMenu(e, [["⟳ Xoay board 90°", rotateBoard], ...(B.mods.length ? [["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }], ["🔌 Xoá hết nối dây", () => { B.mods.forEach((m, j) => unwireMod(j, true)); save(); refresh(); A.toast("Đã xoá hết nối dây"); }]] : [])]);
+        ctxMenu(e, [["✨ Tự nối lại chân này", () => rewire(i, l)], ["✨ Tự nối chân linh kiện", () => autoMod(i)], "-", ["🔌 Xoá nối dây", () => removeWire(i, l), "Del"], ["🔌 Xoá nối dây linh kiện", () => unwireMod(i)], ...WIRE_ITEMS()]);
+      } else ctxMenu(e, [["🧲 Sắp xếp linh kiện", arrangeModules], ["⟳ Xoay board 90°", rotateBoard], ...(B.mods.length ? ["-", ["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }], ["🔌 Xoá hết nối dây", () => { B.mods.forEach((m, j) => unwireMod(j, true)); save(); refresh(); A.toast("Đã xoá hết nối dây"); }]] : []), ...WIRE_ITEMS(), "-", ["⬇ Xuất ảnh PNG", () => exportAs("png")]]);
     });
-    document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); }, true);
+    document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); if (!e.target.closest(".bset, #bsetBtn")) toggleSet(false); }, true);
     addEventListener("keydown", e => {
-      if (e.key === "Escape") closeMenu();
+      if (e.key === "Escape") { closeMenu(); toggleSet(false); }
       if (A.state.tab === "build" && (e.key === "r" || e.key === "R") && !e.ctrlKey && !e.metaKey && B.selM != null && !(e.target.closest && e.target.closest("input, textarea, select, [contenteditable]"))) { e.preventDefault(); rotateMod(B.selM); return; }
       if (A.state.tab !== "build" || !["Delete", "Backspace"].includes(e.key) || e.target.closest("input, textarea, select, [contenteditable]")) return;
       if (B.selW || B.selM != null) { e.preventDefault(); deleteSel(); }
@@ -757,7 +844,7 @@
     if (typeof o.spread === "number") B.spread = o.spread;
     if (typeof o.style === "number") B.style = o.style % 4;
     B.brot = [0, 90, 180, 270].includes(o.brot) ? o.brot : 0;
-    if ($("#bspread")) $("#bspread").value = B.spread;
+    if ($("#bspread")) { $("#bspread").value = B.spread; $("#bspreadv").textContent = "×" + B.spread; }
     B.cam = null; save();
   }
   function save() { try { localStorage.setItem("build:" + board().id, JSON.stringify(dump())); } catch (e) { } }
@@ -767,14 +854,80 @@
     const b = board();
     if (kind === "json") return dl(`pindex-${b.id}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
     if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Wiring"); } catch (e) { A.toast(u); } return; }
-    const keep = { ...B.cam }; B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
-    const img = new Image(); img.src = A.svgDataUrl(svg()); await img.decode(); B.cam = keep; draw();
-    const lines = code().split("\n"), W = 1600, ih = Math.round(img.height * W / img.width), lh = 28, c = document.createElement("canvas");
-    c.width = W; c.height = ih + 80 + lines.length * lh + 40;
-    const g = c.getContext("2d");
-    g.fillStyle = getComputedStyle(document.body).backgroundColor; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, W, ih);
-    g.fillStyle = getComputedStyle(document.body).color; g.font = "bold 34px sans-serif"; g.fillText(`${b.name} · Pindex Wiring`, 40, ih + 50);
-    g.font = "22px Consolas, monospace"; lines.forEach((l, i) => g.fillText(l, 40, ih + 90 + i * lh));
+    toggleSet(false);
+    let img = null, logo = null;
+    if (EXP.wire) {
+      const keep = { ...B.cam }; B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
+      let u = A.svgDataUrl(svg());
+      u ="data:image/svg+xml;charset=utf-8," + encodeURIComponent(decodeURIComponent(u.split(",").slice(1).join(",")).replace(/(<svg[^>]*?)\sstyle="background:[^"]*"/, "$1"));   // bỏ nền tối để vùng đấu dây cùng màu nền ảnh
+      img = new Image(); img.src = u; await img.decode(); B.cam = keep; draw();
+    }
+    if (EXP.logo) { logo = new Image(); logo.src = "icon.svg"; try { await logo.decode(); } catch (e) { logo = null; } }
+    // nền chung cho cả ảnh lẫn vùng đấu dây: Nguyên bản = màu canvas app, Trắng, hoặc trong suốt
+    const orig = EXP.bg === "orig", bg = orig ? getComputedStyle(svg()).backgroundColor : EXP.bg === "white" ? "#fff" : null;
+    const ink = orig ? getComputedStyle(document.body).color : "#1d232a", muted = orig ? "#8a93a0" : "#5b6570";
+    const k = EXP.scale, rs = Math.min(k * 2, 6);
+    // mỗi phần là một khối riêng (kèm tiêu đề) vẽ sẵn ở độ phân giải cao, rồi xếp vào khung ảnh
+    const leaf = (title, w, h, fn) => {
+      const T = title ? 34 : 0, c = document.createElement("canvas"); c.width = Math.ceil(w * rs); c.height = Math.ceil((h + T) * rs);
+      const g = c.getContext("2d"); g.scale(rs, rs);
+      if (title) { g.fillStyle = ink; g.font = "bold 18px sans-serif"; g.textBaseline = "alphabetic"; g.fillText(title, 0, 20); }
+      g.translate(0, T); fn(g);
+      return { w, h: h + T, draw: (G, x, y, s) => G.drawImage(c, x, y, w * s, (h + T) * s) };
+    };
+    const group = (list, row, gap = 32) => list.length === 1 ? list[0] : {
+      w: row ? list.reduce((a, x) => a + x.w, 0) + gap * (list.length - 1) : Math.max(...list.map(x => x.w)),
+      h: row ? Math.max(...list.map(x => x.h)) : list.reduce((a, x) => a + x.h, 0) + gap * (list.length - 1),
+      draw(G, x, y, s) { for (const it of list) { it.draw(G, x, y, s); if (row) x += (it.w + gap) * s; else y += (it.h + gap) * s; } }
+    };
+    const others = [];
+    if (EXP.sch && B.mods.length) { const L = schemLayout(); others.push(leaf("Sơ đồ nguyên lý", L.w, L.h, g => L.draw(g, ink, muted))); }
+    if (EXP.code) {
+      const lines = code().split("\n"), lh = 20, mg = document.createElement("canvas").getContext("2d"); mg.font = "14px Consolas, monospace";
+      others.push(leaf("Code #define", Math.max(200, ...lines.map(l => mg.measureText(l).width)) + 4, lines.length * lh, g => {
+        g.font = "14px Consolas, monospace"; g.textBaseline = "middle"; lines.forEach((l, i) => { g.fillStyle = l.trim().startsWith("//") ? muted : ink; g.fillText(l, 0, i * lh + lh / 2); });
+      }));
+    }
+    let wire = null;
+    if (img) {   // cắt bỏ lề trống quanh sơ đồ đấu dây (theo điểm ảnh không trong suốt)
+      const TW = 2400, th = Math.round(img.height * TW / img.width), t = document.createElement("canvas"); t.width = TW; t.height = th;
+      const tg = t.getContext("2d"); tg.drawImage(img, 0, 0, TW, th);
+      const a = tg.getImageData(0, 0, TW, th).data; let x0 = TW, y0 = th, x1 = 0, y1 = 0;
+      for (let y = 0; y < th; y += 2) for (let x = 0; x < TW; x += 2) if (a[(y * TW + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 > x0) {
+        const m = 16, cx = Math.max(0, x0 - m), cy = Math.max(0, y0 - m), cw = Math.min(TW, x1 + m) - cx, ch = Math.min(th, y1 + m) - cy, ww = 1100, wh = ch * ww / cw;
+        wire = leaf("", ww, wh, g => g.drawImage(t, cx, cy, cw, ch, 0, 0, ww, wh));
+      }
+    }
+    // thử mọi cách xếp (ngang/dọc ở cả hai tầng), chọn cách cho nội dung to nhất trong khung
+    const cands = [];
+    for (const gr of [true, false]) {
+      const og = others.length ? group(others, gr) : null;
+      for (const tr of [true, false]) cands.push(wire && og ? group([wire, og], tr, 40) : wire || og);
+      if (!wire) break;
+    }
+    const [RW, RH] = RATIOS[EXP.ratio], P = 40, HEAD = 70, FOOT = logo ? 76 : 28;
+    let W = RW, H = RH, best = cands[0], s = 1;
+    if (best) {
+      if (!RH) {   // Tự do: rộng cố định, cao theo nội dung; ưu tiên cách xếp ít bị thu nhỏ rồi thấp nhất
+        const sc = c => Math.min(1.2, (W - 2 * P) / c.w);
+        best = cands.reduce((a, c) => sc(c) > sc(a) + .05 || (Math.abs(sc(c) - sc(a)) <= .05 && c.h * sc(c) < a.h * sc(a)) ? c : a);
+        s = sc(best); H = Math.ceil(HEAD + best.h * s + FOOT);
+      } else {
+        const sc = c => Math.min(2, (W - 2 * P) / c.w, (H - HEAD - FOOT) / c.h);
+        best = cands.reduce((a, c) => sc(c) > sc(a) ? c : a); s = sc(best);
+      }
+    } else if (!H) H = HEAD + FOOT + 40;
+    const c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
+    const g = c.getContext("2d"); g.scale(k, k);
+    if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
+    g.fillStyle = ink; g.font = "bold 26px sans-serif"; g.textBaseline = "alphabetic"; g.fillText(`${b.name} · Pindex Wiring`, P, 46);
+    if (best) best.draw(g, (W - best.w * s) / 2, HEAD + (H - HEAD - FOOT - best.h * s) / 2, s);
+    if (logo) {   // logo pindexio to rõ góc phải dưới
+      const z = 40; g.font = "bold 28px sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
+      const tw = g.measureText("pindexio.com").width, ly = H - 20 - z / 2;
+      g.fillStyle = ink; g.fillText("pindexio.com", W - P, ly); g.drawImage(logo, W - P - tw - 12 - z, ly - z / 2, z, z);
+    }
     dl(`pindex-${b.id}.png`, c.toDataURL("image/png"));
   }
   function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Wiring không hợp lệ."); } }
