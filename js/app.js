@@ -433,7 +433,7 @@
     const en = document.documentElement.lang === "en", r = region(), cur = A[r] || Object.values(A)[0] || {};
     // nút "Mua board này" màu cyan cạnh tên board: dẫn tới link tiếp thị của đúng board đang xem
     const url0 = !state.b.mod && (cur.links || {})[state.b.id];
-    for (const btn of document.querySelectorAll(".buy-btn")) { btn.hidden = !url0; if (url0) { btn.href = url0; btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#ff8a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.4a2 2 0 0 0 2 1.6h8.3a2 2 0 0 0 2-1.5L22 7H6"/></svg>${en ? "Buy here" : "Mua tại đây"}`; btn.title = `${en ? "Buy" : "Mua"} ${state.b.name} ${en ? "on" : "trên"} ${cur.shop || ""}`; } }
+    for (const btn of document.querySelectorAll(".buy-btn")) { btn.hidden = !url0; if (url0) { btn.href = url0; btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#ff8a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.4a2 2 0 0 0 2 1.6h8.3a2 2 0 0 0 2-1.5L22 7H6"/></svg>${en ? "Buy here" : "Mua tại đây"}`; btn.title = `${en ? "Buy" : "Mua"} ${en && window.trEN ? trEN(state.b.name) : state.b.name} ${en ? "on" : "trên"} ${cur.shop || ""}`; } }
     // thẻ "Mua board" (cả dãy board) chỉ hiện khi admin bật trong tab Cài đặt
     box.hidden = !!state.b.mod || !Object.keys(A).length || !(window.SITE || {}).showBuyCards;
     if (box.hidden) return;
@@ -556,14 +556,15 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=118");
-    if (!window.BUILD) await loadJs("js/build.js?v=118");
+    if (!window.MODULES) await loadJs("js/modules.js?v=122");
+    if (!window.BUILD) await loadJs("js/build.js?v=122");
     setTab("build"); BUILD.open(h);
   }
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS) await loadJs("js/posts.js?v=118");
-    if (!window.HOME) await loadJs("js/home.js?v=118");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=122").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=122");
+    if (!window.HOME) await loadJs("js/home.js?v=122");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());

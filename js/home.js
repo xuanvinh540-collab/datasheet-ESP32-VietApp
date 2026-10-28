@@ -44,7 +44,8 @@
   }
 
   const fmtDate = d => { const m = String(d || "").match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? (en() ? `${m[1]}-${m[2]}-${m[3]}` : `${m[3]}/${m[2]}/${m[1]}`) : esc(d || ""); };
-  const posts = () => (window.POSTS || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const loc = p => (en() && window.POSTS_EN && window.POSTS_EN[p.id]) ? Object.assign({}, p, window.POSTS_EN[p.id]) : p;   // bản Anh nằm ở js/posts-en.js
+  const posts = () => (window.POSTS || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date))).map(loc);
   const TYPE = { news: ["Tin tức", "News"], guide: ["Hướng dẫn", "Guides"] };
 
   function setUrl(id) {
@@ -54,7 +55,7 @@
 
   function render(postId) {
     const box = document.getElementById("home"), E = en(); if (!box) return;
-    const p = postId && (window.POSTS || []).find(x => x.id === postId);
+    const p = postId && posts().find(x => x.id === postId);
     setUrl(p ? p.id : null);
     if (p) {
       box.innerHTML = `<article class="card post-view"><button class="post-back" data-back>← ${E ? "Home" : "Trang chủ"}</button>
@@ -79,7 +80,7 @@
         <div class="home-btns"><button class="home-go primary" data-go="pins">${E ? "Open pinouts" : "Mở sơ đồ chân"}</button><button class="home-go" data-go="wiring">⚡ ${E ? "Try Wiring" : "Thử Wiring"}</button></div></div></section>
       <section class="home-feats">${feats.map(([i, t, d]) => `<div class="card home-feat"><span aria-hidden="true">${i}</span><b>${esc(t)}</b><p>${esc(d)}</p></div>`).join("")}</section>
       <section class="card home-posts"><div class="home-ptabs" role="tablist">${Object.entries(TYPE).map(([k, v]) => `<button role="tab" data-pt="${k}" aria-selected="${k === tab}">${v[E ? 1 : 0]}</button>`).join("")}</div>
-        <div class="home-plist">${list.length ? list.map(x => `<a class="home-pcard" href="#home/${encodeURIComponent(x.id)}"><span class="post-meta">${fmtDate(x.date)}</span><b>${esc(x.title)}</b><span>${esc(x.summary || "")}</span><span class="home-more">${E ? "Read" : "Đọc tiếp"} →</span></a>`).join("")
+        <div class="home-plist">${list.length ? list.map(x => `<a class="home-pcard" href="${esc(location.pathname + location.search)}#home/${encodeURIComponent(x.id)}"><span class="post-meta">${fmtDate(x.date)}</span><b>${esc(x.title)}</b><span>${esc(x.summary || "")}</span><span class="home-more">${E ? "Read" : "Đọc tiếp"} →</span></a>`).join("")
           : `<p class="muted">${E ? "No posts yet." : "Chưa có bài viết."}</p>`}</div></section><p class="home-stat" id="homeStat" hidden></p></div>`;
     homeStats(E);
   }

@@ -53,13 +53,37 @@
     [/^\(> 20 mA: dùng transistor\/MOSFET\)$/, "(> 20 mA: use a transistor/MOSFET)"],
     [/^Cần Vnguồn > Vf và dòng > 0$/, "Supply must exceed Vf and current must be > 0"],
     [/^Cần Vin max > V ADC max$/, "Vin max must exceed the ADC max"],
-    [/^Không có giá trị hợp lệ: giảm điện dung bus hoặc giảm tốc độ$/, "No valid value: reduce bus capacitance or speed"]
+    [/^Không có giá trị hợp lệ: giảm điện dung bus hoặc giảm tốc độ$/, "No valid value: reduce bus capacitance or speed"],
+    [/^Rộng (\d+) px, cao theo nội dung$/, "Width $1 px, height fits content"],
+    [/^Kéo để đổi lỗ · (.+)$/, "Drag to change hole · $1"],
+    [/^🔁 Cắm vào (.+)$/, "🔁 Plug into $1"],
+    [/^🗑 Xoá board (.+)$/, "🗑 Delete board $1"],
+    [/^Nối dây (.+)\?$/, "Wire $1?"],
+    [/^Dây: (.+)$/, (m, a) => "Wires: " + (D(a) ?? a)],
+    [/^Đã tự nối chân (.+)$/, "Auto-wired $1"],
+    [/^Đã chuyển dây sang (.+)$/, "Moved wire to $1"],
+    [/^Đã gỡ dây (.+)$/, "Unplugged wire $1"],
+    [/^Đã nối lại (.+) → (.+)$/, "Re-wired $1 → $2"],
+    [/^Đã bỏ (.+)$/, "Removed $1"],
+    [/^Đã xoá (.+)$/, "Removed $1"],
+    [/^(.+) không dùng được cho (.+)\.$/, "$1 can't be used for $2."]
   ];
   let lang = "vi";
   try { lang = localStorage.getItem("lang") || "vi"; } catch (e) { }
   if (window.PAGE_LANG) lang = window.PAGE_LANG; // trang /en/… luôn mở tiếng Anh, trang thường luôn tiếng Việt
   const orig = new WeakMap();
   const D = k => EN[k] != null ? EN[k] : (window.EN_DATA || {})[k];
+  // thay tên module / cụm cố định nằm giữa câu ghép (vd "LED 7 đoạn · G (drag to wire)")
+  const PHRASES = [["GPIO 40 chân", "40-pin GPIO"]];
+  let subList = null;
+  const sub = x => {
+    if (!subList && window.MODULES) {
+      subList = [];
+      for (const d of Object.values(window.MODULES)) for (const v of [d.name, d.short]) { const e = D(v); if (e && e !== v) subList.push([v, e]); }
+      subList.sort((a, b) => b[0].length - a[0].length);
+    }
+    let o = x; for (const [v, e] of [...(subList || []), ...PHRASES]) if (o.includes(v)) o = o.split(v).join(e); return o;
+  };
   const tr = s => {
     const k = s.trim(); if (!k) return null;
     const d = D(k); if (d != null) return s.replace(k, d);
@@ -67,11 +91,26 @@
     // chuỗi mở đầu bằng biểu tượng (ℹ ⚠ ⛔ ○ …): dịch phần chữ phía sau
     const ic = k.match(/^([ℹ⚠⛔○✓✅⚡🧩🔌✨🗑↔🔀🧲]+\s*)(.+)$/);
     if (ic) { const t = tr(ic[2]); if (t != null) return s.replace(k, ic[1] + t.trim()); }
-    for (const [r, v] of RX) if (r.test(k)) return s.replace(k, k.replace(r, v));
+    for (const [r, v] of RX) if (r.test(k)) return s.replace(k, sub(k.replace(r, v)));
     // chuỗi ghép "a · b · c": dịch từng đoạn nếu có
     if (k.includes(" · ")) { const parts = k.split(" · "), out = parts.map(x => D(x) ?? x); if (out.some((x, i) => x !== parts[i])) return s.replace(k, out.join(" · ")); }
+    // nhiều dòng (khối code Wiring): dịch từng dòng
+    if (k.includes("\n")) { const ls = k.split("\n"), out = ls.map(l => tr(l) ?? l); return out.some((x, i) => x !== ls[i]) ? s.replace(k, out.join("\n")) : null; }
+    // "[tên board] câu cảnh báo" (nhiều board trong một mạch)
+    const bd = k.match(/^\[(.+?)\] (.+)$/); if (bd) { const t = tr(bd[2]); if (t != null) return s.replace(k, "[" + bd[1] + "] " + t.trim()); }
+    // "Linh kiện X → IOn: lời cảnh báo của chân"
+    const ar = k.match(/^(.+? → \S+): (.+)$/); if (ar) { const t = tr(ar[2]); if (t != null) return s.replace(k, sub(ar[1]) + ": " + t.trim()); }
+    // dòng code "// Tên – thư viện: …" và "-1 /* chưa nối */"
+    const cm = k.match(/^\/\/ (.+) – thư viện: (.+)$/); if (cm) return s.replace(k, "// " + (D(cm[1]) ?? sub(cm[1])) + " – library: " + (D(cm[2]) ?? cm[2]));
+    if (k.includes("/* chưa nối */")) return s.replace(k, k.replace("/* chưa nối */", "/* not wired */"));
+    // aria-label của chân: "TÊN chức năng, chức năng, …" – dịch từng chức năng
+    const pc = (x, pre) => { const parts = x.split(", "), out = parts.map(y => D(y) ?? y); return out.some((y, i) => y !== parts[i]) ? (pre ? pre + " " : "") + out.join(", ") : null; };
+    let r2 = pc(k); if (r2 == null) { const pn = k.match(/^([\w+\-./]+) (.+)$/); if (pn) r2 = pc(pn[2], pn[1]); }
+    if (r2 != null) return s.replace(k, r2);
+    const sb = sub(k); if (sb !== k) return s.replace(k, sb);
     return null;
   };
+  window.trEN = x => (lang === "en" ? (tr(x) ?? x) : x);   // cho confirm()/alert() trong code khác
   function fixNode(n) {
     if (n.nodeType === 3) {
       if (!orig.has(n)) orig.set(n, n.nodeValue);

@@ -829,13 +829,13 @@
   // Reset: board chính về nguyên trạng, linh kiện xếp lại, khung nhìn vừa màn hình (giữ nguyên các mối nối)
   // Reset: xoá hết linh kiện và dây, board chính về chỗ cũ, breadboard còn 1 tấm
   function resetView() {
-    if (B.mods.length && !confirm("Xoá hết linh kiện và dây nối, chỉ giữ board chính và 1 breadboard?")) return;
+    if (B.mods.length && !confirm(window.trEN ? trEN("Xoá hết linh kiện và dây nối, chỉ giữ board chính và 1 breadboard?") : "Xoá hết linh kiện và dây nối, chỉ giữ board chính và 1 breadboard?")) return;
     B.mods = []; B.buses = [{}]; B.brot = 0; B.arrLast = null; B.arm = null;
     if (window.BBOARD) BBOARD.resetAll(); else B.bb = { ...B.bb, n: 1, board: null };
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=118"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=122"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
