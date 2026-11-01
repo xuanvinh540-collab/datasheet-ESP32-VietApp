@@ -34,6 +34,11 @@ Tài liệu này giúp agent (Claude Code, Codex, Cursor…) hiểu nhanh dự �
    Xoay 0/90/180/270°: linh kiện (`m.rot`, chuột phải "Xoay 90°" hoặc phím R) xoay quanh tâm, `m.pos` là góc trên-trái của khung ĐÃ xoay (`mw/mh`);
    board (`B.brot`, nút ⟳ Xoay board hoặc chuột phải nền) vẽ trong `<g transform>`, mọi phép tính dây dùng `pads()` (chân đã đổi toạ độ + `side`), `bw()/bh()` thay cho `b.w/b.h`.
    Linh kiện mới (không có `pos`) được `autoPlace()` xếp cân 2 cột trái/phải quanh board và camera thu lại vừa khung; linh kiện kéo tay có `manual:true` thì giữ chỗ.
+6b. **🛠 PCB Lab** (`data-panel="pcblab"`, nút 🛠 PCB Lab cạnh ⚡ Wiring và trong thanh Wiring, link `#pcblab`; `js/pcblab.js` tải lười, `css/pcblab.css` nạp sẵn): vẽ bo mạch in **1 lớp làm tại nhà** cho ESP32-S3-DevKitC-1.
+   Cột trái là danh sách linh kiện theo `MOD_CATS` (icon `svg/*.svg`, thêm R/C); nút "Lấy mạch từ Wiring" đọc `localStorage["build:esp32-s3-devkitc-1"]` (module + chân + bus của host 0),
+   tự chèn chia áp 1k/2k cho chân ra 5 V và R 220 Ω cho LED / LED 7 đoạn. Tự đi dây A* + dây nhảy an toàn (≥ 5,08 mm, không chung lỗ / đè chân), phủ mass GND, đổi khung bo, xuất SVG/PNG 1:1.
+   **Mã nguồn gốc ở `W:\AI\Pindexio\pcb-lab\proto\` (repo riêng)**: sửa ở đó rồi `node proto/build.js --site` chép sang `js/pcblab.js` + `css/pcblab.css`; đừng sửa tay 2 file này.
+   Song ngữ tự lo bằng `L("vi","en")` theo `<html lang>` (vẽ lại qua `window.onLangChange`, nối thêm chứ không thay hàm của app.js); màu giao diện dùng biến `--surface --fg --accent --canvas…`.
 7b. **Sơ đồ chân linh kiện**: dưới danh sách board có mục 🧩 Linh kiện (thu gọn 3 hàng / mở rộng theo nhóm `MOD_CATS`), mỗi module thành "board" giả `mod-<mã>` (`modBoard()` trong `app.js`), URL `/#mod-<mã>/<chân>`, không có trang SEO riêng. `js/modules.js` giờ tải sẵn trong `index.html`.
 7. **Song ngữ**: nút cờ VN/EN. **4 giao diện** (ô chọn góc phải): *Pindex* (mặc định, lá ô liu + dark), *8-bit* (tông đại dương retro), *Hổ phách*, *Simple*; nút ☀/☾ sáng/tối.
 8. **Chia sẻ** board/chân (Web Share API hoặc copy link).
@@ -61,6 +66,7 @@ js/app.js               Vẽ SVG (PCB/kiến trúc), panel chân, bộ lọc, po
 js/seo-body.js          Khối chữ cuối trang Sơ đồ chân (bảng chân + tài liệu + danh sách board) – DÙNG CHUNG
                         cho app.js (vẽ lại khi đổi board) và tools/build-seo.js (trang tĩnh). Chỉ sửa ở đây.
 js/build.js, modules.js Tab Build + thư viện module
+js/pcblab.js, css/pcblab.css  PCB Lab – BẢN CHÉP từ pcb-lab/proto (node proto/build.js --site), không sửa tay
 js/affiliates.js        Link tiếp thị liên kết theo vùng (vn / intl) – trang admin ghi đè nguyên file này
 js/admin.js             Trang admin (tải lười): link mua hàng, màu/font, sửa trực tiếp bằng nhấp phải, thay thumbnail
 js/admin-auth.js        Mật khẩu admin đã băm SHA-256 (null = mặc định "pindex")

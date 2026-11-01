@@ -1,0 +1,105 @@
+/* PCB Lab – dùng chung cho bản chạy riêng và Pindexio (css/pcblab.css). Mọi quy tắc nằm dưới .pcblab;
+   màu giao diện lấy biến của Pindexio (--surface --fg --muted --line --accent --canvas…) nên tự đổi theo giao diện / sáng tối.
+   Riêng hình bo (FR4 xanh, đồng, pad) giữ màu cố định như bo thật. */
+.pcblab { --pl-cu: #d2893d; --pl-pad: #d9a84a; display: grid; grid-template-columns: 210px minmax(0, 1fr) 64px 290px; grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "list bar bar side" "list stage vbar side"; gap: 10px; height: calc(100vh - 104px); min-height: 560px; color: var(--fg); font-family: var(--sans); }
+.pcblab .pl-list { grid-area: list; min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: 6px; scrollbar-width: thin; }
+.pcblab .pl-bar { grid-area: bar; display: flex; align-items: center; gap: 4px; padding: 5px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; scrollbar-width: thin; }
+.pcblab .pl-stage { grid-area: stage; position: relative; min-width: 0; min-height: 0; background: var(--canvas); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.pcblab .pl-vbar { grid-area: vbar; display: flex; flex-direction: column; gap: 4px; padding: 6px 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow-y: auto; scrollbar-width: thin; }
+.pcblab .pl-side { grid-area: side; min-height: 0; overflow: auto; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; scrollbar-width: thin; }
+.pcblab #plSvg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pcblab #plSvg.routing { cursor: crosshair; }
+/* danh sách bên trái */
+.pcblab .pl-wire { display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 10px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--fg); font: 600 12.5px var(--sans); text-align: left; cursor: pointer; }
+.pcblab .pl-wire .mods-n { margin-left: auto; }
+.pcblab .pl-list .mods { margin-top: 0; }
+.pcblab .pl-list .mod-row svg { flex: none; width: 38px; height: 28px; }
+.pcblab .pl-note { margin: 2px 4px; color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+/* bo mạch */
+.pcblab .fr4 { fill: #1e5a3c; } .pcblab .edge { fill: none; stroke: #f2d544; stroke-width: .35; } .pcblab .mhole { fill: #232b3a; stroke: #c9a94a; stroke-width: .5; }
+.pcblab .comp .body { fill: none; stroke: #f4f4f4; stroke-width: .22; opacity: .85; }
+.pcblab .comp.sel .body { stroke: #00aeef; stroke-width: .4; }
+.pcblab #plSvg text { font-family: var(--sans); }
+.pcblab .silkt { fill: #f4f4f4; font-size: 2px; font-weight: 600; text-anchor: middle; dominant-baseline: central; opacity: .55; pointer-events: none; }
+.pcblab .ref { fill: #f4f4f4; font-size: 1.5px; font-weight: 700; opacity: .85; pointer-events: none; }
+.pcblab .trace .cu { fill: none; stroke: var(--pl-cu); stroke-linecap: round; stroke-linejoin: round; }
+.pcblab .trace.lock .cu { stroke: #e9a453; }
+.pcblab .trace .hit { fill: none; stroke: transparent; stroke-linecap: round; cursor: move; }
+.pcblab .trace.sel .cu, .pcblab .trace.hl .cu { stroke: #ffc06e; filter: drop-shadow(0 0 .4px #fff); }
+.pcblab .trace.dim { opacity: .35; }
+.pcblab .pad .padcu { fill: var(--pl-pad); } .pcblab .pad .drill { fill: #232b3a; }
+.pcblab .pad.hl .padcu { fill: #ffd27a; } .pcblab .pad.dim { opacity: .45; } .pcblab .pad.nc .padcu { fill: #9c8a5c; }
+.pcblab .rat { stroke: #e8f0ff; stroke-width: .16; opacity: .8; } .pcblab .rat.hl { stroke: #ffd27a; stroke-width: .25; }
+.pcblab .drcmark { fill: rgba(255,60,60,.2); stroke: #ff4040; stroke-width: .25; }
+.pcblab .drcseg { fill: none; stroke: rgba(255,60,60,.55); stroke-linecap: round; }
+.pcblab .vtx { fill: #fff; stroke: #00aeef; stroke-width: .2; cursor: move; }
+.pcblab .cu.tmp { fill: none; stroke: #ffc06e; stroke-linecap: round; stroke-linejoin: round; opacity: .9; } .pcblab .cu.tmp.bad { stroke: #ff5050; }
+.pcblab .art { pointer-events: none; }
+.pcblab .pour { fill: var(--pl-cu); opacity: .6; } .pcblab .pour.dim { opacity: .2; } .pcblab #plSvg:not(.back) .pour { opacity: .15; }
+.pcblab #plSvg.back .comp, .pcblab #plSvg.back .jw { opacity: .3; }
+/* mặt linh kiện: đồng nằm ở mặt dưới nên chỉ nhìn xuyên mờ; đường đang chọn / tô sáng rõ hơn để sửa */
+.pcblab #plSvg:not(.back) .trace { opacity: .25; } .pcblab #plSvg:not(.back) .trace.sel, .pcblab #plSvg:not(.back) .trace.hl { opacity: .75; }
+.pcblab .jwl { stroke: #f4f4f4; stroke-width: .3; stroke-linecap: round; } .pcblab .jw.sel .jwl { stroke: #00aeef; stroke-width: .45; } .pcblab .jw.dim { opacity: .35; }
+.pcblab .jmark { fill: none; stroke: #fff; stroke-width: .25; } .pcblab .jcut { stroke: #fff; stroke-width: .3; stroke-dasharray: .6 .4; }
+/* lớp nổi trên khung vẽ */
+.pcblab #plTip { position: absolute; z-index: 5; display: none; padding: 6px 9px; border-radius: 8px; background: rgba(4,30,66,.95); color: #fff; font: 12px/1.45 var(--sans); pointer-events: none; }
+.pcblab #plTip.on { display: block; } .pcblab #plTip i { color: #ffd479; font-style: normal; }
+.pcblab #plHint { position: absolute; left: 12px; bottom: 12px; color: #fff; font: 600 12.5px var(--sans); pointer-events: none; max-width: calc(100% - 24px); }
+.pcblab #plHint:not(:empty) { padding: 7px 11px; border-radius: 8px; background: rgba(4,30,66,.92); }
+.pcblab #plToast { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 8; padding: 8px 14px; border-radius: 9px; background: rgba(4,30,66,.96); color: #fff; font: 600 13px var(--sans); opacity: 0; transition: .2s; pointer-events: none; max-width: 86%; }
+.pcblab #plToast.on { opacity: 1; }
+.pcblab #plCtx { position: absolute; z-index: 9; display: none; min-width: 150px; padding: 4px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.pcblab #plCtx.on { display: block; }
+.pcblab #plCtx button { display: flex; justify-content: space-between; gap: 14px; width: 100%; padding: 6px 9px; border: 0; border-radius: 6px; background: none; color: var(--fg); font: 600 12.5px var(--sans); text-align: left; cursor: pointer; }
+.pcblab #plCtx button:hover { background: var(--surface2); } .pcblab #plCtx kbd { color: var(--muted); font: 11px var(--mono); }
+/* nút công cụ */
+.pcblab .tb { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); font: 600 10px/1.15 var(--sans); cursor: pointer; text-align: center; }
+.pcblab .tb:hover:not(:disabled) { border-color: var(--accent); background: var(--surface2); } .pcblab .tb:disabled { opacity: .38; cursor: default; }
+.pcblab .tb.on, .pcblab .tb.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.pcblab .tb svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pcblab .pl-bar .tb { flex: none; flex-direction: row; gap: 5px; padding: 5px 9px; font-size: 12px; } .pcblab .pl-bar .tb svg { width: 17px; height: 17px; }
+.pcblab .sep { flex: none; width: 1px; height: 24px; margin: 0 4px; background: var(--line); }
+.pcblab .alpha { flex: none; display: flex; align-items: center; gap: 6px; padding: 0 6px; font: 600 12px var(--sans); white-space: nowrap; } .pcblab .alpha input { width: 90px; accent-color: var(--accent); }
+.pcblab .vw { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); } .pcblab .vw small { font: 700 9.5px var(--sans); color: var(--muted); text-align: center; }
+.pcblab .vw button { padding: 5px 0; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); font: 700 11.5px var(--mono); cursor: pointer; } .pcblab .vw button:hover { border-color: var(--accent); }
+/* bảng bên phải */
+.pcblab .pl-side h4 { margin: 14px 0 6px; font: 700 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pcblab .steps { margin: 0 0 10px; padding: 0; list-style: none; counter-reset: s; }
+.pcblab .steps li { counter-increment: s; position: relative; padding: 5px 8px 5px 34px; margin-bottom: 4px; border-radius: 8px; background: var(--surface2); font: 600 12.5px var(--sans); color: var(--muted); }
+.pcblab .steps li::before { content: counter(s); position: absolute; left: 8px; top: 6px; width: 19px; height: 19px; border-radius: 50%; background: var(--line); color: var(--fg); font: 700 11px/19px var(--sans); text-align: center; }
+.pcblab .steps li.ok { color: var(--ok, #1f7a3a); } .pcblab .steps li.ok::before { content: "✓"; background: #2e9d52; color: #fff; }
+.pcblab .steps li.now { color: var(--fg); box-shadow: inset 0 0 0 1px var(--accent); } .pcblab .steps li.now::before { background: var(--accent); color: var(--accent-fg); }
+.pcblab .steps small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
+.pcblab .stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; } .pcblab .stat div { padding: 8px 6px; border-radius: 9px; background: var(--surface2); text-align: center; font-size: 12px; }
+.pcblab .stat b { font-size: 18px; } .pcblab .stat span { display: block; font-size: 10.5px; color: var(--muted); } .pcblab .stat .red { background: rgba(220,60,60,.16); }
+.pcblab .box { margin-top: 10px; padding: 8px 10px; border-radius: 9px; background: var(--surface2); border: 1px solid var(--line); } .pcblab .box h4 { margin: 0 0 4px; } .pcblab .box p { margin: 0; font-size: 12.5px; }
+.pcblab .box.warn { border-color: #e2ad00; }
+.pcblab .box .mut { margin-top: 5px; color: var(--muted); font-size: 11.5px; }
+.pcblab .nets { display: flex; flex-wrap: wrap; gap: 5px; } .pcblab .nets button { padding: 4px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); font: 600 11.5px var(--mono); cursor: pointer; }
+.pcblab .nets .ok { color: var(--ok, #1f7a3a); } .pcblab .nets .open { color: var(--warn, #9a6b00); } .pcblab .nets .on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pcblab .errs div { padding: 4px 8px; margin-bottom: 3px; border-radius: 6px; background: rgba(220,60,60,.14); color: var(--fg); font-size: 12px; }
+.pcblab .help { margin: 0; padding-left: 18px; font-size: 12.5px; } .pcblab .help li { margin-bottom: 4px; }
+.pcblab .pins { display: grid; gap: 4px; margin: 6px 0; } .pcblab .pins label, .pcblab .pv { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 6px; font: 700 11.5px var(--mono); }
+.pcblab .pins select, .pcblab .pv input, .pcblab .bsz input { width: 100%; min-width: 0; padding: 3px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); font: 12px var(--sans); }
+.pcblab .pv { margin-top: 4px; }
+.pcblab .pinlist { margin: 4px 0; font-size: 12px; } .pcblab .pinlist div { padding: 2px 0; }
+.pcblab .bsz { display: flex; align-items: center; gap: 6px; font-size: 12px; } .pcblab .bsz label { display: flex; align-items: center; gap: 4px; } .pcblab .bsz input { width: 62px; }
+.pcblab .bszb { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.pcblab .bszb button { padding: 4px 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); font: 600 11.5px var(--mono); cursor: pointer; }
+.pcblab .bszb button:hover, .pcblab .bszb button.on { border-color: var(--accent); } .pcblab .bszb #plFitB { font-family: var(--sans); }
+@media (max-width: 1350px) { .pcblab .pl-bar .tb span { display: none; } .pcblab .pl-bar .tb.primary span { display: inline; } }
+@media (max-width: 1100px) { .pcblab { grid-template-columns: 170px minmax(0, 1fr) 60px 250px; } }
+/* điện thoại / máy tính bảng dọc: xếp chồng */
+@media (max-width: 899px) {
+  .pcblab { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 62vh auto auto; grid-template-areas: "list" "bar" "stage" "vbar" "side"; height: auto; }
+  .pcblab .pl-list { max-height: 210px; }
+  .pcblab .pl-vbar { flex-direction: row; overflow-x: auto; } .pcblab .pl-vbar .tb { flex: none; min-width: 64px; }
+  .pcblab .vw { flex-direction: row; align-items: center; margin: 0 0 0 6px; padding: 0 0 0 6px; border-top: 0; border-left: 1px solid var(--line); } .pcblab .vw button { padding: 5px 8px; }
+}
+
+/* nút mở PCB Lab trong Pindexio (thanh kiểu xem và thanh Wiring); màu FR4 để phân biệt với ⚡ Wiring */
+.seg .pcblab-btn { background: #1e5a3c !important; color: #fff !important; font-weight: 800; }
+.seg .pcblab-btn:hover { background: #26724c !important; }
+.bpcb { flex: none; height: 38px; padding: 0 12px; border: 1px solid #1e5a3c; border-radius: 10px; background: #1e5a3c; color: #fff; font: 700 13px var(--sans); cursor: pointer; }
+.bpcb:hover { background: #26724c; }

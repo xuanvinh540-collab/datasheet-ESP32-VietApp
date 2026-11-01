@@ -900,5 +900,8 @@ window.EN_DATA = {
 "(hàm tone() chuẩn Arduino)": "(standard Arduino tone())",
 "SevSeg (hoặc điều khiển qua 74HC595)": "SevSeg (or drive it through a 74HC595)",
 "Pindexio ra mắt: tra sơ đồ chân vi điều khiển bằng tiếng Việt": "Pindexio is live: microcontroller pinouts in Vietnamese and English",
-"8 board, 14 linh kiện, công cụ Wiring ghép linh kiện và nối dây, dữ liệu lấy từ datasheet của hãng.": "8 boards, 14 modules and a Wiring tool to pair parts and route wires, with data taken from manufacturer datasheets."
+"8 board, 14 linh kiện, công cụ Wiring ghép linh kiện và nối dây, dữ liệu lấy từ datasheet của hãng.": "8 boards, 14 modules and a Wiring tool to pair parts and route wires, with data taken from manufacturer datasheets.",
+"Vẽ bo mạch in 1 lớp từ mạch Wiring": "Design a single-layer PCB from the Wiring circuit",
+"Chuyển mạch sang PCB Lab để vẽ bo": "Send this circuit to PCB Lab to design the board",
+"PCB Lab hiện chỉ làm được bo cho ESP32-S3-DevKitC-1.": "PCB Lab currently supports ESP32-S3-DevKitC-1 only."
 };
