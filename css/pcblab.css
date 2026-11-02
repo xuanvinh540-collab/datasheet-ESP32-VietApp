@@ -33,7 +33,7 @@
 .pcblab .trace.dim { opacity: .35; }
 .pcblab .pad .padcu { fill: var(--pl-pad); } .pcblab .pad .drill { fill: #232b3a; }
 .pcblab .pad.hl .padcu { fill: #ffd27a; } .pcblab .pad.dim { opacity: .45; } .pcblab .pad.nc .padcu { fill: #9c8a5c; }
-.pcblab .rat { stroke: #e8f0ff; stroke-width: .16; opacity: .8; } .pcblab .rat.hl { stroke: #ffd27a; stroke-width: .25; }
+.pcblab .rat { stroke: #ffd27a; stroke-width: .2; stroke-dasharray: .9 .6; opacity: .9; } .pcblab .rat.hl { stroke: #ffd27a; stroke-width: .25; }
 .pcblab .drcmark { fill: rgba(255,60,60,.2); stroke: #ff4040; stroke-width: .25; }
 .pcblab .drcseg { fill: none; stroke: rgba(255,60,60,.55); stroke-linecap: round; }
 .pcblab .vtx { fill: #fff; stroke: #00aeef; stroke-width: .2; cursor: move; }
@@ -125,3 +125,27 @@
 .pcblab .pl-beta-box { max-width: 460px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font: 13px/1.5 var(--sans); box-shadow: 0 12px 32px rgba(0, 0, 0, .4); }
 .pcblab .pl-beta-box h3 { margin: 0 0 8px; font-size: 15px; } .pcblab .pl-beta-box ul { margin: 4px 0 8px; padding-left: 18px; }
 .pcblab .pl-beta-box label { display: flex; align-items: center; gap: 6px; margin-top: 8px; cursor: pointer; }
+
+.pcblab .trace.free .cu { stroke: #9aa0a6; }
+.pcblab .pl-exp-box { width: min(440px, 100%); max-height: 100%; overflow: auto; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font: 13px/1.45 var(--sans); box-shadow: 0 12px 32px rgba(0, 0, 0, .4); }
+.pcblab .pl-exp-box h3 { margin: 0 0 12px; font-size: 16px; }
+.pcblab .pl-exp-row { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--muted); font-weight: 600; }
+.pcblab .pl-exp-row input { min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface2); color: var(--fg); font: 13px var(--sans); }
+.pcblab .pl-seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.pcblab .pl-seg button { flex: 1; padding: 6px 0; border: 0; background: none; color: var(--fg); font: 600 12.5px var(--sans); cursor: pointer; }
+.pcblab .pl-seg button + button { border-left: 1px solid var(--line); }
+.pcblab .pl-seg button.on { background: var(--accent); color: var(--accent-fg); }
+.pcblab .pl-exp-sub { margin: -2px 0 10px 86px; color: var(--muted); font-size: 12px; }
+.pcblab .pl-exp-layers { display: grid; gap: 6px; }
+.pcblab .pl-exp-l { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; cursor: pointer; }
+.pcblab .pl-exp-l.on { border-color: var(--accent); }
+.pcblab .pl-exp-l span { flex: 1; display: flex; flex-direction: column; } .pcblab .pl-exp-l small { color: var(--muted); font-size: 11.5px; }
+.pcblab .pl-mir { width: 30px; height: 26px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--muted); font-size: 15px; cursor: pointer; }
+.pcblab .pl-mir.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.pcblab .pl-exp-prev { display: grid; place-items: center; height: 150px; margin-top: 10px; padding: 6px; border-radius: 8px; background: #fff; color: #666; }
+.pcblab .pl-exp-prev svg { max-width: 100%; max-height: 100%; width: auto; height: 100%; }
+.pcblab .pl-exp-files { margin: 0; padding: 8px 10px 8px 26px; border-radius: 8px; background: var(--surface2); font: 12px var(--mono); }
+.pcblab .pl-exp-warn { margin: 10px 0 0; color: #e8a33d; font-size: 12px; }
+.pcblab .pl-exp-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.pcblab .pl-exp-foot .pl-try { margin: 0; width: auto; padding: 7px 16px; } .pcblab .pl-exp-foot .pl-try:disabled { opacity: .4; cursor: default; }
+.pcblab .pl-exp-cancel { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--fg); font: 600 12.5px var(--sans); cursor: pointer; }
