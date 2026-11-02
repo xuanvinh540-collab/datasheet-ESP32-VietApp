@@ -227,8 +227,10 @@
     for (const k of HS()) {
       const pl = plOf(k); if (!pl) continue;
       const G = boardGeom(k), tx = hx(pl.bi, pl.c) - G.ref.x, ty = hy(pl.bi, pl.r) - G.ref.y, multi = HS().length > 1;
-      const bg = el("g", { class: "bbmcu" + (drag && drag.mcu === k + 1 ? " dragging" : "") + (multi && (B.bb.cur || 0) === k ? " cur" : ""), "data-h": k, transform: `translate(${tx} ${ty}) translate(${G.b.h} 0) rotate(90)`, opacity: B.bb.op ?? .5 }, root);
-      const keep = A.state.b; A.state.b = G.b; try { A.drawPCB(bg, true); } finally { A.state.b = keep; } bg.removeAttribute("viewBox");
+      const bg = el("g", { class: "bbmcu" + (drag && drag.mcu === k + 1 ? " dragging" : "") + (multi && (B.bb.cur || 0) === k ? " cur" : ""), "data-h": k, transform: `translate(${tx} ${ty}) translate(${G.b.h} 0) rotate(90)`, opacity: B.bb.ghost ? 1 : B.bb.op ?? .5 }, root);
+      // chế độ Viền: board cũng chỉ còn viền mỏng như module
+      if (B.bb.ghost) { el("rect", { x: 0, y: 0, width: G.b.w, height: G.b.h, rx: 1.2, stroke: "#f5d63d", class: "bb-ghost" }, bg); el("text", { x: G.b.w / 2, y: G.b.h / 2, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 2, class: "modt", transform: `rotate(-90 ${G.b.w / 2} ${G.b.h / 2})` }, bg, G.b.name); }
+      else { const keep = A.state.b; A.state.b = G.b; try { A.drawPCB(bg, true); } finally { A.state.b = keep; } bg.removeAttribute("viewBox"); }
       if (k) uniqIds(bg, "_h" + k);   // id riêng cho board phụ (gradient/clip không đè nhau)
       if (multi) el("text", { x: tx + G.b.h / 2, y: ty - 1.2, "text-anchor": "middle", "font-size": 1.6, class: "bb-bname" + ((B.bb.cur || 0) === k ? " cur" : "") }, root, (k ? "U" + (k + 1) + " · " : "U1 · ") + G.b.name);
       bg.addEventListener("pointerdown", e => { if (e.button !== 2) { B.bb.cur = k; B.selX = { t: "board", k }; B.selM = B.selW = null; startDrag(e, "mcu" + k); } });

@@ -707,3 +707,16 @@ sup.beta { font: 700 8.5px var(--mono); padding: 0 3px; border-radius: 4px; back
 /* Breadboard chế độ Viền: chỉ viền mỏng theo màu module */
 #bsvg .bb-ghost { fill: none; stroke-width: .25; stroke-dasharray: .8 .4; }
 .btools .bbtn[aria-pressed="true"]:not(.bmode .bbtn) { border-color: var(--accent); background: var(--surface); }
+
+/* thanh Wiring 2 hàng: chế độ ở trên, công cụ + zoom ở dưới; nút Viền có nền để dễ thấy */
+.bbar .btools { flex: 1 1 100%; }
+.btools .bmode { flex: 0 0 100%; display: flex; gap: 4px; margin-bottom: 2px; }
+.btools .zoom { margin-left: auto; display: flex; gap: 4px; }
+.btools #bbghost { border-color: var(--line); background: var(--surface); }
+.btools #bbghost[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+#bsvg .bb-ghost { fill: transparent; pointer-events: all; }
+/* nút chế độ đọc rõ ở mọi giao diện; thanh trượt gọn để công cụ + zoom vừa 1 hàng */
+.btools .bmode .bbtn { color: var(--fg); }
+.btools .bmode .bbtn[aria-pressed="true"] { color: #1d232a; }
+.btools .bslider input { width: 64px; }
+.btools .bmode #bbtog[aria-pressed="true"] { background: #f5d63d; color: #1d232a; }
