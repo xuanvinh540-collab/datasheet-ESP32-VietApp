@@ -91,7 +91,10 @@
 .pcblab .bszb { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .pcblab .bszb button { padding: 4px 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); font: 600 11.5px var(--mono); cursor: pointer; }
 .pcblab .bszb button:hover, .pcblab .bszb button.on { border-color: var(--accent); } .pcblab .bszb #plFitB { font-family: var(--sans); }
-@media (max-width: 1350px) { .pcblab .pl-bar .tb span { display: none; } .pcblab .pl-bar .tb.primary span { display: inline; } }
+/* thanh ngang: chỉ icon, rê chuột xem chữ (title) */
+.pcblab .pl-bar .tb span { display: none; } .pcblab .pl-bar .tb { padding: 6px 8px; } .pcblab .pl-bar { flex-wrap: wrap; overflow: visible; }
+.pcblab .alpha { padding: 0 4px; } .pcblab .alpha input { width: 70px; }
+.pcblab .pl-vbar .tb.primary { margin-top: auto; }
 @media (max-width: 1100px) { .pcblab { grid-template-columns: 170px minmax(0, 1fr) 60px 250px; } }
 /* điện thoại / máy tính bảng dọc: xếp chồng */
 @media (max-width: 899px) {
