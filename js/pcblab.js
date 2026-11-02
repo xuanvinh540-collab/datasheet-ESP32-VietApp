@@ -599,10 +599,11 @@
     if (pd) LY.pour.firstChild.setAttribute("class", "pour" + (hl && hl !== GND ? " dim" : ""));
     // đường đồng
     for (const t of S.traces) {
-      const w = traceW(t), d = "M" + t.pts.map(p => p.join(" ")).join(" L"), on = ui.sel && ui.sel.t === "t" && ui.sel.id === t.id;
-      const g = el("g", { class: "trace" + (on ? " sel" : "") + (t.lock ? " lock" : "") + (isFree(t.net) ? " free" : "") + (hl && hl === t.net ? " hl" : "") + (hl && hl !== t.net ? " dim" : ""), "data-t": t.id }, LY.cu);
+      const w = traceW(t), d = "M" + t.pts.map(p => p.join(" ")).join(" L"), on = ui.sel && ui.sel.t === "t" && ui.sel.id === t.id, sk = on && ui.sel.k != null && t.pts[ui.sel.k + 1] ? ui.sel.k : null;
+      const g = el("g", { class: "trace" + (on && sk == null ? " sel" : "") + (t.lock ? " lock" : "") + (isFree(t.net) ? " free" : "") + (hl && hl === t.net ? " hl" : "") + (hl && hl !== t.net ? " dim" : ""), "data-t": t.id }, LY.cu);
       el("path", { d, "stroke-width": w, class: "cu" }, g);
       el("path", { d, "stroke-width": Math.max(w, 2.2), class: "hit" }, g);
+      if (sk != null) el("path", { d: `M${t.pts[sk].join(" ")} L${t.pts[sk + 1].join(" ")}`, "stroke-width": w, class: "cu segsel" }, g);   // đoạn đang chọn (từ góc tới góc)
     }
     // chân
     for (const p of A.P) {
@@ -1115,7 +1116,10 @@
     del() {
       const s = ui.sel; if (!s) return;
       if (s.t === "j") { checkpoint(); S.jumpers = S.jumpers.filter(j => j.id !== s.id); gcHoles(); ui.sel = null; ui.hlNet = null; render(); }
-      else if (s.t === "t") { checkpoint(); S.traces = S.traces.filter(t => t.id !== s.id); gcHoles(); ui.sel = null; ui.hlNet = null; render(); }
+      else if (s.t === "t") {   // chỉ xoá đoạn đang chọn (giữa 2 góc), phần còn lại giữ
+        checkpoint(); const t = S.traces.find(x => x.id === s.id); S.traces = S.traces.filter(x => x !== t);
+        if (t && s.k != null && t.pts[s.k + 1]) for (const pc of [t.pts.slice(0, s.k + 1), t.pts.slice(s.k + 1)]) if (pc.length >= 2) S.traces.push({ ...t, id: S.uid++, pts: pc });
+        gcHoles(); ui.sel = null; ui.hlNet = null; render(); }
       else {
         checkpoint(); const nets = unwire(s.id); S.comps = S.comps.filter(c => c.id !== s.id);
         prune(); ui.sel = null; render(); toast(L(`Đã xoá ${s.id}.`, `Deleted ${s.id}.`)); afterParts([], nets);
@@ -1186,7 +1190,7 @@
     },
     autoMsg(f, t0) { render(); const nj = S.jumpers.filter(j => j.auto && !j.ext).length, ne = S.jumpers.filter(j => j.ext).length; toast(L(`Tự đi dây (${SCHEMES[S.scheme].name}): ${f ? "còn " + f + " đường chưa đi được" : "xong hết"}${nj + ne ? " · " + (nj + ne) + " dây nhảy" : ""}`, `Autoroute (${SCHEMES[S.scheme].name}): ${f ? f + " connections left unrouted" : "all done"}${nj + ne ? " · " + (nj + ne) + " jumpers" : ""}`) + ` · ${Math.round(performance.now() - t0)} ms`); },
     scheme() { S.scheme = (S.scheme + 1) % SCHEMES.length; checkpoint(); S.routed = true; const t0 = performance.now(); cmd.autoMsg(autoroute(S.scheme) ? extWires() : 0, t0); },
-    clear() { checkpoint(); S.routed = false; S.traces = S.traces.filter(t => t.lock); S.jumpers = S.jumpers.filter(j => !j.auto); render(); toast(L("Đã xoá các đường tự động (giữ đường đã khoá).", "Removed autorouted traces (locked traces kept).")); },
+    clear() { checkpoint(); S.routed = false; S.traces = []; S.jumpers = []; S.holes = []; ui.sel = null; render(); toast(L("Đã xoá mọi đường đồng và dây nhảy (Ctrl+Z để lấy lại).", "Removed all traces and jumpers (Ctrl+Z to undo).")); },
     reset() { if (!confirm(L(`Xoá hết linh kiện và đường đồng, chỉ để lại ${hostInfo().name}?`, `Remove all parts and traces, keeping only ${hostInfo().name}?`))) return; checkpoint(); S = fresh(S.mcu); ui.sel = null; render(); fit(); },
     rats() { S.rats = !S.rats; render(); },
     // nắn đoạn đang chọn: h ngang, v dọc, a 45°. Dời đầu tự do của đoạn; đoạn nối 2 chân thì chèn 1 điểm gập
@@ -1531,11 +1535,11 @@
     $("#plVbar").innerHTML = `<div class="pl-tools">${Object.entries(TOOLS()).map(([k, [t, tip]]) => b("plT" + k, k === "jw" ? "jump" : "t" + k, t, tip).replace("<button ", `<button data-tool="${k}" `)).join("")}</div>` + b("plAuto", "auto", L("Tự đi dây", "Autoroute"), L("Xoá đường tự động cũ rồi đi lại toàn bộ, giữ đường đã khoá (A)", "Remove old auto traces and route everything again, keep locked traces (A)"))
       + `<button type="button" class="tb tb-more" id="plAutoMore" title="${L("Tuỳ chọn tự đi dây", "Autoroute options")}">▾</button>` + b("plScheme", "scheme", "", "")
       + b("plUnwire", "unwire", L("Xoá dây LK", "Unwire part"), L("Xoá mọi đường / dây nhảy nối vào linh kiện đang chọn", "Remove every trace / jumper going to the selected part"))
-      + b("plClear", "clear", L("Xoá tự động", "Clear auto"), L("Xoá các đường chưa khoá", "Remove unlocked traces")) + b("plPour", "pour", L("Phủ mass", "GND pour"), L("Đổ đồng GND vào chỗ trống (cách 0,6 mm, nan nhiệt)", "Fill free areas with GND copper (0.6 mm clearance, thermal spokes)"))
+      + b("plClear", "clear", L("Xoá hết dây", "Clear all"), L("Xoá mọi đường đồng và dây nhảy, cả tự động lẫn tự vẽ (Ctrl+Z để lấy lại)", "Remove every trace and jumper, auto and hand-drawn (Ctrl+Z to undo)")) + b("plPour", "pour", L("Phủ mass", "GND pour"), L("Đổ đồng GND vào chỗ trống (cách 0,6 mm, nan nhiệt)", "Fill free areas with GND copper (0.6 mm clearance, thermal spokes)"))
       + `<div class="vw"><small>${L("Độ rộng mm", "Width mm")}</small><button type="button" data-w="0.8">${L("0,8", "0.8")}</button><button type="button" data-w="1">${L("1,0", "1.0")}</button><button type="button" data-w="1.5">${L("1,5", "1.5")}</button></div>`;
     $("#plAlpha").oninput = e => { S.alpha = e.target.value / 100; render(); };
     const on = (id, f) => $(id).onclick = f;
-    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); $$(".pl-tools [data-tool]").forEach(x => x.onclick = () => setTool(x.dataset.tool)); setTool(ui.tool || "jw"); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
+    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); $$(".pl-tools [data-tool]").forEach(x => x.onclick = () => setTool(x.dataset.tool)); setTool(ui.tool || "sel"); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
     $$("[data-mode]").forEach(x => x.onclick = () => APP.toWiring(x.dataset.mode));
     $("#plExport").classList.add("primary");
     on("#plExport", exportDialog);

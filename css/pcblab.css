@@ -152,3 +152,4 @@
 .pcblab .pl-tools { display: grid; gap: 4px; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
 .pcblab svg[data-tool="cu"], .pcblab svg[data-tool="jw"] { cursor: crosshair; } .pcblab svg[data-tool="er"] { cursor: none; }
 .pcblab .erc { fill: rgba(255, 255, 255, .18); stroke: #fff; stroke-width: .12; pointer-events: none; }
+.pcblab .cu.segsel { stroke: #ffe08a; }
