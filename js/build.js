@@ -748,7 +748,8 @@
         const tools = document.createElement("div");
         tools.id = "btools"; tools.className = "btools";
         // thanh công cụ kiểu KiCad: nút phẳng icon + chữ, ngăn nhóm bằng vạch dọc
-        const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${tip}"><i aria-hidden="true">${ic}</i><span>${t}</span></button>`;
+        // chỉ hiện icon (gọn hàng như PCB Maker); rê chuột xem tên + mô tả
+        const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${t} – ${tip}" aria-label="${t}"><i aria-hidden="true">${ic}</i><span>${t}</span></button>`;
         // chế độ: Nối dây (mặc định) | Breadboard – bấm Breadboard lần nữa để đổi 1 → 2 → 3 tấm
         tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "🔌", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + tb("bmpcb", "🖨", "PCB Maker", "Làm bo mạch in 1 lớp từ mạch này (in ủi nhiệt, ăn mòn tại nhà)") + `</span><span class="bsep"></span>`
           + `<span class="bwtools">` + tb("barr", "🧲", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "🔀", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "⟳", "Xoay board", "Xoay board 90°")
@@ -836,7 +837,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=130"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=133"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -887,9 +888,10 @@
       if (!filtered.length) return "";
       const items = filtered.map(k => {
         const d = M[k], on = B.mods.some(m => m.type === k), ok = modOK(d, b);
-        return `<button class="mitem${on ? " on" : ""}" data-add="${k}"${ok ? "" : " disabled"} style="--mc:${d.color}"><span>${on ? "✓" : "+"}</span><img src="${esc(d.svg)}" alt="" loading="lazy"><span class="mn">${esc(d.short)}</span><span class="mi">${esc(d.iface.split(" ")[0])}</span></button>`;
+        // cùng kiểu hàng có icon với cột linh kiện của tab Sơ đồ chân / PCB Maker
+        return `<button type="button" class="mod-row" data-add="${k}" aria-pressed="${on}"${ok ? "" : " disabled"} title="${on ? "Bỏ" : "Thêm"} ${esc(d.name)}"><img src="${esc(d.svg)}" alt="" loading="lazy"><span class="mr-name">${esc(d.short)}</span><span class="mr-if">${on ? "✓" : esc(d.iface.split(" ")[0])}</span></button>`;
       }).join("");
-      return `<div class="mcat"><div class="mcat-h"><span aria-hidden="true">${icon}</span> ${esc(catName)}</div><div class="mlist">${items}</div></div>`;
+      return `<div class="mods-cat"><div class="mods-ch" title="${esc(catName)}"><span aria-hidden="true">${icon}</span> <span class="mc-t">${esc(catName)}</span></div>${items}</div>`;
     }).join("") + boardItems(b, q) || `<div class="muted small">Không tìm thấy linh kiện phù hợp.</div>`;   // Dev board để cuối danh sách
   }
   function bindAddBtns(root) {
@@ -900,8 +902,22 @@
       cleanBus(); B.arm = null; save(); refresh();
     });
   }
+  // cột trái: tìm + danh sách linh kiện có icon (giống PCB Maker)
+  function leftList(b) {
+    const box = $("#blist"); if (!box) return;
+    const mc = () => { const el = box.querySelector("#mcats"); el.innerHTML = renderCatList(b); bindAddBtns(el); };
+    if (!box.querySelector("#mcats")) {
+      box.innerHTML = `<label class="msearch"><span>⌕</span><input id="mq" type="search" placeholder="Tìm linh kiện, I2C, SPI..." autocomplete="off"></label>
+        <div class="mods open"><div class="mods-h"><span>🧩 Linh kiện</span><span class="mods-n" id="mcount"></span></div><div class="mods-list" id="mcats"></div></div>`;
+      box.querySelector("#mq").oninput = e => { B.q = e.target.value; mc(); };
+    }
+    const q = box.querySelector("#mq"); if (q.value !== (B.q || "")) q.value = B.q || "";
+    box.querySelector("#mcount").textContent = `${B.mods.length}/${Object.keys(M).length}`;
+    mc();
+  }
   function side() {
     const box = $("#bside"), b = board();
+    leftList(b);
     $("#bboard").hidden = true;
     const bt = $("#btitle"); if (bt) bt.textContent = b.name;
     if (!supported(b)) { box.innerHTML = `<p class="wtext">Chưa hỗ trợ board này.</p>`; return; }
@@ -909,22 +925,11 @@
     const cards = B.mods.map((m, i) => { const d = M[m.type]; return `<div class="bcard" style="--mc:${d.color}"><div class="bc-h"><b>${esc(d.name)}</b><span>${esc(d.iface)} · ${esc(d.vcc)}</span><button class="icon-btn bx" data-del="${i}" aria-label="Bỏ">✕</button></div>
       <table class="btbl">${d.pins.map(([label]) => { const n = getPin(m, label); return `<tr><th>${esc(label)}</th><td>${n ? `<b>${esc(n)}</b>` : '<span class="muted">chưa nối</span>'}</td><td>${n ? `<button class="tap" data-un="${i}" data-l="${esc(label)}" title="Gỡ dây">✕</button>` : ""}</td></tr>`; }).join("")}</table></div>`; }).join("");
     box.innerHTML = `<div class="seg btabs"><button data-tab="mods" aria-pressed="${B.tab === "mods"}">Module</button><button data-tab="code" aria-pressed="${B.tab === "code"}">Code</button></div>
-      ${B.tab === "mods" ? `        <div class="mdrop">
-          <button type="button" class="mdrop-btn" id="mdropBtn"><span>🧩 Linh kiện (${B.mods.length}/${Object.keys(M).length})</span><span>${B.dropOpen ? "▴" : "▾"}</span></button>
-          <div class="mdrop-body" id="mdropBody"${B.dropOpen ? "" : " hidden"}>
-            <label class="msearch"><span>⌕</span><input id="mq" type="search" placeholder="Tìm linh kiện, I2C, SPI..." value="${esc(B.q)}" autocomplete="off"></label>
-            <div id="mcats">${renderCatList(b)}</div>
-          </div>
-        </div>
-        <p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân / Xoay. Phím R xoay linh kiện đang chọn.</p>
+      ${B.tab === "mods" ? `<p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân / Xoay. Phím R xoay linh kiện đang chọn.</p>
         <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Tự nối chân</button>` : ""}
         ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
       : `<pre class="code bcode">${esc(code())}</pre><button class="btn-share" data-copy>Copy #define</button>`}
       <div class="bexp"><button data-exp="png">⬇ Ảnh PNG</button><button data-exp="json">⬇ File .json</button><button data-exp="link">🔗 Link</button><label>⬆ Mở .json<input type="file" accept=".json,application/json" hidden></label></div>`;
-    const mdropBtn = box.querySelector("#mdropBtn");
-    if (mdropBtn) mdropBtn.onclick = () => { B.dropOpen = !B.dropOpen; side(); };
-    const mq = box.querySelector("#mq");
-    if (mq) mq.oninput = e => { B.q = e.target.value; const mc = box.querySelector("#mcats"); if (mc) { mc.innerHTML = renderCatList(b); bindAddBtns(mc); } };
     bindAddBtns(box);
     box.querySelectorAll("[data-del]").forEach(x => x.onclick = () => { B.mods.splice(+x.dataset.del, 1); cleanBus(); B.arm = null; save(); refresh(); });
     box.querySelectorAll("[data-un]").forEach(x => x.onclick = () => { setPin(B.mods[+x.dataset.un], x.dataset.l, null); save(); refresh(); });

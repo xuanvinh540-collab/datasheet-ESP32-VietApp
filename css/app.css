@@ -682,3 +682,16 @@ main { padding-top: 12px; }
 /* dòng thống kê lượt truy cập cuối trang chủ: nhỏ, nét mỏng */
 .home-stat { margin: 6px 0 0; padding-top: 8px; border-top: 1px solid var(--line); text-align: center; font: 11px var(--mono); color: var(--muted); opacity: .85; }
 .home-stat[hidden] { display: none; }
+
+/* Wiring bố cục giống PCB Maker: cột linh kiện có icon bên trái | khung vẽ | bảng Module/Code; thanh công cụ chỉ icon */
+.bwrap { grid-template-columns: 210px minmax(0, 1fr) 340px; }
+.blist { padding: 8px; display: grid; gap: 6px; align-content: start; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; scrollbar-width: thin; }
+.blist .mods { margin-top: 0; padding: 4px; border: 0; }
+.blist .mods.open .mods-list { max-height: none; overflow: visible; }
+.blist .mod-row:disabled { opacity: .35; cursor: not-allowed; }
+.blist .mitem { width: 100%; margin-top: 2px; }
+.btools .bbtn span { display: none; } .btools .bbtn { padding: 6px 8px; }
+@media (min-width: 900px) and (max-width: 1399px) { .bwrap { grid-template-columns: 112px minmax(0, 1fr) 300px; } .blist .msearch span { display: none; } }
+@media (max-width: 899px) { .bwrap { grid-template-columns: 1fr; } .blist { position: static; max-height: 260px; } }
+.btools .bmode .bbtn span { display: inline; }
+.blist { display: block; overflow-x: hidden; } .blist > * + * { margin-top: 6px; } .blist .mods { display: block; min-width: 0; } .blist .mod-row { min-width: 0; }
