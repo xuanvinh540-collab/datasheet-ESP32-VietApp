@@ -111,6 +111,41 @@ window.MODULES = {
     lib: "Adafruit NeoPixel",
     note: "Nguồn 5 V riêng nếu nhiều LED (~60 mA/LED). Thêm điện trở 330 Ω nối tiếp DIN và tụ 1000 µF ở nguồn."
   },
+  tb6612fng: {
+    name: "Driver động cơ TB6612FNG", short: "TB6612FNG", color: "#e6321e", iface: "PWM/GPIO", vcc: "3V3",
+    svg: "svg/tb6612fng.svg", w: 20.3, h: 20.3, vb: [0, 0, 57.6, 57.6], pinDir: "L",
+    pins: [
+      ["VM", "pwr.5v", 0, 7.2, 3.2339, "L"],
+      ["VCC", "pwr.3v3", 0, 7.2, 10.4339, "L"],
+      ["GND", "gnd", 0, 7.2, 17.6339, "L"],
+      ["A01", "mot", 0, 7.2, 24.8339, "L"],
+      ["A02", "mot", 0, 7.2, 32.0339, "L"],
+      ["B02", "mot", 0, 7.2, 39.2339, "L"],
+      ["B01", "mot", 0, 7.2, 46.4339, "L"],
+      ["GND2", "gnd", 0, 7.2, 53.6339, "L"],
+      ["PWMA", "pwm", 0, 50.4, 3.2339, "R"],
+      ["AIN2", "out", 0, 50.4, 10.4339, "R"],
+      ["AIN1", "out", 0, 50.4, 17.6339, "R"],
+      ["STBY", "out", 0, 50.4, 24.8339, "R"],
+      ["BIN1", "out", 0, 50.4, 32.0339, "R"],
+      ["BIN2", "out", 0, 50.4, 39.2339, "R"],
+      ["PWMB", "pwm", 0, 50.4, 46.4339, "R"],
+      ["GND3", "gnd", 0, 50.4, 53.6339, "R"]
+    ],
+    lib: "(không cần thư viện: analogWrite + digitalWrite)",
+    note: "Điều khiển 2 động cơ DC (1,2 A/kênh). VM là nguồn động cơ 4,5–13,5 V: motor lớn nên cấp nguồn riêng, chung GND với board. STBY phải HIGH thì driver mới chạy. A01/A02, B01/B02 nối dây động cơ, không nối board."
+  },
+  servo: {
+    name: "Động cơ Servo SG90", short: "Servo SG90", color: "#1f6fd1", iface: "PWM", vcc: "5V",
+    svg: "svg/sg90.svg", w: 83.6, h: 31.75, vb: [0, 0, 237, 90], pinDir: "L",
+    pins: [
+      ["SIG", "pwm", 0, 9.25, 33.55, "L"],
+      ["VCC", "pwr.5v", 0, 9.25, 42.55, "L"],
+      ["GND", "gnd", 0, 9.25, 51.55, "L"]
+    ],
+    lib: "ESP32: ESP32Servo · Arduino/Pico: Servo",
+    note: "Dây cam = tín hiệu, đỏ = 5 V, nâu = GND. Servo kéo dòng lớn khi quay: nhiều servo nên dùng nguồn 5 V riêng, chung GND với board."
+  },
   hcsr04: {
     name: "Siêu âm HC-SR04", short: "HC-SR04", color: "#29adff", iface: "GPIO", vcc: "5V",
     svg: "svg/hc-sr04.svg", w: 38, h: 17.7, vb: [485.87112, 226.17669], pinDir: "B",
@@ -181,6 +216,7 @@ window.MOD_CATS = [
   ["Màn hình & Hiển thị", "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]],
   ["Cảm biến", "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]],
   ["Âm thanh & Còi", "🔊", ["buzzer", "max98357a", "inmp441"]],
+  ["Động cơ", "⚙️", ["servo", "tb6612fng"]],
   ["Điều khiển & Cơ bản", "🎛️", ["button", "led"]]
 ];
 /* Giải thích từng chân linh kiện: [chân này làm gì, cách nối]. Khoá "mã.CHÂN" ưu tiên hơn khoá chung "CHÂN". */
@@ -202,6 +238,21 @@ window.PIN_DOC = {
   "ws2812.VCC": ["Nguồn 5 V cho các LED. Mỗi LED trắng sáng tối đa có thể ăn khoảng 60 mA.", "Nối 5V; nhiều LED thì dùng nguồn riêng và tụ 1000 µF, nối chung GND với board."],
   "hcsr04.TRIG": ["Trigger: board phát một xung HIGH khoảng 10 µs để cảm biến bắn sóng siêu âm.", "Nối một GPIO đặt OUTPUT. Mức 3.3 V vẫn kích được."],
   "hcsr04.ECHO": ["Echo: cảm biến giữ chân này HIGH đúng bằng thời gian sóng đi và dội về. Khoảng cách (cm) ≈ thời gian (µs) / 58.", "Nối GPIO đặt INPUT, đọc bằng pulseIn(). Chân ra 5 V: với board 3.3 V phải chia áp 1 kΩ + 2 kΩ trước khi vào GPIO."],
+  "tb6612fng.VM": ["Nguồn cho động cơ (4,5–13,5 V), tách riêng với nguồn logic.", "Motor nhỏ có thể lấy 5V của board; motor lớn dùng nguồn/pin riêng, nối chung GND."],
+  "tb6612fng.VCC": ["Nguồn logic của driver (2,7–5,5 V).", "Nối 3V3 của board."],
+  "tb6612fng.STBY": ["Standby: LOW = driver nghỉ, HIGH = chạy.", "Nối GPIO và đặt HIGH, hoặc nối thẳng VCC nếu luôn bật."],
+  "tb6612fng.PWMA": ["Tốc độ động cơ A: độ rộng xung PWM càng lớn quay càng nhanh.", "Nối GPIO có PWM, dùng analogWrite()."],
+  "tb6612fng.PWMB": ["Tốc độ động cơ B (PWM).", "Nối GPIO có PWM, dùng analogWrite()."],
+  "tb6612fng.AIN1": ["Chiều quay động cơ A (cùng AIN2): 1-0 quay thuận, 0-1 quay ngược, 0-0 dừng.", "Nối GPIO đặt OUTPUT."],
+  "tb6612fng.AIN2": ["Chiều quay động cơ A (cùng AIN1).", "Nối GPIO đặt OUTPUT."],
+  "tb6612fng.BIN1": ["Chiều quay động cơ B (cùng BIN2).", "Nối GPIO đặt OUTPUT."],
+  "tb6612fng.BIN2": ["Chiều quay động cơ B (cùng BIN1).", "Nối GPIO đặt OUTPUT."],
+  "tb6612fng.A01": ["Ngõ ra động cơ A.", "Nối 1 dây của động cơ A, không nối board."],
+  "tb6612fng.A02": ["Ngõ ra động cơ A.", "Nối dây còn lại của động cơ A."],
+  "tb6612fng.B01": ["Ngõ ra động cơ B.", "Nối 1 dây của động cơ B, không nối board."],
+  "tb6612fng.B02": ["Ngõ ra động cơ B.", "Nối dây còn lại của động cơ B."],
+  "servo.SIG": ["Tín hiệu điều khiển góc (dây cam): xung 0,5–2,5 ms lặp lại 50 lần/giây.", "Nối GPIO có PWM, dùng thư viện Servo: servo.write(góc)."],
+  "servo.VCC": ["Nguồn 5 V cho servo (dây đỏ).", "Nối 5V; nhiều servo thì dùng nguồn riêng, chung GND."],
   "hcsr04.VCC": ["Nguồn 5 V cho cảm biến siêu âm.", "Nối 5V của board (HC-SR04 bản thường không chạy ổn ở 3.3 V)."],
   "max98357a.BCLK": ["Bit Clock của I2S: mỗi xung là một bit âm thanh.", "Nối chân I2S BCLK của board (GPIO bất kỳ trên ESP32)."],
   "max98357a.LRC": ["Left/Right Clock (WS): đổi mức để báo đang gửi kênh trái hay phải; tần số bằng tần số lấy mẫu.", "Nối chân I2S WS/LRCLK. Trên Pico phải là chân ngay sau BCLK (BCLK + 1)."],
