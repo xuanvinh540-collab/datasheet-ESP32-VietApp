@@ -22,6 +22,9 @@
 .pcblab .comp.sel .body { stroke: #00aeef; stroke-width: .4; }
 .pcblab #plSvg text { font-family: var(--sans); }
 .pcblab .silkt { fill: #f4f4f4; font-size: 2px; font-weight: 600; text-anchor: middle; dominant-baseline: central; opacity: .55; pointer-events: none; }
+.pcblab .face { fill: #fff; opacity: .13; font-weight: 800; letter-spacing: .06em; text-anchor: end; }
+.pcblab .pl-modes { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 9px; } .pcblab .pl-modes .tb { gap: 4px; }
+.pcblab .bchk { display: flex; align-items: center; gap: 6px; margin-top: 6px; font: 12px var(--sans); color: var(--fg); cursor: pointer; } .pcblab .bchk input { accent-color: var(--accent); }
 .pcblab .ref { fill: #f4f4f4; font-size: 1.5px; font-weight: 700; opacity: .85; pointer-events: none; }
 .pcblab .trace .cu { fill: none; stroke: var(--pl-cu); stroke-linecap: round; stroke-linejoin: round; }
 .pcblab .trace.lock .cu { stroke: #e9a453; }

@@ -750,7 +750,7 @@
         // thanh công cụ kiểu KiCad: nút phẳng icon + chữ, ngăn nhóm bằng vạch dọc
         const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${tip}"><i aria-hidden="true">${ic}</i><span>${t}</span></button>`;
         // chế độ: Nối dây (mặc định) | Breadboard – bấm Breadboard lần nữa để đổi 1 → 2 → 3 tấm
-        tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "🔌", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + `</span><span class="bsep"></span>`
+        tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "🔌", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + tb("bmpcb", "🖨", "Làm mạch in", "Làm bo mạch in 1 lớp từ mạch này (in ủi nhiệt, ăn mòn tại nhà)") + `</span><span class="bsep"></span>`
           + `<span class="bwtools">` + tb("barr", "🧲", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "🔀", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "⟳", "Xoay board", "Xoay board 90°")
           + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label></span>`
           + `<span class="bbtools" hidden>` + tb("bbstyle", "🔀", "Đi dây", "Đổi kiểu dây: vuông góc / tách / cong / vát 45°") + `<label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bbspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bbspreadv">×${B.spread}</output></label>`
@@ -767,6 +767,7 @@
         $("#breset").onclick = () => resetView();
         $("#bmwire").onclick = () => { if (B.bb.on) { B.bb.on = false; B.cam = null; save(); refresh(); } };
         $("#bbtog").onclick = () => toggleBB();
+        $("#bmpcb").onclick = () => A.openPcbLab(true);
         $("#bbspread").oninput = e => setSpread(+e.target.value);
         $("#bbstyle").onclick = () => { cycleStyle(); A.toast("Dây: " + STYLE_NAMES[B.style]); };
         $("#bbop").oninput = e => { B.bb.op = +e.target.value; $("#bbopv").textContent = Math.round(B.bb.op * 100) + "%"; svg().querySelectorAll(".bbmod > g[opacity], .bbmcu[opacity]").forEach(g => g.setAttribute("opacity", B.bb.op)); const w = svg().querySelector("#wires"); if (w) w.setAttribute("opacity", Math.max(.25, B.bb.op)); };
@@ -835,7 +836,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=125"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=128"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
