@@ -182,7 +182,7 @@
     A = { P, rats, find, conns: total };
     A.drc = drc(P);
     // dây nhảy khác mạng bắc chéo nhau ở mặt trên: không lỗi nếu dùng dây có vỏ bọc
-    A.cross = 0; S.jumpers.forEach((j, i) => S.jumpers.slice(i + 1).forEach(o => { if (o.net !== j.net && segSeg(j.a, j.b, o.a, o.b) === 0) A.cross++; }));
+    A.cross = 0; S.jumpers.forEach((j, i) => S.jumpers.slice(i + 1).forEach(o => { if (o.net !== j.net && !j.ext && !o.ext && segSeg(j.a, j.b, o.a, o.b) === 0) A.cross++; }));
     return A;
   }
 
@@ -263,7 +263,7 @@
     }
     for (const j of S.jumpers) {
       if (Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) < JP_MIN - 1e-6) bad.push({ x: (j.a[0] + j.b[0]) / 2, y: (j.a[1] + j.b[1]) / 2, msg: L("dây nhảy ngắn quá (< 5,08 mm)", "jumper too short (< 5.08 mm)") });
-      for (const p of P) if (p.jw !== j && p.net !== j.net && segDist(p.x, p.y, j.a[0], j.a[1], j.b[0], j.b[1]) < (p.r || PAD_R) + JP_OVER) bad.push({ pad: p, x: p.x, y: p.y, msg: L("dây nhảy đè lên chân", "jumper passes over a pin") });
+      if (!j.ext) for (const p of P) if (p.jw !== j && p.net !== j.net && segDist(p.x, p.y, j.a[0], j.a[1], j.b[0], j.b[1]) < (p.r || PAD_R) + JP_OVER) bad.push({ pad: p, x: p.x, y: p.y, msg: L("dây nhảy đè lên chân", "jumper passes over a pin") });
     }
     // khung bo thu nhỏ: chân nằm ngoài / sát mép
     for (const p of P) { const r = p.r || PAD_R; if (p.x - r < EDGE || p.y - r < EDGE || p.x + r > S.board.w - EDGE || p.y + r > S.board.h - EDGE) bad.push({ pad: p, x: p.x, y: p.y, msg: L("chân ra ngoài mép bo", "pin outside the board edge") }); }
@@ -274,7 +274,7 @@
     if (x < EDGE + JP_R || y < EDGE + JP_R || x > S.board.w - EDGE - JP_R || y > S.board.h - EDGE - JP_R) return false;
     for (const p of P) if (Math.hypot(p.x - x, p.y - y) < (p.r || PAD_R) + CLR + JP_R) return false;
     // không nằm dưới thân dây nhảy khác mạng (dây trần mặt trên sẽ chạm mối hàn của lỗ này)
-    for (const j of S.jumpers) if (j.net !== net && segDist(x, y, j.a[0], j.a[1], j.b[0], j.b[1]) < JP_R + JP_OVER) return false;
+    for (const j of S.jumpers) if (j.net !== net && !j.ext && segDist(x, y, j.a[0], j.a[1], j.b[0], j.b[1]) < JP_R + JP_OVER) return false;
     for (const t of S.traces) if (t.net !== net) for (let k = 0; k < t.pts.length - 1; k++) if (segDist(x, y, t.pts[k][0], t.pts[k][1], t.pts[k + 1][0], t.pts[k + 1][1]) < traceW(t) / 2 + CLR + JP_R) return false;
     return true;
   }
@@ -459,6 +459,57 @@
     out.push(pts[pts.length - 1]); return out;
   }
 
+  // phương án cuối cho đường vẫn không đi được (kể cả dây nhảy): đặt 2 lỗ pad ở chỗ trống gần 2 chân (3–15 mm, đúng lưới 2,54),
+  // đi đoạn đồng ngắn từ chân ra lỗ, 2 lỗ nối bằng dây điện có vỏ bọc (j.ext) vắt ở mặt linh kiện. Không hàn vào chân module.
+  const extNo = j => S.jumpers.filter(o => o.ext).indexOf(j) + 1;
+  function extWires(budget = 5000) {
+    const t0 = performance.now(), tried = new Set();
+    const segHit = (p, q, t, gap) => { for (let k = 0; k < t.pts.length - 1; k++) if (segSeg(p, q, t.pts[k], t.pts[k + 1]) < traceW(t) / 2 + gap) return true; return false; };
+    // chỗ đặt lỗ + đoạn đồng thẳng chân → lỗ, chỉ xét chân / lỗ khác mạng (đường đồng xử lý riêng: tránh hoặc gỡ)
+    const spots = (p, net, w, P) => {
+      const out = [];
+      for (let dx = -3; dx <= 3; dx++) for (let dy = -3; dy <= 3; dy++) {
+        const x = r3(snap(p.x, G) + dx * G), y = r3(snap(p.y, G) + dy * G), d = Math.hypot(x - p.x, y - p.y);
+        if (d < G - .01 || d > 3 * G + .01 || x < EDGE + JP_R || y < EDGE + JP_R || x > S.board.w - EDGE - JP_R || y > S.board.h - EDGE - JP_R) continue;
+        if (P.some(q => q !== p && Math.hypot(q.x - x, q.y - y) < (q.r || PAD_R) + CLR + JP_R)) continue;
+        if (P.some(q => q !== p && q.net !== net && segDist(q.x, q.y, p.x, p.y, x, y) < (q.r || PAD_R) + w / 2 + CLR)) continue;
+        // đường khác mạng bị chắn: đã khoá thì bỏ chỗ này, tự động thì ghi lại để gỡ
+        const hit = S.traces.filter(t => t.net !== net && (segHit([p.x, p.y], [x, y], t, w / 2 + CLR) || segHit([x, y], [x, y], t, JP_R + CLR)));
+        if (hit.some(t => t.lock)) continue;
+        // lỗ nằm dưới thân module / board thì khó luồn dây và hàn: chỉ dùng khi không còn chỗ nào khác
+        const under = S.comps.some(c => { const b = compBox(c); return x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1; });
+        out.push({ d: d + hit.length * 20 + (under ? 10 : 0), x, y, hit });
+      }
+      return out.sort((u, v) => u.d - v.d).slice(0, 3);
+    };
+    while (performance.now() - t0 < budget) {
+      const A0 = analyze(), rt = A0.rats.find(r => !tried.has(r.a.c.id + r.a.i + "-" + r.b.c.id + r.b.i)); if (!rt) break;
+      tried.add(rt.a.c.id + rt.a.i + "-" + rt.b.c.id + rt.b.i);
+      const P = pads(), net = rt.net, w = PWR.has(net) ? W_PWR : W_SIG, sa = spots(rt.a, net, w, P), sb = spots(rt.b, net, w, P);
+      const pairs = []; for (const x of sa) for (const y of sb) if (Math.hypot(x.x - y.x, x.y - y.y) >= JP_MIN) pairs.push([x.d + y.d, x, y]);
+      for (const [, x, y] of pairs.sort((u, v) => u[0] - v[0]).slice(0, 4)) {
+        if (performance.now() - t0 > budget) break;
+        const keep = JSON.stringify([S.traces, S.jumpers, S.uid]), gone = new Set([...x.hit, ...y.hit]), nets = new Set([...gone].map(t => t.net));
+        S.traces = S.traces.filter(t => !gone.has(t)); if (nets.size) dropDangling(nets);   // gỡ đường chắn + phần treo của nó
+        S.traces.push({ id: S.uid++, net, pts: [[rt.a.x, rt.a.y], [x.x, x.y]], lock: true }, { id: S.uid++, net, pts: [[rt.b.x, rt.b.y], [y.x, y.y]], lock: true });
+        const j = { id: S.uid++, net, a: [x.x, x.y], b: [y.x, y.y], ext: true };
+        S.jumpers.push(j);
+        if (nets.size) {   // đi lại các mạng vừa gỡ, giữ nguyên phần còn lại
+          const ft = S.traces.filter(t => !t.lock), fj = S.jumpers.filter(o => o.auto);
+          ft.forEach(t => t.lock = true); fj.forEach(o => o.auto = false); autoroute(S.scheme); ft.forEach(t => t.lock = false); fj.forEach(o => o.auto = true);
+        }
+        // 2 đoạn chân → lỗ khoá tạm trong lúc đi lại, xong trả về tự động (Tự đi dây lần sau được đi lại)
+        S.traces.forEach(t => { if (t.lock && t.pts.length === 2 && (near2(t.pts[0], rt.a) || near2(t.pts[0], rt.b)) && (near2(t.pts[1], [x.x, x.y]) || near2(t.pts[1], [y.x, y.y]))) t.lock = false; });
+        j.auto = true;
+        const A2 = analyze();
+        if (A2.rats.length < A0.rats.length && A2.drc.length <= A0.drc.length) break;
+        [S.traces, S.jumpers, S.uid] = JSON.parse(keep);
+      }
+    }
+    return analyze().rats.length;
+  }
+  const near2 = (q, p) => Math.hypot(q[0] - (p.x ?? p[0]), q[1] - (p.y ?? p[1])) < .05;
+
   /* ---------- vẽ ---------- */
   const svg = $("#plSvg"); let cam = null;
   const LY = {};
@@ -522,8 +573,9 @@
     }
     // dây nhảy: nét trắng mảnh (quy ước chung cho ký hiệu linh kiện) nằm ở mặt linh kiện
     for (const j of S.jumpers) {
-      const g = el("g", { class: "jw" + (ui.sel && ui.sel.t === "j" && ui.sel.id === j.id ? " sel" : "") + (hl && hl !== j.net ? " dim" : "") }, LY.jw);
+      const g = el("g", { class: "jw" + (j.ext ? " ext" : "") + (ui.sel && ui.sel.t === "j" && ui.sel.id === j.id ? " sel" : "") + (hl && hl !== j.net ? " dim" : "") }, LY.jw);
       el("line", { x1: j.a[0], y1: j.a[1], x2: j.b[0], y2: j.b[1], class: "jwl" }, g);
+      if (j.ext) { const n = extNo(j); [[j.a, "a"], [j.b, "b"]].forEach(([e, s]) => el("text", { x: e[0] + 1.2, y: e[1] - 1, class: "extl" }, g, "W" + n + s)); }
     }
     // dây bay
     if (S.rats) for (const r of A.rats) el("line", { x1: r.a.x, y1: r.a.y, x2: r.b.x, y2: r.b.y, class: "rat" + (hl && r.net === hl ? " hl" : "") }, LY.rats);
@@ -562,6 +614,8 @@
   // In ủi nhiệt mặt đồng: in KHÔNG lật (úp giấy xuống đồng là tự lật đúng). Bản "lật gương" cho phim / cách làm khác.
   // nhãn tên chân của hàng rào J1 (in lên mặt linh kiện để cắm dây Dupont đúng chân board)
   const hdrText = (f, fs) => f.hdr ? f.pads.map(p => `<text x="${p.x}" y="${p.y - 2}" font-size="${fs}" font-weight="700" font-family="sans-serif" dominant-baseline="central" transform="rotate(-90 ${p.x} ${p.y - 2})">${pinLabel(p.name)}</text>`).join("") : "";
+  // tên 2 đầu dây ngoài (W1a / W1b) cạnh lỗ, để biết hàn dây nào vào đâu
+  const extText = (j, fs) => j.ext ? [[j.a, "a"], [j.b, "b"]].map(([e, s]) => `<text x="${e[0] + 1.2}" y="${e[1] - 1}" font-size="${fs}" font-weight="700" font-family="sans-serif">W${extNo(j)}${s}</text>`).join("") : "";
   function exportSVG(kind, mirror) {
     const B = S.board, P = pads(), o = [];
     o.push(`<svg xmlns="${NS}" width="${B.w}mm" height="${B.h}mm" viewBox="0 0 ${B.w} ${B.h}"><rect width="${B.w}" height="${B.h}" fill="#fff"/>`);
@@ -581,7 +635,7 @@
           + (f.label ? `<text x="${cx}" y="${cy}" font-size="1.6" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
           + `<text x="${b.x + .4}" y="${b.y - .6}" font-size="1.3" font-weight="700" font-family="sans-serif">${c.id}${c.val ? " " + c.val : ""}</text></g>`);
       }
-      for (const j of S.jumpers) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width=".15" stroke-dasharray=".8 .5"/>`);
+      for (const j of S.jumpers) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width=".15" stroke-dasharray=".8 .5"/>` + extText(j, 1.2));
       for (const p of P) o.push(`<circle cx="${p.x}" cy="${p.y}" r="${(p.r || PAD_R) + .25}" fill="#fff"/>`);
     } else {
       for (const c of S.comps) {
@@ -591,7 +645,7 @@
           + `<text x="${b.x + .6}" y="${b.y - .8}" font-size="1.5" font-weight="700" font-family="sans-serif">${c.id}${c.val ? " " + c.val : ""}</text></g>`);
       }
       for (const p of P) o.push(`<circle cx="${p.x}" cy="${p.y}" r="${(p.r || PAD_R) * .8}" fill="none" stroke="#000" stroke-width=".15"/>`);
-      for (const j of S.jumpers) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width=".35" stroke-linecap="round"/>`);
+      for (const j of S.jumpers) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width="${j.ext ? .2 : .35}"${j.ext ? ' stroke-dasharray="1.2 .6"' : ""} stroke-linecap="round"/>` + extText(j, 1.4));
     }
     return o.join("") + "</g></svg>";
   }
@@ -877,10 +931,10 @@
         const prio = new Set(r0.failed); let r = r0;
         for (let k = 0; k < 3 && r.fl && performance.now() - t0 < 10000; k++) { r.failed.forEach(x => prio.add(x)); r = tryRun(r0.si, prio, r0.ga); }
       }
-      [S.traces, S.jumpers] = JSON.parse(best.st); S.scheme = best.si; cmd.autoMsg(best.fl, t0);
+      [S.traces, S.jumpers] = JSON.parse(best.st); S.scheme = best.si; cmd.autoMsg(best.fl ? extWires() : 0, t0);   // còn sót: dây ngoài có vỏ bọc
     },
-    autoMsg(f, t0) { render(); const nj = S.jumpers.filter(j => j.auto).length; toast(L(`Tự đi dây (${SCHEMES[S.scheme].name}): ${f ? "còn " + f + " đường chưa đi được" : "xong hết"}${nj ? " · " + nj + " dây nhảy" : ""}`, `Autoroute (${SCHEMES[S.scheme].name}): ${f ? f + " connections left unrouted" : "all done"}${nj ? " · " + nj + " jumpers" : ""}`) + ` · ${Math.round(performance.now() - t0)} ms`); },
-    scheme() { S.scheme = (S.scheme + 1) % SCHEMES.length; checkpoint(); S.routed = true; const t0 = performance.now(); cmd.autoMsg(autoroute(S.scheme), t0); },
+    autoMsg(f, t0) { render(); const nj = S.jumpers.filter(j => j.auto && !j.ext).length, ne = S.jumpers.filter(j => j.ext).length; toast(L(`Tự đi dây (${SCHEMES[S.scheme].name}): ${f ? "còn " + f + " đường chưa đi được" : "xong hết"}${nj ? " · " + nj + " dây nhảy" : ""}${ne ? " · " + ne + " dây ngoài có vỏ bọc" : ""}`, `Autoroute (${SCHEMES[S.scheme].name}): ${f ? f + " connections left unrouted" : "all done"}${nj ? " · " + nj + " jumpers" : ""}${ne ? " · " + ne + " insulated wires" : ""}`) + ` · ${Math.round(performance.now() - t0)} ms`); },
+    scheme() { S.scheme = (S.scheme + 1) % SCHEMES.length; checkpoint(); S.routed = true; const t0 = performance.now(); cmd.autoMsg(autoroute(S.scheme) ? extWires() : 0, t0); },
     clear() { checkpoint(); S.routed = false; S.traces = S.traces.filter(t => t.lock); S.jumpers = S.jumpers.filter(j => !j.auto); render(); toast(L("Đã xoá các đường tự động (giữ đường đã khoá).", "Removed autorouted traces (locked traces kept).")); },
     reset() { if (!confirm(L(`Xoá hết linh kiện và đường đồng, chỉ để lại ${hostInfo().name}?`, `Remove all parts and traces, keeping only ${hostInfo().name}?`))) return; checkpoint(); S = fresh(S.mcu); ui.sel = null; render(); fit(); },
     rats() { S.rats = !S.rats; render(); },
@@ -1159,6 +1213,7 @@
       <div class="stat"><div><b>${Object.keys(nets).length - open.size}</b>/${Object.keys(nets).length}<span>${L("mạng đã nối", "nets routed")}</span></div><div class="${bad ? "red" : ""}"><b>${bad}</b><span>${L("lỗi khoảng cách", "clearance errors")}</span></div><div><b>${S.traces.length}</b><span>${L("đường đồng", "traces")}</span></div></div>
       ${sel ? `<div class="box"><h4>${L("Đường đang chọn", "Selected trace")}</h4><p>${L("Mạng", "Net")} <b>${sel.net}</b> · ${traceW(sel)} mm · ${sel.lock ? L("🔒 đã khoá", "🔒 locked") : L("tự động", "auto")}</p></div>` : selC ? compBoxHTML(selC) : ""}
       ${A.rats.length && S.routed && S.comps.length > 2 ? `<div class="box warn"><p>${L(`Còn <b>${A.rats.length}</b> dây chưa nối (đường trắng mảnh). Thử sắp xếp lại linh kiện để nối nốt? Linh kiện sẽ được dời và đi dây lại toàn bộ (Ctrl+Z để quay lại).`, `<b>${A.rats.length}</b> connections are still unrouted (thin white lines). Try re-arranging the parts to finish them? Parts will move and everything is re-routed (Ctrl+Z to undo).`)}</p><button type="button" class="pl-try" id="plTryLay">🔁 ${L("Thử sắp xếp lại", "Try re-arranging")}</button></div>` : ""}
+      ${S.jumpers.some(j => j.ext) ? `<div class="box"><h4>${L("Dây ngoài có vỏ bọc", "Insulated wires")}</h4><p class="mut">${L("Đường không đi được trên 1 lớp: hàn dây điện có vỏ bọc giữa 2 lỗ (mặt linh kiện).", "Connections that can't fit on one layer: solder an insulated wire between the 2 holes (component side).")}</p><div class="pinlist">${S.jumpers.filter(j => j.ext).map(j => { const len = Math.round(Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) + 10); return `<div><b>W${extNo(j)}</b> ${j.net} · W${extNo(j)}a ↔ W${extNo(j)}b · ~${len} mm${len > 100 ? L(" ⚠ dài, tín hiệu nhanh có thể nhiễu", " ⚠ long, fast signals may pick up noise") : ""}</div>`; }).join("")}</div></div>` : ""}
       ${S.hot && S.hot.length ? `<div class="box warn"><p>${L(`⚠ ${S.hot.join(", ")} chỉ chịu 3,3 V: tín hiệu từ ${hostInfo().name} (5 V) cần mạch chuyển mức hoặc chia áp.`, `⚠ ${S.hot.join(", ")} are 3.3 V only: signals from ${hostInfo().name} (5 V) need a level shifter or divider.`)}</p></div>` : ""}
       ${A.cross ? `<div class="box warn"><p>${L(`⚠ ${A.cross} chỗ dây nhảy bắc chéo nhau: dùng dây có vỏ bọc.`, `⚠ ${A.cross} jumper crossings: use insulated wire.`)}</p></div>` : ""}
       <h4>${L("Khung bo", "Board size")}</h4><div class="bsz"><label>${L("Rộng", "W")} <input id="plBW" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.w}"></label><span>×</span><label>${L("Cao", "H")} <input id="plBH" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.h}"></label><span>mm</span></div>

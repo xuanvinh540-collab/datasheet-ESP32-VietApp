@@ -118,3 +118,4 @@
 .pcblab .pl-bar .pl-modes + .sep { display: none; }
 .pcblab .pl-bar #plExport span { display: inline; font-weight: 700; }
 .pcblab .pl-try { margin-top: 6px; width: 100%; padding: 6px 8px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--accent-fg); font: 700 12px var(--sans); cursor: pointer; }
+.pcblab .jw.ext .jwl { stroke: #ff9f43; stroke-width: .35; stroke-dasharray: 1.2 .6; } .pcblab .extl { fill: #ff9f43; font-size: 1.4px; font-weight: 700; pointer-events: none; }
