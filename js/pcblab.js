@@ -1018,10 +1018,10 @@
   const wsig = o => JSON.stringify([o.mods.map(m => [m.type, m.pins, m.host || 0]), (Array.isArray(o.buses) && o.buses[0]) || o.bus || {}]);
   // kiểu sắp xếp: bề rộng kệ linh kiện bên phải ESP32-S3 (gọn / rộng / dọc)
   const ARR_W = [110, 140, 75], ARR_N = () => [L("gọn", "compact"), L("rộng", "wide"), L("dọc", "tall")];
-  function layoutParts() {   // U1 bên trái, linh kiện xếp kệ bên phải (module cao trước, R / C sau), rồi bo vừa khít
+  function layoutParts(gapMM) {   // gapMM: khe giữa linh kiện (mặc định 8 mm), "thử sắp xếp lại" nới ra 12 / 16 mm   // U1 bên trái, linh kiện xếp kệ bên phải (module cao trước, R / C sau), rồi bo vừa khít
     syncHost(); const u = S.comps.find(isHost); if (u) { u.x = 3 * G; u.y = 4 * G; u.rot = 0; }
     // ESP32-S3 đứng bên trái, linh kiện xếp bên phải; hàng rào J1 nằm ngang trên cùng, linh kiện xếp bên dưới
-    const hd = u && u.fp !== "S3", x0 = u && !hd ? compBox(u).x1 + 8 : 6, W = ARR_W[S.arr || 0] || 110, gap = 8;   // khe 8 mm: đủ lối cho vài đường đồng giữa các linh kiện
+    const hd = u && u.fp !== "S3", x0 = u && !hd ? compBox(u).x1 + 8 : 6, W = ARR_W[S.arr || 0] || 110, gap = gapMM || 8;   // khe 8 mm: đủ lối cho vài đường đồng giữa các linh kiện
     let cx = x0, cy = hd ? compBox(u).y1 + 8 : 6, rowH = 0;
     const rest = S.comps.filter(c => c !== u).sort((a, b) => ((a.fp === "R" || a.fp === "C") - (b.fp === "R" || b.fp === "C")) || (FP[b.fp].body.h - FP[a.fp].body.h));
     for (const c of rest) {
@@ -1032,7 +1032,9 @@
     }
     fitBoardTo();
     // hàng chân trái của ESP32-S3 chỉ ra được phía mép bo: chừa thêm hành lang 2 ô (5,08 mm) bên trái và bên dưới
-    shiftAll(2 * G, 0); S.board = { w: Math.min(BMAX, Math.ceil(S.board.w + 2 * G)), h: Math.min(BMAX, Math.ceil(S.board.h + 2 * G)) };
+    // khe rộng (thử sắp xếp lại) thì hành lang cũng rộng theo: 2 ô → 3 ô → 4 ô
+    const cw = (gap >= 16 ? 4 : gap >= 12 ? 3 : 2) * G;
+    shiftAll(cw, 0); S.board = { w: Math.min(BMAX, Math.ceil(S.board.w + cw)), h: Math.min(BMAX, Math.ceil(S.board.h + cw)) };
   }
   function importWiring(quiet, noCp) {   // noCp: đã có điểm hoàn tác (đổi board)
     const o = wiring();
@@ -1073,6 +1075,29 @@
       checkpoint(); S.board = { w, h }; render(); fit();
     },
     fitBoard() { checkpoint(); fitBoardTo(); render(); fit(); toast(L(`Khung bo ${S.board.w} × ${S.board.h} mm, vừa linh kiện (lề 6 mm).`, `Board ${S.board.w} × ${S.board.h} mm, fitted to the parts (6 mm margin).`)); },
+    // còn dây bay sau Tự đi dây: thử các bố cục (khe 8 / 12 / 16 mm × kiểu gọn / rộng / dọc), mỗi bố cục đi nhanh 3 phương án,
+    // giữ bố cục đủ dây nhất (rồi ít dây nhảy, bo nhỏ), đi kỹ lại bản đó. Không tốt hơn bản cũ thì trả lại nguyên trạng. Giới hạn ~10 s thử + ~5 s đi kỹ
+    tryLayouts() {
+      const n0 = analyze().rats.length; if (!n0) return toast(L("Đã nối đủ dây.", "Everything is already routed."));
+      toast(L("Đang thử các bố cục…", "Trying layouts…"));
+      setTimeout(() => {
+        const t0 = performance.now(), start = JSON.stringify(S); let best = null;
+        out: for (const gap of [8, 12, 16]) for (let ai = 0; ai < ARR_W.length; ai++) {
+          if (performance.now() - t0 > 10000) break out;   // thử ~10 s + đi kỹ bản tốt nhất ~5 s
+          S = JSON.parse(start); S.arr = ai; S.traces = []; S.jumpers = []; layoutParts(gap); const lay = JSON.stringify(S);
+          for (let si = 0; si < SCHEMES.length; si++) {
+            S = JSON.parse(lay); autoroute(si); const fl = analyze().rats.length;
+            const sc = fl * 1e6 + S.jumpers.length * 1e3 + S.board.w * S.board.h / 100;
+            if (!best || sc < best.sc) best = { sc, fl, st: JSON.stringify(S), si };
+          }
+          if (best.fl === 0 && gap === 8) break out;   // khe 8 mm đã đủ dây: không nới thêm cho bo nhỏ
+        }
+        S = JSON.parse(best.st); S.scheme = best.si; cmd.auto(true); const fl = analyze().rats.length;
+        if (fl >= n0) { S = JSON.parse(start); ui.sel = null; render(); list(); return toast(L(`Không tìm được bố cục tốt hơn (vẫn còn ${n0} dây) · giữ bố cục cũ. Thử kéo module ra xa hoặc thêm dây nhảy tay.`, `No better layout found (${n0} still unrouted) · kept the old layout. Try moving parts apart or adding manual jumpers.`)); }
+        undo.push(start); redo.length = 0; ui.sel = null; S.routed = true; render(); list(); fit();
+        toast(L(`Bố cục mới: ${fl ? "còn " + fl + " dây chưa nối" : "nối đủ dây"} · bo ${S.board.w} × ${S.board.h} mm · ${Math.round((performance.now() - t0) / 100) / 10} s · Ctrl+Z để quay lại`, `New layout: ${fl ? fl + " still unrouted" : "fully routed"} · board ${S.board.w} × ${S.board.h} mm · ${Math.round((performance.now() - t0) / 100) / 10} s · Ctrl+Z to undo`));
+      }, 30);
+    },
     // Sắp xếp (giống Wiring): mỗi lần bấm đổi kiểu bố trí rồi xếp lại
     arrange() { if (S.comps.length < 2) return cmd.pack(); S.arr = ((S.arr || 0) + 1) % ARR_W.length; cmd.pack(); toast(L("Sắp xếp kiểu ", "Layout: ") + ARR_N()[S.arr] + ` · ${S.board.w} × ${S.board.h} mm`); },
     // xếp gọn: ESP32-S3 bên trái, module xếp hàng bên phải, khung bo vừa đủ cho số linh kiện đang có; đường cũ bỏ để đi lại
@@ -1133,6 +1158,7 @@
     $("#plPanel").innerHTML = `<ol class="steps"><li class="${S.comps.length > 1 ? "ok" : "now"}">${L("Thêm & đặt linh kiện", "Add & place parts")}<small>${L("bấm linh kiện bên trái · kéo · R xoay", "click a part on the left · drag · R rotates")}</small></li><li class="${allOk ? "ok" : "now"}">${L("Nối hết dây", "Route everything")}<small>${allOk ? L("xong", "done") : L("bấm Tự đi dây (A)", "press Autoroute (A)")}${nj ? L(` · ${nj} dây nhảy`, ` · ${nj} jumpers`) : ""}</small></li><li class="${done ? "ok" : bad ? "now" : ""}">${L("Không lỗi → Tải file in", "No errors → Download")}<small>${bad ? L(`${bad} lỗi cần sửa`, `${bad} errors to fix`) : done ? L("sẵn sàng in", "ready to print") : "…"}</small></li></ol>
       <div class="stat"><div><b>${Object.keys(nets).length - open.size}</b>/${Object.keys(nets).length}<span>${L("mạng đã nối", "nets routed")}</span></div><div class="${bad ? "red" : ""}"><b>${bad}</b><span>${L("lỗi khoảng cách", "clearance errors")}</span></div><div><b>${S.traces.length}</b><span>${L("đường đồng", "traces")}</span></div></div>
       ${sel ? `<div class="box"><h4>${L("Đường đang chọn", "Selected trace")}</h4><p>${L("Mạng", "Net")} <b>${sel.net}</b> · ${traceW(sel)} mm · ${sel.lock ? L("🔒 đã khoá", "🔒 locked") : L("tự động", "auto")}</p></div>` : selC ? compBoxHTML(selC) : ""}
+      ${A.rats.length && S.routed && S.comps.length > 2 ? `<div class="box warn"><p>${L(`Còn <b>${A.rats.length}</b> dây chưa nối (đường trắng mảnh). Thử sắp xếp lại linh kiện để nối nốt? Linh kiện sẽ được dời và đi dây lại toàn bộ (Ctrl+Z để quay lại).`, `<b>${A.rats.length}</b> connections are still unrouted (thin white lines). Try re-arranging the parts to finish them? Parts will move and everything is re-routed (Ctrl+Z to undo).`)}</p><button type="button" class="pl-try" id="plTryLay">🔁 ${L("Thử sắp xếp lại", "Try re-arranging")}</button></div>` : ""}
       ${S.hot && S.hot.length ? `<div class="box warn"><p>${L(`⚠ ${S.hot.join(", ")} chỉ chịu 3,3 V: tín hiệu từ ${hostInfo().name} (5 V) cần mạch chuyển mức hoặc chia áp.`, `⚠ ${S.hot.join(", ")} are 3.3 V only: signals from ${hostInfo().name} (5 V) need a level shifter or divider.`)}</p></div>` : ""}
       ${A.cross ? `<div class="box warn"><p>${L(`⚠ ${A.cross} chỗ dây nhảy bắc chéo nhau: dùng dây có vỏ bọc.`, `⚠ ${A.cross} jumper crossings: use insulated wire.`)}</p></div>` : ""}
       <h4>${L("Khung bo", "Board size")}</h4><div class="bsz"><label>${L("Rộng", "W")} <input id="plBW" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.w}"></label><span>×</span><label>${L("Cao", "H")} <input id="plBH" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.h}"></label><span>mm</span></div>
@@ -1144,7 +1170,7 @@
     $$("[data-net]").forEach(b => b.onclick = () => { ui.hlNet = ui.hlNet === b.dataset.net ? null : b.dataset.net; ui.sel = null; render(); });
     $$("[data-pin]").forEach(s => s.onchange = () => cmd.setNet(selC.id, s.dataset.pin, s.value));
     $$("[data-bs]").forEach(b => b.onclick = () => { const [w, h] = b.dataset.bs.split("x"); S.autoB = false; cmd.boardSize(w, h); render(); });
-    $("#plPack").onclick = cmd.pack; $("#plAutoB").onchange = cmd.autoBoard;
+    $("#plPack").onclick = cmd.pack; if ($("#plTryLay")) $("#plTryLay").onclick = cmd.tryLayouts; $("#plAutoB").onchange = cmd.autoBoard;
     $("#plBW").onchange = $("#plBH").onchange = () => { S.autoB = false; cmd.boardSize($("#plBW").value, $("#plBH").value); render(); };
     $("#plFitB").onclick = cmd.fitBoard;
     if ($("#plVal")) $("#plVal").onchange = e => { checkpoint(); selC.val = e.target.value.trim(); render(); };
