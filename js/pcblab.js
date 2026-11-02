@@ -778,7 +778,7 @@
       if (!n) { undo.pop(); return toast(L(`${s.id} chưa có dây nối.`, `${s.id} has no wires yet.`)); }
       toast(L(`Đã xoá ${n} đường / dây nhảy nối vào ${s.id}. Bấm Tự đi dây (A) để đi lại.`, `Removed ${n} traces / jumpers going to ${s.id}. Press Autoroute (A) to re-route.`));
     },
-    autoRe() { S.autoRe = S.autoRe === false; render(); toast(S.autoRe ? L("Bật: dời / thêm / xoá linh kiện là tự đi dây lại phần liên quan.", "On: moving / adding / removing parts re-routes the affected nets.") : L("Tắt tự đi lại: bấm Tự đi dây (A) khi cần.", "Auto re-route off: press Autoroute (A) when needed.")); },
+    autoRe() { S.autoRe = !S.autoRe; render(); toast(S.autoRe ? L("Bật: dời / thêm / xoá linh kiện là tự đi dây lại phần liên quan.", "On: moving / adding / removing parts re-routes the affected nets.") : L("Tắt tự đi lại: bấm Tự đi dây (A) khi cần.", "Auto re-route off: press Autoroute (A) when needed.")); },
     autoBoard() { S.autoB = !S.autoB; if (S.autoB) { checkpoint(); fitBoardTo(); fit(); } render(); toast(S.autoB ? L("Bật: khung bo tự co giãn theo linh kiện khi thêm / bớt / dời.", "On: the board resizes to the parts when adding / removing / moving.") : L("Tắt: khung bo giữ cố định.", "Off: the board size stays fixed.")); },
     // đổi mạng của 1 chân module: bỏ đường gắn vào chân đó; mạng cũ không còn ≥ 2 chân thì bỏ hết đường / dây nhảy của nó
     setNet(id, pin, v) {
@@ -897,7 +897,7 @@
       if (S.flip || w0 !== S.board.w || h0 !== S.board.h) fit(); else if (dx || dy) { cam.x += dx; cam.y += dy; applyCam(); }
       render();
     }
-    if (S.autoRe === false || !(S.routed || S.traces.some(t => !t.lock))) return;
+    if (!S.autoRe || !(S.routed || S.traces.some(t => !t.lock))) return;
     const nets = new Set(extra); for (const p of pads()) if (ids.includes(p.c.id) && p.net) nets.add(p.net);
     clearTimeout(reT); reT = setTimeout(() => reroute(nets), 60);
   }
@@ -1032,7 +1032,7 @@
       checkpoint(); const re = S.routed || S.traces.some(t => !t.lock);
       S.traces = []; S.jumpers = []; layoutParts(); render(); fit();
       toast(L(`Đã xếp ${S.comps.length} linh kiện · khung bo ${S.board.w} × ${S.board.h} mm.`, `Packed ${S.comps.length} parts · board ${S.board.w} × ${S.board.h} mm.`));
-      if (re && S.autoRe !== false) setTimeout(() => cmd.auto(true), 30);
+      if (re && S.autoRe) setTimeout(() => cmd.auto(true), 30);
     },
     fromWiring: () => importWiring(false)
   });
@@ -1086,7 +1086,7 @@
     if ($("#plVal")) $("#plVal").onchange = e => { checkpoint(); selC.val = e.target.value.trim(); render(); };
     $("#plScheme").querySelector("span").textContent = SCHEMES[S.scheme].short;
     $("#plScheme").title = L("Phương án: ", "Scheme: ") + SCHEMES[S.scheme].name + L(" – bấm để đổi và đi lại", " – click to switch and re-route");
-    $("#plAutoRe").classList.toggle("on", S.autoRe !== false); $("#plRats").classList.toggle("on", S.rats); $("#plFlip").classList.toggle("on", !!S.flip); $("#plPour").classList.toggle("on", !!S.pour);
+    $("#plRats").classList.toggle("on", S.rats); $("#plFlip").classList.toggle("on", !!S.flip); $("#plPour").classList.toggle("on", !!S.pour);
     $("#plUndo").disabled = !undo.length; $("#plRedo").disabled = !redo.length;
     $$("[data-add]").forEach(b => { const c = S.comps.filter(x => x.fp === b.dataset.add).length, t = b.querySelector(".mr-if"); b.setAttribute("aria-pressed", !!c); if (t) t.textContent = c ? "×" + c : ""; });
   }
@@ -1110,12 +1110,19 @@
     return `<div class="box">${head}${f.val ? `<label class="pv">${L("Giá trị", "Value")} <input id="plVal" value="${c.val || ""}"></label>` : ""}
       <div class="pins">${names.map(n => `<label><span>${n}</span>${sel(n, (c.nets || {})[n])}</label>`).join("")}</div>${TIP[c.fp] ? `<p class="mut">💡 ${TIP[c.fp]}</p>` : ""}${foot}</div>`;
   }
+  // menu thả của nút Tự đi dây: "Tự đi lại khi sửa linh kiện" mặc định tắt (nhẹ máy, người dùng tự bấm)
+  function autoMenu() {
+    const r = $("#plAutoMore").getBoundingClientRect(), st = $("#plStage").getBoundingClientRect();
+    ctxMenu({ clientX: Math.max(st.left + 4, r.left - 300), clientY: r.top }, [
+      [L("Tự đi dây ngay", "Autoroute now"), "A", cmd.auto],
+      [(S.autoRe ? "☑ " : "☐ ") + L("Tự đi lại khi dời / thêm / xoá linh kiện", "Re-route when moving / adding / removing parts"), "", cmd.autoRe]]);
+  }
   function tools() {
     const ic = { pour: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12l8-8M4 20L20 4M12 20l8-8"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', jump: '<path d="M3 17h4M17 17h4"/><path d="M7 17c0-9 10-9 10 0"/>', flip: '<path d="M12 3v18"/><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/>', undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>', redo: '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>', del: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', auto: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', clear: '<path d="M4 4l16 16M20 4L4 20"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', rats: '<path d="M4 18L20 6" stroke-dasharray="3 3"/>', zin: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M8 11h6"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', unwire: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1L20 20M8.1 15.9L20 4"/>', re: '<path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/>', arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>' };
     const b = (id, i, t, tip) => `<button type="button" class="tb" id="${id}" title="${!t || !tip || tip.startsWith(t) ? tip || t : t + " – " + tip}"><svg viewBox="0 0 24 24">${ic[i]}</svg><span>${t}</span></button>`;
     const sep = '<span class="sep"></span>';
     // trong Pindexio: cùng nhóm chế độ với tab Wiring (Nối dây | Breadboard | Mạch in PCB) để chuyển qua lại 1 chạm
-    const modes = SITE && window.APP && APP.toWiring ? `<span class="pl-modes" role="group" aria-label="${L("Chế độ", "Mode")}"><button type="button" class="tb" data-mode="wire">🔌 <span>${L("Nối dây", "Wiring")}</span></button><button type="button" class="tb" data-mode="bb">▦ <span>Breadboard</span></button><button type="button" class="tb on" aria-pressed="true">🖨 <span>PCB Maker</span></button></span>` + sep : "";
+    const modes = SITE && window.APP && APP.toWiring ? `<span class="pl-modes" role="group" aria-label="${L("Chế độ", "Mode")}"><button type="button" class="tb" data-mode="wire">🔌 <span>${L("Nối dây", "Wiring")}</span></button><button type="button" class="tb" data-mode="bb">▦ <span>Breadboard</span></button><button type="button" class="tb on" aria-pressed="true">🖨 <span>PCB Maker <sup class="beta">beta</sup></span></button></span>` + sep : "";
     $("#plBar").innerHTML = modes + b("plDel", "del", L("Xoá", "Delete"), L("Xoá linh kiện, đường hoặc dây nhảy đang chọn (Delete)", "Delete the selected part, trace or jumper (Delete)")) + b("plRot", "rot", L("Xoay", "Rotate"), L("Xoay linh kiện đang chọn (R)", "Rotate the selected part (R)")) + sep
       + b("plUndo", "undo", L("Hoàn tác", "Undo"), "Ctrl+Z") + b("plRedo", "redo", L("Làm lại", "Redo"), "Ctrl+Shift+Z") + sep
       + b("plFlip", "flip", L("Lật mặt", "Flip"), L("Xem mặt trước / mặt sau (V)", "Front / back view (V)")) + b("plRats", "rats", L("Dây bay", "Ratsnest"), L("Bật / tắt dây bay", "Show / hide ratsnest"))
@@ -1123,15 +1130,15 @@
       + b("plZin", "zin", L("Phóng to", "Zoom in"), "") + b("plZout", "zout", L("Thu nhỏ", "Zoom out"), "") + b("plFit", "fit", L("Vừa khung", "Fit view"), "F") + sep
       + b("plArr", "arr", L("Sắp xếp", "Arrange"), L("Sắp xếp: tự bố trí linh kiện (bấm lần nữa đổi kiểu: gọn / rộng / dọc)", "Arrange: auto-place parts (click again for another layout: compact / wide / tall)"))
       + b("plReset", "reset", L("Làm mới", "Reset"), L("Làm mới: xoá hết, chỉ để lại board ESP32-S3", "Reset: clear everything except the ESP32-S3 board"));
-    $("#plVbar").innerHTML = b("plAuto", "auto", L("Tự đi dây", "Autoroute"), L("Xoá đường tự động cũ rồi đi lại toàn bộ, giữ đường đã khoá (A)", "Remove old auto traces and route everything again, keep locked traces (A)")) + b("plScheme", "scheme", "", "")
-      + b("plAutoRe", "re", L("Tự đi lại", "Auto re-route"), L("Bật: dời / thêm / xoá linh kiện là tự đi dây lại phần liên quan", "On: moving / adding / removing parts re-routes the affected nets"))
+    $("#plVbar").innerHTML = b("plAuto", "auto", L("Tự đi dây", "Autoroute"), L("Xoá đường tự động cũ rồi đi lại toàn bộ, giữ đường đã khoá (A)", "Remove old auto traces and route everything again, keep locked traces (A)"))
+      + `<button type="button" class="tb tb-more" id="plAutoMore" title="${L("Tuỳ chọn tự đi dây", "Autoroute options")}">▾</button>` + b("plScheme", "scheme", "", "")
       + b("plUnwire", "unwire", L("Xoá dây LK", "Unwire part"), L("Xoá mọi đường / dây nhảy nối vào linh kiện đang chọn", "Remove every trace / jumper going to the selected part"))
       + b("plJump", "jump", L("Dây nhảy", "Jumper"), L("Cắt đường đang chọn và bắc dây nhảy (J)", "Cut the selected trace and add a jumper (J)")) + b("plLock", "lock", L("Khoá", "Lock"), L("Khoá / bỏ khoá đường đang chọn (L)", "Lock / unlock the selected trace (L)")) + b("plClear", "clear", L("Xoá tự động", "Clear auto"), L("Xoá các đường chưa khoá", "Remove unlocked traces")) + b("plPour", "pour", L("Phủ mass", "GND pour"), L("Đổ đồng GND vào chỗ trống (cách 0,6 mm, nan nhiệt)", "Fill free areas with GND copper (0.6 mm clearance, thermal spokes)"))
       + `<div class="vw"><small>${L("Độ rộng mm", "Width mm")}</small><button type="button" data-w="0.8">${L("0,8", "0.8")}</button><button type="button" data-w="1">${L("1,0", "1.0")}</button><button type="button" data-w="1.5">${L("1,5", "1.5")}</button></div>`
       + b("plExport", "dl", L("Tải file in", "Download"), L("Tải mặt đồng / ký hiệu / mặt linh kiện dạng SVG hoặc PNG 1:1", "Download copper / silkscreen / component side as 1:1 SVG or PNG"));
     $("#plAlpha").oninput = e => { S.alpha = e.target.value / 100; render(); };
     const on = (id, f) => $(id).onclick = f;
-    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plLock", cmd.lock); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); on("#plJump", cmd.jump); on("#plPour", cmd.pour); on("#plAutoRe", cmd.autoRe); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
+    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plLock", cmd.lock); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); on("#plJump", cmd.jump); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
     $$("[data-mode]").forEach(x => x.onclick = () => APP.toWiring(x.dataset.mode));
     $("#plExport").classList.add("primary");
     on("#plExport", () => {

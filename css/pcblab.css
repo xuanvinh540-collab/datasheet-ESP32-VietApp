@@ -109,3 +109,4 @@
 .seg .pcblab-btn:hover { background: #26724c !important; }
 .bpcb { flex: none; height: 38px; padding: 0 12px; border: 1px solid #1e5a3c; border-radius: 10px; background: #1e5a3c; color: #fff; font: 700 13px var(--sans); cursor: pointer; }
 .bpcb:hover { background: #26724c; }.pcblab .pl-bar .pl-modes .tb span { display: inline; } .pcblab .pl-modes .tb { flex-direction: row; white-space: nowrap; }
+.pcblab .pl-vbar .tb-more { margin-top: -3px; padding: 1px 0; font-size: 11px; }

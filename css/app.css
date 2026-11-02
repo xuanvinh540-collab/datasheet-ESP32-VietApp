@@ -695,3 +695,4 @@ main { padding-top: 12px; }
 @media (max-width: 899px) { .bwrap { grid-template-columns: 1fr; } .blist { position: static; max-height: 260px; } }
 .btools .bmode .bbtn span { display: inline; }
 .blist { display: block; overflow-x: hidden; } .blist > * + * { margin-top: 6px; } .blist .mods { display: block; min-width: 0; } .blist .mod-row { min-width: 0; }
+sup.beta { font: 700 8.5px var(--mono); padding: 0 3px; border-radius: 4px; background: #f59e0b; color: #1d232a; vertical-align: super; text-transform: uppercase; }
