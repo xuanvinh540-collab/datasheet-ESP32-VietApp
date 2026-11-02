@@ -915,21 +915,23 @@
   function placeHole() {
     if (ui.mode === "route") {
       const q = ui.route.cur, net = ui.route.net, P = pads();
-      if (P.some(p => Math.hypot(p.x - q[0], p.y - q[1]) < PAD_R)) return toast(L("Đầu bút đang ở chân linh kiện – rê ra chỗ trống rồi bấm J.", "The pen is on a pin – move to a free spot, then press J."));
+      const on = P.find(p => Math.hypot(p.x - q[0], p.y - q[1]) < PAD_R);   // đầu bút trên lỗ / chân có sẵn: bắc dây nhảy từ đó
+      if (on) { if (on.net !== net && !joinNet(on.net)) return toast(L(`Chân ${on.name} thuộc mạng khác.`, `Pin ${on.name} is on another net.`)); const n2 = ui.route.pendJoin ? ui.route.pendJoin[1] : net; if (ui.route.pts.length > 1 || ui.route.pendJoin) finishRoute([on.x, on.y], true); else cancel(); return startJfree(n2, [on.x, on.y]); }
       if (!holeOK(q[0], q[1], net, P)) return toast(L("Chỗ này quá sát chân hoặc đường khác – chọn chỗ thoáng hơn.", "Too close to a pin or another trace – pick a clearer spot."));
       finishRoute(q); return startJfree(net, q);
     }
     const s = ui.sel, t = s && s.t === "t" && S.traces.find(x => x.id === s.id);
-    if (!t) return toast(L("Đang vẽ đường thì nhấn J để đặt lỗ ở đầu bút; hoặc chọn một đường rồi nhấn J và bấm điểm cần đặt lỗ.", "While drawing, press J to drop a hole at the pen; or select a trace, press J and click where the hole goes."));
-    cancel(); ui.mode = "hole"; ui.hole = { tid: t.id }; ui.hlNet = t.net; svg.classList.add("routing");
-    $("#plHint").textContent = L("Đặt lỗ: bấm 1 điểm trên đường đang chọn · Esc huỷ", "Hole: click a point on the selected trace · Esc cancels"); render();
+    cancel(); ui.mode = "hole"; ui.hole = { tid: t ? t.id : null }; ui.hlNet = t ? t.net : null; svg.classList.add("routing");
+    $("#plHint").textContent = L("Dây nhảy: bấm lỗ / chân có sẵn, hoặc 1 điểm trên đường để đặt lỗ đầu · Esc huỷ", "Jumper: click an existing hole / pin, or a point on a trace for the 1st hole · Esc cancels"); render();
   }
   function pickHole(p) {
-    const t = S.traces.find(x => x.id === ui.hole.tid), pr = t && proj(t, p);
-    if (!pr || pr.d > 2) return toast(L("Bấm lên chính đường đang chọn.", "Click on the selected trace itself."));
+    const pd = padAt(p);
+    if (pd) { if (!pd.net) return toast(L(`Chân ${pd.name} không dùng trong mạch.`, `Pin ${pd.name} is not used in the circuit.`)); return startJfree(pd.net, [pd.x, pd.y]); }
+    const sg = segAt(p), t = ui.hole.tid != null ? S.traces.find(x => x.id === ui.hole.tid) : sg && sg.t, pr = t && proj(t, p);
+    if (!pr || pr.d > 2) return toast(L("Bấm lên lỗ, chân hoặc đường đồng.", "Click a hole, pin or copper trace."));
     const q = [r3(pr.q[0]), r3(pr.q[1])];
     if (!holeOK(q[0], q[1], t.net, pads())) return toast(L("Chỗ này quá sát chân hoặc đường khác – chọn chỗ thoáng hơn.", "Too close to a pin or another trace – pick a clearer spot."));
-    checkpoint(); startJfree(t.net, q);
+    startJfree(t.net, q);
   }
   function startJfree(net, a) {
     cancel(); ui.mode = "jfree"; ui.jf = { net, a, cur: a }; ui.hlNet = net; svg.classList.add("routing");
@@ -943,10 +945,14 @@
   function pickJfree(p, g) {
     const J = ui.jf, P = pads(), pd = padAt(p);
     let b = g, end = false;
-    if (pd) { if (pd.net !== J.net) return toast(L(`Chân ${pd.name} thuộc mạng ${pd.net || "trống"}, không nối được.`, `Pin ${pd.name} is on net ${pd.net || "none"}, can't connect.`)); b = [pd.x, pd.y]; end = true; }
-    else { const sg = segAt(p); if (sg && sg.t.net === J.net) { b = proj(sg.t, p).q.map(r3); end = true; } }
-    if (Math.hypot(b[0] - J.a[0], b[1] - J.a[1]) < JP_MIN) return toast(L("Hai lỗ phải cách nhau ít nhất 5,08 mm (2 ô).", "The two holes must be at least 5.08 mm (2 grid steps) apart."));
+    // khác mạng chỉ nối được khi một bên là mạng trống (dây tự do): bên trống nhận mạng bên kia
+    const ok = n => n === J.net || (n && (isFree(n) || isFree(J.net)));
+    if (pd) { if (!ok(pd.net)) return toast(L(`Chân ${pd.name} thuộc mạng ${pd.net || "trống"}, không nối được.`, `Pin ${pd.name} is on net ${pd.net || "none"}, can't connect.`)); b = [pd.x, pd.y]; end = pd.net; }
+    else { const sg = segAt(p); if (sg && ok(sg.t.net)) { b = proj(sg.t, p).q.map(r3); end = sg.t.net; } }
+    if (Math.hypot(b[0] - J.a[0], b[1] - J.a[1]) < G - .01) return toast(L("Hai đầu dây nhảy phải cách nhau ít nhất 2,54 mm.", "Jumper ends must be at least 2.54 mm apart."));
     if (!pd && !holeOK(b[0], b[1], J.net, P)) return toast(L("Chỗ này quá sát chân hoặc đường khác – chọn chỗ thoáng hơn.", "Too close to a pin or another trace – pick a clearer spot."));
+    checkpoint();
+    if (end && end !== J.net) { const [from, to] = isFree(J.net) ? [J.net, end] : [end, J.net]; adopt(from, to); J.net = to; }
     const j = { id: S.uid++, net: J.net, a: J.a, b };
     if (!lineOK(J.a, b, J.net, P)) j.ext = true;   // đi ngang chân khác mạng: dùng dây có vỏ bọc
     S.jumpers.push(j);
