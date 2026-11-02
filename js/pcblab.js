@@ -860,7 +860,10 @@
       if (r.pendJoin) { adopt(...r.pendJoin); if (net === r.pendJoin[0]) net = r.pendJoin[1]; }
       if (r.free === 2 && !r.startHit) addHole(clean[0], net);
       if (r.free >= 1 && !hit) addHole(end, net);
-      S.traces.push({ id: S.uid++, net, pts: simplify(clean), lock: true }); ui.sel = { t: "t", id: S.uid - 1 };
+      const nt = { id: S.uid++, net, pts: simplify(clean), lock: true }; S.traces.push(nt); ui.sel = { t: "t", id: nt.id };
+      const onT = e => nt.pts.some((q, k) => k && segDist(e[0], e[1], nt.pts[k - 1][0], nt.pts[k - 1][1], q[0], q[1]) < .3);
+      const n0 = S.jumpers.length; S.jumpers = S.jumpers.filter(j => !(j.net === net && onT(j.a) && onT(j.b)));
+      if (S.jumpers.length < n0) { gcHoles(); toast(L("Đã thay nét nhảy bằng đường đồng.", "Jumper replaced with copper.")); }
     }
     cancel(); render();
   }
@@ -945,13 +948,14 @@
     S.jumpers.push(j);
     const len = Math.hypot(b[0] - J.a[0], b[1] - J.a[1]), cp = P.filter(q => !q.jw && !q.hole), near = Math.min(...[J.a, b].filter(e => !cp.some(q => Math.hypot(q.x - e[0], q.y - e[1]) < .1)).map(e => Math.min(...cp.map(q => Math.hypot(q.x - e[0], q.y - e[1])))));   // chỉ xét lỗ mới, không xét đầu nằm trên chân
     const warn = (len < 10 ? L(` · ⚠ dây chỉ dài ${len.toFixed(1)} mm (nên ≥ 10 mm)`, ` · ⚠ only ${len.toFixed(1)} mm long (≥ 10 mm advised)`) : "") + (near < 5 ? L(` · ⚠ lỗ cách chân ${near.toFixed(1)} mm (nên ≥ 5 mm)`, ` · ⚠ hole ${near.toFixed(1)} mm from a pin (≥ 5 mm advised)`) : "");
-    if (end || !J.cont) { cancel(); ui.sel = { t: "j", id: j.id }; render(); return toast(L("Đã bắc dây nhảy. Bấm vào lỗ để vẽ đường đồng nối tiếp.", "Jumper added. Click a hole to draw copper from it.") + warn); }
+    if (end) { cancel(); ui.sel = { t: "j", id: j.id }; render(); return toast(L("Đã nối xong. Chuột phải lên nét nhảy → Đổi thành đồng, hoặc dùng Bút đồng tô lên.", "Connected. Right-click a jumper → Convert to copper, or trace over it with the Copper pen.") + warn); }
+    if (!J.cont) { startJfree(J.net, b); $("#plHint").textContent = L("Bấm tiếp điểm kế (tạo lỗ) hoặc chân / lỗ đích · chuột phải hoặc Esc để dừng", "Click the next point (adds a hole) or the target pin / hole · right-click or Esc to stop"); return warn && toast(warn.slice(3)); }
     startRoute(J.net, b); toast(L("Đã đặt dây nhảy – vẽ tiếp đường đồng từ lỗ thứ 2.", "Jumper placed – keep drawing copper from the 2nd hole.") + warn);
   }
   /* ---------- 4 công cụ kiểu bút chì: Chọn · Bút đồng · Bút dây nhảy · Gôm ---------- */
   const TOOLS = () => ({ sel: [L("Chọn", "Select"), L("Kéo linh kiện, chọn đường, kéo nền để di chuyển (Esc)", "Drag parts, select traces, drag the background to pan (Esc)")],
     cu: [L("Bút đồng", "Copper pen"), L("Bấm chân / lỗ / đường → bấm các góc → bấm chân cùng mạng để xong (B)", "Click a pin / hole / trace → click corners → click a pin of the same net to finish (B)")],
-    jw: [L("Bút dây nhảy", "Jumper pen"), L("Bấm điểm đầu rồi điểm cuối; lỗ tự tạo (J)", "Click the start, then the end; holes are added automatically (J)")],
+    jw: [L("Bút dây nhảy", "Jumper pen"), L("Bấm X → các điểm A, B… (tự tạo lỗ) → chân đích Y; chuột phải để dừng. Sau đó đổi nét thành đồng hoặc tô bằng Bút đồng (J)", "Click X → points A, B… (holes added) → target pin Y; right-click stops. Then convert to copper or trace over with the Copper pen (J)")],
     er: [L("Gôm", "Eraser"), L("Bôi qua đường đồng / dây nhảy để xoá đúng đoạn đó (E)", "Rub over copper / jumpers to erase just that part (E)")] });
   function setTool(t) {
     if (LY.tmp) cancel(); ui.tool = t; svg.dataset.tool = t;
@@ -981,6 +985,12 @@
       for (const pc of pieces) { let len = 0; for (let k = 1; k < pc.length; k++) len += Math.hypot(pc[k][0] - pc[k - 1][0], pc[k][1] - pc[k - 1][1]); if (pc.length >= 2 && len > .3) out.push({ ...t, id: S.uid++, pts: pc, lock: true }); }
     }
     if (ch) { S.traces = out; ui.sel = null; render(); }
+  }
+  function toCopper(js) {
+    checkpoint();
+    for (const j of js) { S.jumpers = S.jumpers.filter(x => x !== j); S.traces.push({ id: S.uid++, net: j.net, pts: [j.a, j.b], lock: true }); }
+    gcHoles(); ui.sel = null; render();
+    toast(L(`Đã đổi ${js.length} dây nhảy thành đường đồng. Chỗ báo đỏ là đường đang chạm vật khác: kéo nắn lại hoặc gôm rồi vẽ lại.`, `Converted ${js.length} jumper(s) to copper. Red marks touch something else: drag to reshape, or erase and redraw.`));
   }
   const hideCtx = () => $("#plCtx").classList.remove("on");
   function cancel() { ui.mode = "idle"; ui.route = null; ui.jump = null; ui.hole = null; ui.jf = null; ui.drag = null; LY.tmp.innerHTML = ""; svg.classList.remove("routing"); $("#plHint").textContent = ""; }
@@ -1039,6 +1049,8 @@
     e.preventDefault(); if (ui.mode !== "idle") { cancel(); return render(); }
     const p = toMM(e), vt = e.target.closest("[data-v]");
     if (vt && ui.sel && ui.sel.t === "t") return ctxMenu(e, [[L("Xoá điểm neo", "Delete vertex"), L("Đúp", "Dbl"), () => cmd.delVtx(+vt.dataset.v)]]);
+    const jw = S.jumpers.find(j => segDist(p.x, p.y, j.a[0], j.a[1], j.b[0], j.b[1]) < .6);
+    if (jw) { ui.sel = { t: "j", id: jw.id }; ui.hlNet = jw.net; render(); return ctxMenu(e, [[L("Đổi thành đường đồng", "Convert to copper"), "", () => toCopper([jw])], [L("Đổi mọi dây nhảy của mạng này", "Convert all jumpers of this net"), "", () => toCopper(S.jumpers.filter(j => j.net === jw.net))], [L("Xoá dây nhảy", "Delete jumper"), "Del", cmd.del]]); }
     const sg = segAt(p); if (!sg) return hideCtx();
     ui.sel = { t: "t", id: sg.t.id, k: sg.k }; ui.hlNet = sg.t.net; render();
     ctxMenu(e, [[L("Thêm điểm neo ở đây", "Add vertex here"), L("Đúp", "Dbl"), () => cmd.addVtx(p)], [L("Nắn ngang", "Make horizontal"), "H", () => cmd.straight("h")], [L("Nắn dọc", "Make vertical"), "V", () => cmd.straight("v")], [L("Nắn 45°", "Make 45°"), "A", () => cmd.straight("a")],
@@ -1523,7 +1535,7 @@
       + `<div class="vw"><small>${L("Độ rộng mm", "Width mm")}</small><button type="button" data-w="0.8">${L("0,8", "0.8")}</button><button type="button" data-w="1">${L("1,0", "1.0")}</button><button type="button" data-w="1.5">${L("1,5", "1.5")}</button></div>`;
     $("#plAlpha").oninput = e => { S.alpha = e.target.value / 100; render(); };
     const on = (id, f) => $(id).onclick = f;
-    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); $$(".pl-tools [data-tool]").forEach(x => x.onclick = () => setTool(x.dataset.tool)); setTool(ui.tool || "sel"); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
+    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); $$(".pl-tools [data-tool]").forEach(x => x.onclick = () => setTool(x.dataset.tool)); setTool(ui.tool || "jw"); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
     $$("[data-mode]").forEach(x => x.onclick = () => APP.toWiring(x.dataset.mode));
     $("#plExport").classList.add("primary");
     on("#plExport", exportDialog);
