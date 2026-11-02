@@ -301,9 +301,11 @@
     return bad;
   }
   // chỗ đặt lỗ dây nhảy: trong mép bo, cách mọi chân / lỗ ≥ CLR (mép–mép), cách đồng khác mạng ≥ CLR
+  // lỗ dây nhảy cách mối hàn chân linh kiện thêm HOLE_GAP mm để mỏ hàn dễ vào, không dính thiếc sang chân
+  let HOLE_GAP = 1;
   function holeOK(x, y, net, P) {
     if (x < EDGE + JP_R || y < EDGE + JP_R || x > S.board.w - EDGE - JP_R || y > S.board.h - EDGE - JP_R) return false;
-    for (const p of P) if (Math.hypot(p.x - x, p.y - y) < (p.r || PAD_R) + CLR + JP_R) return false;
+    for (const p of P) if (Math.hypot(p.x - x, p.y - y) < (p.r || PAD_R) + CLR + JP_R + (p.jw || p.hole ? 0 : HOLE_GAP)) return false;
     // không nằm dưới thân dây nhảy khác mạng (dây trần mặt trên sẽ chạm mối hàn của lỗ này)
     for (const j of S.jumpers) if (j.net !== net && !j.ext && segDist(x, y, j.a[0], j.a[1], j.b[0], j.b[1]) < JP_R + JP_OVER) return false;
     for (const t of S.traces) if (t.net !== net) for (let k = 0; k < t.pts.length - 1; k++) if (segDist(x, y, t.pts[k][0], t.pts[k][1], t.pts[k + 1][0], t.pts[k + 1][1]) < traceW(t) / 2 + CLR + JP_R) return false;
@@ -499,10 +501,10 @@
     // chỗ đặt lỗ + đoạn đồng thẳng chân → lỗ, chỉ xét chân / lỗ khác mạng (đường đồng xử lý riêng: tránh hoặc gỡ)
     const spots = (p, net, w, P) => {
       const out = [];
-      for (let dx = -3; dx <= 3; dx++) for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -4; dx <= 4; dx++) for (let dy = -4; dy <= 4; dy++) {
         const x = r3(snap(p.x, G) + dx * G), y = r3(snap(p.y, G) + dy * G), d = Math.hypot(x - p.x, y - p.y);
-        if (d < G - .01 || d > 3 * G + .01 || x < EDGE + JP_R || y < EDGE + JP_R || x > S.board.w - EDGE - JP_R || y > S.board.h - EDGE - JP_R) continue;
-        if (P.some(q => q !== p && Math.hypot(q.x - x, q.y - y) < (q.r || PAD_R) + CLR + JP_R)) continue;
+        if (d < 2 * G - .01 || d > 4 * G + .01 || x < EDGE + JP_R || y < EDGE + JP_R || x > S.board.w - EDGE - JP_R || y > S.board.h - EDGE - JP_R) continue;
+        if (P.some(q => q !== p && Math.hypot(q.x - x, q.y - y) < (q.r || PAD_R) + CLR + JP_R + (q.jw || q.hole ? 0 : HOLE_GAP))) continue;
         if (P.some(q => q !== p && q.net !== net && segDist(q.x, q.y, p.x, p.y, x, y) < (q.r || PAD_R) + w / 2 + CLR)) continue;
         // đường khác mạng bị chắn: đã khoá thì bỏ chỗ này, tự động thì ghi lại để gỡ
         const hit = S.traces.filter(t => t.net !== net && (segHit([p.x, p.y], [x, y], t, w / 2 + CLR) || segHit([x, y], [x, y], t, JP_R + CLR)));
@@ -1505,7 +1507,7 @@
   // Pindexio đổi ngôn ngữ bằng window.onLangChange: nối thêm, không thay hàm của site
   const prevLang = window.onLangChange;
   window.onLangChange = function () { if (prevLang) prevLang.apply(this, arguments); relang(); };
-  window.PCB = { S: () => S, analyze, autoroute, cmd, ui, pads, exportSVG, pngDPI, gerber, zip };
+  window.PCB = { setHoleGap: v => HOLE_GAP = v, S: () => S, analyze, autoroute, cmd, ui, pads, exportSVG, pngDPI, gerber, zip };
   // hộp thông báo "đang thử nghiệm" khi mở PCB Maker (hộp của app, không dùng hộp thoại trình duyệt); chọn "Không hiện lại" thì nhớ trên máy
   function betaNote() {
     try { if (localStorage.getItem("pcbmaker-beta-ok") === "1") return; } catch (e) { }
