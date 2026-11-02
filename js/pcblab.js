@@ -61,7 +61,18 @@
     const names = key.slice(4).split(","), span = (names.length - 1) * G;
     return FP0[key] = { pads: names.map((n, i) => ({ name: n, x: i * G, y: 0 })), body: { x: -1.5, y: -1.5, w: span + 3, h: 3 }, label: "", hdr: true };
   }
-  const FP = new Proxy(FP0, { get: (t, k) => t[k] || (typeof k === "string" && k.startsWith("HDR:") ? hdrFP(k) : undefined) });
+  // board 2 hàng chân 2,54 (C3, SuperMini, Pico 2/2W, T-Display S3): cắm thẳng lên bo như ESP32-S3. Footprint sinh từ toạ độ chân
+  // trong dữ liệu sơ đồ chân của Pindexio (chỉ 2 hàng chính, bỏ chân debug), bắt về lưới 2,54 tính từ chân 1
+  const FULL = new Set(["esp32-c3-devkitm-1", "esp32-c3-supermini", "pico-2", "pico-2-w", "lilygo-t-display-s3"]);
+  function brdFP(key) {
+    if (FP0[key]) return FP0[key];
+    const b = SITE && window.BOARDS && BOARDS.find(x => x.id === key.slice(4)); if (!b) return undefined;
+    const ps = b.headers.flatMap(h => h.pins), xs = ps.map(p => p.x), x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const row = ps.filter(p => Math.abs(p.x - x0) < .3 || Math.abs(p.x - x1) < .3), y0 = Math.min(...row.map(p => p.y));
+    const pads = row.map(p => ({ name: p.name, x: Math.abs(p.x - x0) < .3 ? 0 : Math.round((x1 - x0) / G) * G, y: Math.round((p.y - y0) / G) * G }));
+    return FP0[key] = { pads, body: { x: -x0, y: -y0, w: b.w, h: b.h }, label: b.name, inner: true, brd: true };
+  }
+  const FP = new Proxy(FP0, { get: (t, k) => t[k] || (typeof k === "string" ? (k.startsWith("HDR:") ? hdrFP(k) : k.startsWith("BRD:") ? brdFP(k) : undefined) : undefined) });
   // [tiếng Việt, English, tên ngắn]. Trong Pindexio, module lấy tên từ MODULES (dịch qua từ điển của site)
   const NAMES = { S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
   const tr = s => (EN() && window.trEN ? window.trEN(s) : s);
@@ -77,7 +88,7 @@
   const RISKY = ["IO0", "IO3", "IO45", "IO46", "IO19", "IO20"];   // strapping / USB: dùng được nhưng dễ lỗi khởi động
   const BUS = { d: "IO8", c: "IO9", k: "IO12", m: "IO11" };
   const S3ID = "esp32-s3-devkitc-1";
-  const isHost = c => c.fp === "S3" || c.fp.startsWith("HDR:");
+  const isHost = c => c.fp === "S3" || c.fp.startsWith("HDR:") || c.fp.startsWith("BRD:");
   // thông tin board đang làm (S.mcu): tên chân dùng được, chân ưu tiên / dễ lỗi, chân bus I2C / SPI, logic 5 V hay 3,3 V.
   // Chân bus lấy theo chức năng ghi trong dữ liệu sơ đồ chân của Pindexio (giống cách tab Wiring chấm điểm chân)
   const BUS_RE = { ESP32: { d: /Arduino SDA|I2C SDA/, c: /Arduino SCL|I2C SCL/, k: /Arduino SCK/, m: /Arduino MOSI/ }, RP2: { d: /I2C0 SDA/, c: /I2C0 SCL/, k: /SPI0 SCK/, m: /SPI0 TX/ }, AVR: { d: /I2C SDA/, c: /I2C SCL/, k: /SPI SCK/, m: /SPI MOSI/ }, "Raspberry Pi": { d: /SDA1|I2C1 SDA|SDA/, c: /SCL1|I2C1 SCL|SCL/, k: /SCLK|SPI0 SCLK/, m: /MOSI/ } };
@@ -101,7 +112,7 @@
   const isSig = n => !!n && !PWR.has(n) && hostInfo().pins.has(n);
   const fresh = (mcu = S3ID) => ({
     v: 2, board: { w: 120, h: 78 }, mcu,
-    comps: [mcu === S3ID ? { id: "U1", fp: "S3", x: 3 * G, y: 4 * G, rot: 0 } : { id: "J1", fp: "HDR:GND", x: 3 * G, y: 4 * G, rot: 0 }],
+    comps: [mcu === S3ID ? { id: "U1", fp: "S3", x: 3 * G, y: 4 * G, rot: 0 } : FULL.has(mcu) && SITE ? { id: "U1", fp: "BRD:" + mcu, x: 3 * G, y: 4 * G, rot: 0 } : { id: "J1", fp: "HDR:GND", x: 3 * G, y: 4 * G, rot: 0 }],
     traces: [], jumpers: [], alpha: .7, uid: 1, scheme: 1, posture: 0, rats: true, width: null
   });
   let S;
@@ -524,7 +535,7 @@
   }
   // J1 của board khác: GND, nguồn đang dùng rồi các chân tín hiệu (bus trước, theo thứ tự chân trên board). Đổi chân là J1 đổi theo
   function syncHost() {
-    const H = hostInfo(), c = S.comps.find(isHost); if (H.s3 || !c) return;
+    const H = hostInfo(), c = S.comps.find(isHost); if (H.s3 || !c || !c.fp.startsWith("HDR:")) return;
     const used = usedNets(), bv = Object.values(H.bus);
     const sig = [...used].filter(isSig).sort((a, b) => (bv.includes(b) - bv.includes(a)) || (H.order(a) - H.order(b)));
     const key = "HDR:" + ["GND", ...["5V", "3V3"].filter(n => used.has(n)), ...sig].join(",");
@@ -606,6 +617,7 @@
     else if (fp === "buzzer") { el("circle", { cx, cy, r: 6, fill: "#15171b" }, g); el("circle", { cx, cy, r: 1, fill: "#444" }, g); }
     else if (fp === "R") { R(b.x, b.y, b.w, b.h, "#d8c194", b.h / 2); [["#7b4a1e", .25], ["#111", .45], ["#c42a2a", .62]].forEach(([c, u]) => R(b.x + b.w * u, b.y, .7, b.h, c, 0)); }
     else if (fp === "C") R(b.x, b.y, b.w, b.h, "#d9a83a", b.h / 2);
+    else if (fp.startsWith("BRD:")) R(b.x, b.y, b.w, b.h, "#1c2230", 1);
     else if (fp.startsWith("HDR:")) R(b.x, b.y, b.w, b.h, "#15171b", .3);   // hàng rào header nhựa đen
   }
 
@@ -1075,7 +1087,7 @@
   function layoutParts(gapMM) {   // gapMM: khe giữa linh kiện (mặc định 8 mm), "thử sắp xếp lại" nới ra 12 / 16 mm   // U1 bên trái, linh kiện xếp kệ bên phải (module cao trước, R / C sau), rồi bo vừa khít
     syncHost(); const u = S.comps.find(isHost); if (u) { u.x = 3 * G; u.y = 4 * G; u.rot = 0; }
     // ESP32-S3 đứng bên trái, linh kiện xếp bên phải; hàng rào J1 nằm ngang trên cùng, linh kiện xếp bên dưới
-    const hd = u && u.fp !== "S3", x0 = u && !hd ? compBox(u).x1 + 8 : 6, W = ARR_W[S.arr || 0] || 110, gap = gapMM || 8;   // khe 8 mm: đủ lối cho vài đường đồng giữa các linh kiện
+    const hd = u && u.fp.startsWith("HDR:"), x0 = u && !hd ? compBox(u).x1 + 8 : 6, W = ARR_W[S.arr || 0] || 110, gap = gapMM || 8;   // khe 8 mm: đủ lối cho vài đường đồng giữa các linh kiện
     let cx = x0, cy = hd ? compBox(u).y1 + 8 : 6, rowH = 0;
     const rest = S.comps.filter(c => c !== u).sort((a, b) => ((a.fp === "R" || a.fp === "C") - (b.fp === "R" || b.fp === "C")) || (FP[b.fp].body.h - FP[a.fp].body.h));
     for (const c of rest) {
@@ -1190,7 +1202,7 @@
     // chọn board (trong Pindexio): ESP32-S3 cắm thẳng lên bo, board khác nối dây Dupont qua hàng rào J1
     const pick = SITE && window.BOARDS ? `<select id="plMcu" class="pl-mcu" aria-label="Board">${BOARDS.filter(b => !b.mod && b.headers).map(b => `<option value="${b.id}"${b.id === S.mcu ? " selected" : ""}>${b.name}</option>`).join("")}</select>` : "";
     const card = H.s3 ? `<button type="button" class="board-card" data-add="S3" aria-pressed="${!!cnt.S3}" title="${NAME.S3}"><span class="bc-icon esp">${s3Icon()}<b>S3</b></span><span class="bc-txt"><span class="bc-name">ESP32-S3-DevKitC-1</span><span class="bc-chip">${L("cắm thẳng lên bo · 3.3 V", "plugs into the PCB · 3.3 V")}</span></span></button>`
-      : `<div class="board-card" aria-pressed="true" title="${L("Board nối với bo qua hàng rào header J1 (dây Dupont)", "Board wired to the PCB through header J1 (Dupont wires)")}"><span class="bc-icon esp"><b>${H.tag}</b></span><span class="bc-txt"><span class="bc-name">${H.name}</span><span class="bc-chip">${L("nối dây qua J1", "wired via J1")} · ${H.v5 ? "5 V" : "3.3 V"}</span></span></div>`;
+      : `<div class="board-card" aria-pressed="true" title="${L("Board nối với bo qua hàng rào header J1 (dây Dupont)", "Board wired to the PCB through header J1 (Dupont wires)")}"><span class="bc-icon esp"><b>${H.tag}</b></span><span class="bc-txt"><span class="bc-name">${H.name}</span><span class="bc-chip">${FULL.has(S.mcu) ? L("cắm thẳng lên bo", "plugs into the PCB") : L("nối dây qua J1", "wired via J1")} · ${H.v5 ? "5 V" : "3.3 V"}</span></span></div>`;
     $("#plList").innerHTML = `${w ? `<button type="button" class="pl-wire" id="plWire" title="${L("Lấy module và chân đã nối ở tab ⚡ Wiring", "Take the modules and pins wired in the ⚡ Wiring tab")} (${H.name})">⚡ ${L("Lấy mạch từ Wiring", "Import from Wiring")} <span class="mods-n">${w.mods.length}</span></button>` : ""}
       ${pick}${card}
       <div class="mods open"><div class="mods-h"><span>🧩 ${L("Linh kiện", "Components")}</span><span class="mods-n">${cats.slice(1).reduce((s, c) => s + c[2].length, 0)}</span></div>
