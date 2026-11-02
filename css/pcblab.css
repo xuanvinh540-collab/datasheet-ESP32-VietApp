@@ -149,3 +149,6 @@
 .pcblab .pl-exp-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .pcblab .pl-exp-foot .pl-try { margin: 0; width: auto; padding: 7px 16px; } .pcblab .pl-exp-foot .pl-try:disabled { opacity: .4; cursor: default; }
 .pcblab .pl-exp-cancel { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--fg); font: 600 12.5px var(--sans); cursor: pointer; }
+.pcblab .pl-tools { display: grid; gap: 4px; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.pcblab svg[data-tool="cu"], .pcblab svg[data-tool="jw"] { cursor: crosshair; } .pcblab svg[data-tool="er"] { cursor: none; }
+.pcblab .erc { fill: rgba(255, 255, 255, .18); stroke: #fff; stroke-width: .12; pointer-events: none; }
