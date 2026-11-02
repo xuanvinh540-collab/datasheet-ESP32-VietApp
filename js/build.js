@@ -755,6 +755,7 @@
           + `<span class="bwtools">` + tb("barr", "🧲", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "🔀", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "⟳", "Xoay board", "Xoay board 90°")
           + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label></span>`
           + `<span class="bbtools" hidden>` + tb("bbstyle", "🔀", "Đi dây", "Đổi kiểu dây: vuông góc / tách / cong / vát 45°") + `<label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bbspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bbspreadv">×${B.spread}</output></label>`
+          + tb("bbghost", "▢", "Viền", "Ẩn nhanh linh kiện, chỉ để viền mỏng định vị (bấm lần nữa để hiện lại)")
           + `<label class="bslider bop" title="Độ rõ linh kiện"><i aria-hidden="true">◐</i><input id="bbop" type="range" min="0.1" max="1" step="0.05" value="${B.bb.op ?? .5}" aria-label="Độ rõ linh kiện"><output id="bbopv">${Math.round((B.bb.op ?? .5) * 100)}%</output></label></span>`
           + `<span class="bsep"></span>` + tb("breset", "⟲", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "⬇", "PNG", "Xuất ảnh PNG theo cài đặt")
           + `<button type="button" class="bbtn" id="bsetBtn" aria-expanded="false" title="Cài đặt xuất ảnh"><i aria-hidden="true">⚙</i><span>Cài đặt</span></button>`;
@@ -771,8 +772,9 @@
         $("#bmpcb").onclick = () => A.openPcbLab(true); $("#bmpcb span").insertAdjacentHTML("beforeend", ' <sup class="beta">beta</sup>');
         $("#bbspread").oninput = e => setSpread(+e.target.value);
         $("#bbstyle").onclick = () => { cycleStyle(); A.toast("Dây: " + STYLE_NAMES[B.style]); };
-        $("#bbop").oninput = e => { B.bb.op = +e.target.value; $("#bbopv").textContent = Math.round(B.bb.op * 100) + "%"; svg().querySelectorAll(".bbmod > g[opacity], .bbmcu[opacity]").forEach(g => g.setAttribute("opacity", B.bb.op)); const w = svg().querySelector("#wires"); if (w) w.setAttribute("opacity", Math.max(.25, B.bb.op)); };
+        $("#bbop").oninput = e => { B.bb.op = +e.target.value; $("#bbopv").textContent = Math.round(B.bb.op * 100) + "%"; svg().querySelectorAll(".bbmod > g[opacity], .bbmcu[opacity]").forEach(g => g.setAttribute("opacity", B.bb.op)); };
         $("#bbop").onchange = () => save();
+        $("#bbghost").onclick = () => { B.bb.ghost = !B.bb.ghost; save(); refresh(); };
         $("#bsetBtn").onclick = () => toggleSet();
       }
     }
@@ -826,6 +828,7 @@
     const on = !!(B.bb.on && window.BBOARD && BBOARD.ok()), t = $("#bbtog"), w = $("#bmwire");
     if (t) { t.setAttribute("aria-pressed", on); t.querySelector("span").textContent = on ? `Breadboard ×${B.bb.n}` : "Breadboard"; } if (w) w.setAttribute("aria-pressed", !on);
     const wt = document.querySelector(".bwtools"), bt = document.querySelector(".bbtools"); if (wt) wt.hidden = on; if (bt) bt.hidden = !on;
+    const gh = $("#bbghost"); if (gh) gh.setAttribute("aria-pressed", !!B.bb.ghost);
     const op = $("#bbop"); if (op) { op.value = B.bb.op ?? .5; $("#bbopv").textContent = Math.round((B.bb.op ?? .5) * 100) + "%"; }
   }
   // Reset: board chính về nguyên trạng, linh kiện xếp lại, khung nhìn vừa màn hình (giữ nguyên các mối nối)
@@ -837,7 +840,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=141"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=142"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -961,7 +964,7 @@
     if (typeof o.spread === "number") B.spread = o.spread;
     if (typeof o.style === "number") B.style = o.style % 4;
     B.brot = [0, 90, 180, 270].includes(o.brot) ? o.brot : 0;
-    B.bb = o.bb && typeof o.bb === "object" ? { on: !!o.bb.on, n: Math.min(3, Math.max(1, o.bb.n | 0 || 1)), board: o.bb.board || null, extra: Array.isArray(o.bb.extra) ? o.bb.extra.filter(x => window.BOARDS.some(b => b.id === x.id)) : [], cur: 0, op: typeof o.bb.op === "number" ? o.bb.op : .5, sel: 0 } : { on: false, n: 1, board: null };
+    B.bb = o.bb && typeof o.bb === "object" ? { on: !!o.bb.on, n: Math.min(3, Math.max(1, o.bb.n | 0 || 1)), board: o.bb.board || null, extra: Array.isArray(o.bb.extra) ? o.bb.extra.filter(x => window.BOARDS.some(b => b.id === x.id)) : [], cur: 0, op: typeof o.bb.op === "number" ? o.bb.op : .5, ghost: !!o.bb.ghost, sel: 0 } : { on: false, n: 1, board: null };
     if ($("#bspread")) { $("#bspread").value = B.spread; $("#bspreadv").textContent = "×" + B.spread; }
     B.cam = null; save();
   }

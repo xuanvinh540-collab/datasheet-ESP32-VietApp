@@ -903,4 +903,6 @@ window.EN_DATA = {
 "8 board, 14 linh kiện, công cụ Wiring ghép linh kiện và nối dây, dữ liệu lấy từ datasheet của hãng.": "8 boards, 14 modules and a Wiring tool to pair parts and route wires, with data taken from manufacturer datasheets.",
 "Làm bo mạch in 1 lớp tại nhà (in ủi nhiệt, ăn mòn)": "Make a single-layer PCB at home (toner transfer, etching)",
 "Làm bo mạch in 1 lớp từ mạch này (in ủi nhiệt, ăn mòn tại nhà)": "Make a single-layer PCB from this circuit (toner transfer, home etching)",
+"Viền": "Outline",
+"Ẩn nhanh linh kiện, chỉ để viền mỏng định vị (bấm lần nữa để hiện lại)": "Quickly hide parts, keeping only a thin outline for placement (click again to show them)",
 };

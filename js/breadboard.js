@@ -234,7 +234,7 @@
       bg.addEventListener("pointerdown", e => { if (e.button !== 2) { B.bb.cur = k; B.selX = { t: "board", k }; B.selM = B.selW = null; startDrag(e, "mcu" + k); } });
     }
     // dây
-    const wg = el("g", { id: "wires", opacity: Math.max(.25, B.bb.op ?? .5) }, root), endsG = [];
+    const wg = el("g", { id: "wires" }, root), endsG = [];   // dây luôn rõ (không mờ theo độ rõ linh kiện)
     for (const j of jumpers(drag && drag.ghostMi)) {
       const d = path(j.pts), tag = j.mi != null && !j.ghost ? { "data-wm": j.mi, "data-wl": j.label } : {}, sel = B.selW && B.selW.m === j.mi && B.selW.label === j.label;
       el("path", { d, class: "bb-jo" + (j.ghost ? " ghost" : "") }, wg);
@@ -250,8 +250,10 @@
     B.mods.forEach((m, mi) => {
       if (!m.bb) return;
       const d = M[m.type], q = modPlace(m, m.bb), g = el("g", { class: "bnode bbmod" + (drag && drag.mi === mi ? " dragging" : ""), "data-m": mi }, mods);
-      const ig = el("g", { transform: `translate(${q.ox} ${q.oy}) ${q.g.tf}`, opacity: B.bb.op ?? .5 }, g);
-      if (d.svg) el("image", { href: d.svgData || d.svg, x: 0, y: 0, width: q.g.w, height: q.g.h, preserveAspectRatio: "none" }, ig);
+      const ig = el("g", { transform: `translate(${q.ox} ${q.oy}) ${q.g.tf}`, opacity: B.bb.ghost ? 1 : B.bb.op ?? .5 }, g);
+      // chế độ Viền: ẩn hình linh kiện, chỉ còn viền mỏng + tên để định vị, dây bên dưới nhìn rõ
+      if (B.bb.ghost) { el("rect", { x: 0, y: 0, width: q.g.w, height: q.g.h, rx: .8, stroke: d.color, class: "bb-ghost" }, ig); el("text", { x: q.g.w / 2, y: q.g.h / 2, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 1.3, class: "modt" }, ig, d.short); }
+      else if (d.svg) el("image", { href: d.svgData || d.svg, x: 0, y: 0, width: q.g.w, height: q.g.h, preserveAspectRatio: "none" }, ig);
       else { el("rect", { x: 0, y: 0, width: q.g.w, height: q.g.h, rx: .8, fill: d.color, class: "bb-box" }, ig); el("text", { x: q.g.w / 2, y: q.g.h / 2 - .6, "text-anchor": "middle", "dominant-baseline": "central", "font-size": 1.6, class: "modt" }, ig, d.short); }
       q.g.pins.forEach(p => { const h = q.holes.find(x => x.k === p.k); el("path", { d: `M${q.ox + p.x} ${q.oy + p.y} L${hx(h.bi, h.c)} ${hy(h.bi, h.ri)}`, class: "bb-leg" }, g); el("circle", { cx: hx(h.bi, h.c), cy: hy(h.bi, h.ri), r: .55, class: "bb-pin" }, g); });
       if (B.selM === mi) el("rect", { x: Math.min(q.ox, ...q.holes.map(h => hx(h.bi, h.c))) - 1, y: Math.min(q.oy, hy(m.bb.bi, m.bb.r)) - 1, width: Math.max(q.g.W, (q.holes.length - 1) * P) + 2, height: q.g.H + 3.4, rx: 1, class: "bsel" }, g);

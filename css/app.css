@@ -703,3 +703,7 @@ sup.beta { font: 700 8.5px var(--mono); padding: 0 3px; border-radius: 4px; back
 .blist .fold { margin-left: auto; font-style: normal; transition: transform .15s; }
 .blist details.mods-cat:not([open]) .fold { transform: rotate(-90deg); }
 .blist .bdhint { margin: 0 4px 2px; font-size: 10.5px; }
+
+/* Breadboard chế độ Viền: chỉ viền mỏng theo màu module */
+#bsvg .bb-ghost { fill: none; stroke-width: .25; stroke-dasharray: .8 .4; }
+.btools .bbtn[aria-pressed="true"]:not(.bmode .bbtn) { border-color: var(--accent); background: var(--surface); }
