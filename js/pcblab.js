@@ -1193,13 +1193,13 @@
       + `<label class="alpha" title="${L("Board thật: độ rõ hình board thật", "Real boards: picture opacity")}">◐ <input type="range" id="plAlpha" min="0" max="100" step="5" value="${Math.round(S.alpha * 100)}"></label>` + sep
       + b("plZin", "zin", L("Phóng to", "Zoom in"), "") + b("plZout", "zout", L("Thu nhỏ", "Zoom out"), "") + b("plFit", "fit", L("Vừa khung", "Fit view"), "F") + sep
       + b("plArr", "arr", L("Sắp xếp", "Arrange"), L("Sắp xếp: tự bố trí linh kiện (bấm lần nữa đổi kiểu: gọn / rộng / dọc)", "Arrange: auto-place parts (click again for another layout: compact / wide / tall)"))
-      + b("plReset", "reset", L("Làm mới", "Reset"), L("Làm mới: xoá hết, chỉ để lại board ESP32-S3", "Reset: clear everything except the ESP32-S3 board"));
+      + b("plReset", "reset", L("Làm mới", "Reset"), L("Làm mới: xoá hết, chỉ để lại board", "Reset: clear everything except the board"))
+      + `<span style="flex:1"></span>` + b("plExport", "dl", "Export", L("Tải mặt đồng / ký hiệu / mặt linh kiện dạng SVG hoặc PNG 1:1", "Download copper / silkscreen / component side as 1:1 SVG or PNG"));
     $("#plVbar").innerHTML = b("plAuto", "auto", L("Tự đi dây", "Autoroute"), L("Xoá đường tự động cũ rồi đi lại toàn bộ, giữ đường đã khoá (A)", "Remove old auto traces and route everything again, keep locked traces (A)"))
       + `<button type="button" class="tb tb-more" id="plAutoMore" title="${L("Tuỳ chọn tự đi dây", "Autoroute options")}">▾</button>` + b("plScheme", "scheme", "", "")
       + b("plUnwire", "unwire", L("Xoá dây LK", "Unwire part"), L("Xoá mọi đường / dây nhảy nối vào linh kiện đang chọn", "Remove every trace / jumper going to the selected part"))
       + b("plJump", "jump", L("Dây nhảy", "Jumper"), L("Cắt đường đang chọn và bắc dây nhảy (J)", "Cut the selected trace and add a jumper (J)")) + b("plLock", "lock", L("Khoá", "Lock"), L("Khoá / bỏ khoá đường đang chọn (L)", "Lock / unlock the selected trace (L)")) + b("plClear", "clear", L("Xoá tự động", "Clear auto"), L("Xoá các đường chưa khoá", "Remove unlocked traces")) + b("plPour", "pour", L("Phủ mass", "GND pour"), L("Đổ đồng GND vào chỗ trống (cách 0,6 mm, nan nhiệt)", "Fill free areas with GND copper (0.6 mm clearance, thermal spokes)"))
-      + `<div class="vw"><small>${L("Độ rộng mm", "Width mm")}</small><button type="button" data-w="0.8">${L("0,8", "0.8")}</button><button type="button" data-w="1">${L("1,0", "1.0")}</button><button type="button" data-w="1.5">${L("1,5", "1.5")}</button></div>`
-      + b("plExport", "dl", L("Tải file in", "Download"), L("Tải mặt đồng / ký hiệu / mặt linh kiện dạng SVG hoặc PNG 1:1", "Download copper / silkscreen / component side as 1:1 SVG or PNG"));
+      + `<div class="vw"><small>${L("Độ rộng mm", "Width mm")}</small><button type="button" data-w="0.8">${L("0,8", "0.8")}</button><button type="button" data-w="1">${L("1,0", "1.0")}</button><button type="button" data-w="1.5">${L("1,5", "1.5")}</button></div>`;
     $("#plAlpha").oninput = e => { S.alpha = e.target.value / 100; render(); };
     const on = (id, f) => $(id).onclick = f;
     on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plLock", cmd.lock); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); on("#plJump", cmd.jump); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
@@ -1208,7 +1208,7 @@
     on("#plExport", () => {
       const r = $("#plExport").getBoundingClientRect(), st = $("#plStage").getBoundingClientRect();
       if (A.rats.length || A.drc.length) toast(L(`Lưu ý: bo còn ${A.rats.length} đường chưa nối, ${A.drc.length} lỗi – vẫn tải được để xem thử.`, `Note: ${A.rats.length} unrouted, ${A.drc.length} errors – you can still download a preview.`));
-      ctxMenu({ clientX: Math.max(st.left + 4, r.left - 330), clientY: Math.max(st.top + 4, r.bottom - 300) }, [
+      ctxMenu({ clientX: Math.max(st.left + 4, r.right - 340), clientY: st.top + 4 }, [
         [L("Mặt đồng (in ủi nhiệt) · SVG", "Copper (toner transfer) · SVG"), "", () => exportFile("cu", false, "svg")], [L("Mặt đồng (in ủi nhiệt) · PNG", "Copper (toner transfer) · PNG"), "600 DPI", () => exportFile("cu", false, "png")],
         [L("Mặt đồng lật gương · SVG", "Copper mirrored · SVG"), "", () => exportFile("cu", true, "svg")], [L("Mặt đồng lật gương · PNG", "Copper mirrored · PNG"), "600 DPI", () => exportFile("cu", true, "png")],
         [L("Ký hiệu sơn trắng (in ủi lên mặt linh kiện) · SVG", "Silkscreen marks (transfer to component side) · SVG"), "", () => exportFile("mark", true, "svg")], [L("Ký hiệu sơn trắng · PNG", "Silkscreen marks · PNG"), "600 DPI", () => exportFile("mark", true, "png")],

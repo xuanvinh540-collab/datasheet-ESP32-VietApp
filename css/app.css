@@ -720,3 +720,9 @@ sup.beta { font: 700 8.5px var(--mono); padding: 0 3px; border-radius: 4px; back
 .btools .bmode .bbtn[aria-pressed="true"] { color: #1d232a; }
 .btools .bslider input { width: 64px; }
 .btools .bmode #bbtog[aria-pressed="true"] { background: #f5d63d; color: #1d232a; }
+/* nút Export có chữ, nằm cuối hàng công cụ bên phải (trước zoom) */
+.btools #bpng { margin-left: auto; border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+.btools #bpng span { display: inline; font-weight: 700; }
+.btools .zoom { margin-left: 4px; }
+.btools .zoom { margin-left: auto; } .btools #bpng { margin-left: 4px; }
+.btools .zoom { flex-wrap: nowrap; align-items: center; }

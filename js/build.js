@@ -757,10 +757,10 @@
           + `<span class="bbtools" hidden>` + tb("bbstyle", "🔀", "Đi dây", "Đổi kiểu dây: vuông góc / tách / cong / vát 45°") + `<label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bbspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bbspreadv">×${B.spread}</output></label>`
           + tb("bbghost", "👁", "Viền", "Ẩn nhanh linh kiện, chỉ để viền mỏng định vị (bấm lần nữa để hiện lại)")
           + `<label class="bslider bop" title="Độ rõ linh kiện"><i aria-hidden="true">◐</i><input id="bbop" type="range" min="0.1" max="1" step="0.05" value="${B.bb.op ?? .5}" aria-label="Độ rõ linh kiện"><output id="bbopv">${Math.round((B.bb.op ?? .5) * 100)}%</output></label></span>`
-          + `<span class="bsep"></span>` + tb("breset", "⟲", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "⬇", "PNG", "Xuất ảnh PNG theo cài đặt")
+          + `<span class="bsep"></span>` + tb("breset", "⟲", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "⬇", "Export", "Xuất ảnh PNG theo cài đặt")
           + `<button type="button" class="bbtn" id="bsetBtn" aria-expanded="false" title="Cài đặt xuất ảnh"><i aria-hidden="true">⚙</i><span>Cài đặt</span></button>`;
         // hàng 1: 3 nút chế độ; hàng 2: công cụ còn lại + zoom
-        bar.insertBefore(tools, zoomBox); if (zoomBox) tools.appendChild(zoomBox);
+        bar.insertBefore(tools, zoomBox); if (zoomBox) tools.appendChild(zoomBox); zoomBox && zoomBox.appendChild(tools.querySelector("#bpng"));   // Export cuối cùng bên phải, đi cùng cụm zoom
         bar.appendChild(settingsPanel());
         $("#barr").onclick = () => arrangeModules();
         $("#brot").onclick = () => rotateBoard();
@@ -841,7 +841,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=145"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=148"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();

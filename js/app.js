@@ -556,30 +556,31 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=145");
-    if (!window.BUILD) await loadJs("js/build.js?v=145");
+    if (!window.MODULES) await loadJs("js/modules.js?v=148");
+    if (!window.BUILD) await loadJs("js/build.js?v=148");
     setTab("build"); BUILD.open(h);
   }
   // PCB Lab: vẽ bo 1 lớp tại nhà (chỉ ESP32-S3-DevKitC-1), tải js/pcblab.js khi mở lần đầu. fromWiring: lấy mạch của tab Wiring
   let pcbLoad = null;
   async function openPcbLab(fromWiring) {
     // nhớ promise: mở 2 lần liền (link #pcblab + bấm nút) không tải / chạy pcblab.js hai lần
-    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=145"); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=145"); })();
+    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=148"); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=148"); })();
     await pcbLoad;
     setTab("pcblab"); PCBLAB.open({ fromWiring, board: state.b && !state.b.mod ? state.b.id : null });   // PCB Maker đi theo board đang chọn
   }
   // từ Mạch in PCB quay về Wiring: mode "wire" = nối dây tự do, "bb" = breadboard
   async function toWiring(mode) {
     await openBuild();
-    const bbOn = !document.querySelector(".bbtools[hidden]");
+    // đọc trạng thái đã lưu (Breadboard tải js riêng nên giao diện có thể chưa kịp cập nhật)
+    let bbOn = false; try { const o = JSON.parse(localStorage.getItem("build:" + state.b.id) || "null"); bbOn = !!(o && o.bb && o.bb.on); } catch (e) { }
     if (mode === "bb" && !bbOn) $("#bbtog").click(); else if (mode === "wire" && bbOn) $("#bmwire").click();
   }
   $("#viewPcbLab").onclick = () => openPcbLab(false);
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=145").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
-    if (!window.POSTS) await loadJs("js/posts.js?v=145");
-    if (!window.HOME) await loadJs("js/home.js?v=145");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=148").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=148");
+    if (!window.HOME) await loadJs("js/home.js?v=148");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());

@@ -112,3 +112,8 @@
 .pcblab .pl-vbar .tb-more { margin-top: -3px; padding: 1px 0; font-size: 11px; }
 .pcblab .hdrl { fill: #f4f4f4; font-size: 1.3px; font-weight: 700; dominant-baseline: central; pointer-events: none; }
 .pcblab .pl-mcu { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface2); color: var(--fg); font: 600 12px var(--sans); }
+
+/* thanh trên 2 hàng như Wiring: hàng 1 chế độ, hàng 2 công cụ; Export có chữ, nằm cuối bên phải */
+.pcblab .pl-bar .pl-modes { flex: 0 0 100%; display: flex; border: 0; padding: 0; gap: 4px; }
+.pcblab .pl-bar .pl-modes + .sep { display: none; }
+.pcblab .pl-bar #plExport span { display: inline; font-weight: 700; }
