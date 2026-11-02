@@ -166,6 +166,7 @@
       || S.jumpers.some(j => [j.a, j.b].some(e => Math.hypot(e[0] - h.x, e[1] - h.y) < PAD_R));
     S.holes = S.holes.filter(on);
   }
+  const SN = G / 2;   // lưới khi vẽ đường / dây nhảy (1,27 mm): bớt nhạy hơn lưới 0,635
   const traceW = t => t.w || (PWR.has(t.net) ? W_PWR : W_SIG);
   const segDist = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l)) : 0; return Math.hypot(px - ax - t * dx, py - ay - t * dy); };
   function segSeg(a, b, c, d) {     // khoảng cách ngắn nhất giữa 2 đoạn thẳng
@@ -858,25 +859,7 @@
     }
     cancel(); render();
   }
-  // dây tự do: 0 = không lỗ, 1 = lỗ ở đầu cuối, 2 = lỗ 2 đầu. Bấm nút → bấm điểm đầu bất kỳ → vẽ như đường đồng
-  const FREE = () => [[L("Dây không lỗ", "Wire, no holes"), L("đường đồng vẽ tự do", "free copper trace")], [L("Dây 1 lỗ", "Wire, 1 hole"), L("lỗ ở đầu cuối", "hole at the end")], [L("Dây 2 lỗ", "Wire, 2 holes"), L("lỗ ở 2 đầu", "holes at both ends")]];
-  function startFree() {
-    cancel(); ui.mode = "freeStart"; svg.classList.add("routing");
-    $("#plHint").textContent = L(`${FREE()[S.freeK || 0][0]}: bấm điểm bắt đầu (chỗ trống, chân hoặc đường) · Esc huỷ`, `${FREE()[S.freeK || 0][0]}: click the start point (free spot, pin or trace) · Esc cancels`);
-  }
-  function pickFreeStart(p, g) {
-    const k = S.freeK || 0, pd = padAt(p), sg = !pd && segAt(p);
-    let q = g, net = null, hit = false;
-    if (pd) { if (!pd.net) return toast(L(`Chân ${pd.name} không dùng trong mạch.`, `Pin ${pd.name} is not used in the circuit.`)); q = [pd.x, pd.y]; net = pd.net; hit = true; }
-    else if (sg) { q = proj(sg.t, p).q.map(r3); net = sg.t.net; hit = true; }
-    if (k === 2 && !hit && !holeOK(q[0], q[1], net, pads())) return toast(L("Chỗ này quá sát chân hoặc đường khác – chọn chỗ thoáng hơn.", "Too close to a pin or another trace – pick a clearer spot."));
-    startRoute(net || "~" + S.uid++, q); Object.assign(ui.route, { free: k, startHit: hit });
-    $("#plHint").textContent = L("Bấm nền đặt góc · bấm chân / lỗ / đường để xong · Enter xong tại con trỏ · Esc huỷ", "Click to place corners · click a pin / hole / trace to finish · Enter finishes at the cursor · Esc cancels");
-  }
-  function freeMenu() {
-    const r = $("#plFreeMore").getBoundingClientRect(), st = $("#plStage").getBoundingClientRect();
-    ctxMenu({ clientX: Math.max(st.left + 4, r.left - 240), clientY: r.top }, FREE().map(([t, d], i) => [((S.freeK || 0) === i ? "● " : "○ ") + t, d, () => { S.freeK = i; startFree(); }]));
-  }
+
   // dây nhảy: chọn đường → J / chuột phải → bấm 2 điểm trên đường → cắt bỏ đoạn giữa, thêm 2 lỗ nhỏ, bắc nét trắng
   function proj(t, p) {
     let best = null, acc = 0;
@@ -920,20 +903,17 @@
       const on = P.find(p => Math.hypot(p.x - q[0], p.y - q[1]) < PAD_R);   // đầu bút trên lỗ / chân có sẵn: bắc dây nhảy từ đó
       if (on) { if (on.net !== net && !joinNet(on.net)) return toast(L(`Chân ${on.name} thuộc mạng khác.`, `Pin ${on.name} is on another net.`)); const n2 = ui.route.pendJoin ? ui.route.pendJoin[1] : net; if (ui.route.pts.length > 1 || ui.route.pendJoin) finishRoute([on.x, on.y], true); else cancel(); return startJfree(n2, [on.x, on.y]); }
       if (!holeOK(q[0], q[1], net, P)) return toast(L("Chỗ này quá sát chân hoặc đường khác – chọn chỗ thoáng hơn.", "Too close to a pin or another trace – pick a clearer spot."));
-      finishRoute(q); return startJfree(net, q);
+      finishRoute(q); startJfree(net, q); ui.jf.cont = true; return;
     }
-    const s = ui.sel, t = s && s.t === "t" && S.traces.find(x => x.id === s.id);
-    cancel(); ui.mode = "hole"; ui.hole = { tid: t ? t.id : null }; ui.hlNet = t ? t.net : null; svg.classList.add("routing");
-    $("#plHint").textContent = L("Dây nhảy: bấm lỗ / chân có sẵn, hoặc 1 điểm trên đường để đặt lỗ đầu · Esc huỷ", "Jumper: click an existing hole / pin, or a point on a trace for the 1st hole · Esc cancels"); render();
+    cancel(); ui.mode = "hole"; ui.hole = {}; svg.classList.add("routing");
+    $("#plHint").textContent = L("Dây nhảy: bấm điểm đầu (chân, lỗ, đường đồng hoặc chỗ trống) · Esc huỷ", "Jumper: click the start (pin, hole, trace or free spot) · Esc cancels"); render();
   }
   function pickHole(p) {
     const pd = padAt(p);
     if (pd) { if (!pd.net) return toast(L(`Chân ${pd.name} không dùng trong mạch.`, `Pin ${pd.name} is not used in the circuit.`)); return startJfree(pd.net, [pd.x, pd.y]); }
-    const sg = segAt(p), t = ui.hole.tid != null ? S.traces.find(x => x.id === ui.hole.tid) : sg && sg.t, pr = t && proj(t, p);
-    if (!pr || pr.d > 2) return toast(L("Bấm lên lỗ, chân hoặc đường đồng.", "Click a hole, pin or copper trace."));
-    const q = [r3(pr.q[0]), r3(pr.q[1])];
-    if (!holeOK(q[0], q[1], t.net, pads())) return toast(L("Chỗ này quá sát chân hoặc đường khác – chọn chỗ thoáng hơn.", "Too close to a pin or another trace – pick a clearer spot."));
-    startJfree(t.net, q);
+    const sg = segAt(p), pr = sg && proj(sg.t, p), q = pr && pr.d < traceW(sg.t) / 2 + .3 ? pr.q.map(r3) : [snap(p.x, SN), snap(p.y, SN)], net = pr && pr.d < traceW(sg.t) / 2 + .3 ? sg.t.net : "~" + S.uid++;
+    if (!holeOK(q[0], q[1], net, pads())) return toast(L("Chỗ này quá sát chân hoặc đường khác – chọn chỗ thoáng hơn.", "Too close to a pin or another trace – pick a clearer spot."));
+    startJfree(net, q);
   }
   function startJfree(net, a) {
     cancel(); ui.mode = "jfree"; ui.jf = { net, a, cur: a }; ui.hlNet = net; svg.classList.add("routing");
@@ -958,30 +938,38 @@
     const j = { id: S.uid++, net: J.net, a: J.a, b };
     if (!lineOK(J.a, b, J.net, P)) j.ext = true;   // đi ngang chân khác mạng: dùng dây có vỏ bọc
     S.jumpers.push(j);
-    if (end) { cancel(); ui.sel = { t: "j", id: j.id }; render(); return toast(L("Đã bắc dây nhảy.", "Jumper added.")); }
-    startRoute(J.net, b); toast(L("Đã đặt dây nhảy – vẽ tiếp đường đồng từ lỗ thứ 2.", "Jumper placed – keep drawing copper from the 2nd hole."));
+    const len = Math.hypot(b[0] - J.a[0], b[1] - J.a[1]), cp = P.filter(q => !q.jw && !q.hole), near = Math.min(...[J.a, b].filter(e => !cp.some(q => Math.hypot(q.x - e[0], q.y - e[1]) < .1)).map(e => Math.min(...cp.map(q => Math.hypot(q.x - e[0], q.y - e[1])))));   // chỉ xét lỗ mới, không xét đầu nằm trên chân
+    const warn = (len < 10 ? L(` · ⚠ dây chỉ dài ${len.toFixed(1)} mm (nên ≥ 10 mm)`, ` · ⚠ only ${len.toFixed(1)} mm long (≥ 10 mm advised)`) : "") + (near < 5 ? L(` · ⚠ lỗ cách chân ${near.toFixed(1)} mm (nên ≥ 5 mm)`, ` · ⚠ hole ${near.toFixed(1)} mm from a pin (≥ 5 mm advised)`) : "");
+    if (end || !J.cont) { cancel(); ui.sel = { t: "j", id: j.id }; render(); return toast(L("Đã bắc dây nhảy. Bấm vào lỗ để vẽ đường đồng nối tiếp.", "Jumper added. Click a hole to draw copper from it.") + warn); }
+    startRoute(J.net, b); toast(L("Đã đặt dây nhảy – vẽ tiếp đường đồng từ lỗ thứ 2.", "Jumper placed – keep drawing copper from the 2nd hole.") + warn);
   }
   const hideCtx = () => $("#plCtx").classList.remove("on");
   function cancel() { ui.mode = "idle"; ui.route = null; ui.jump = null; ui.hole = null; ui.jf = null; ui.drag = null; LY.tmp.innerHTML = ""; svg.classList.remove("routing"); $("#plHint").textContent = ""; }
 
   svg.addEventListener("pointerdown", e => {
     if (e.button === 2) return;
-    const p = toMM(e), g = [snap(p.x, Q), snap(p.y, Q)];
+    const p = toMM(e), g = [snap(p.x, SN), snap(p.y, SN)];
     if (e.button === 1) return startPan(e);
     if (ui.mode === "route") {
       const pd = padAt(p);
       if (pd) { if (pd.net !== ui.route.net && !joinNet(pd.net)) return toast(L(`Chân ${pd.name} thuộc mạng ${pd.net || "trống"}, không nối được.`, `Pin ${pd.name} is on net ${pd.net || "none"}, can't connect.`)); return finishRoute([pd.x, pd.y], true); }
-      const sg = segAt(p); if (sg && (sg.t.net === ui.route.net || joinNet(sg.t.net))) return finishRoute(proj(sg.t, p).q.map(r3), true);
+      const sg = segAt(p), pj = sg && proj(sg.t, p); if (pj && pj.d < traceW(sg.t) / 2 + .3 && (sg.t.net === ui.route.net || joinNet(sg.t.net))) return finishRoute(pj.q.map(r3), true);
       const last = ui.route.pts[ui.route.pts.length - 1]; ui.route.pts.push(...posture(last, g).filter(q => q[0] !== last[0] || q[1] !== last[1])); drawRoute(); return;
     }
     if (ui.mode === "jump") return pickJump(p);
     if (ui.mode === "hole") return pickHole(p);
-    if (ui.mode === "freeStart") return pickFreeStart(p, g);
     if (ui.mode === "jfree") return pickJfree(p, g);
     const vt = e.target.closest("[data-v]");
     if (vt && ui.sel && ui.sel.t === "t") return startVertex(e, +vt.dataset.v);
     const pd = padAt(p);
-    if (pd) { if (!pd.net) return toast(L(`Chân ${pd.name} không dùng trong mạch.`, `Pin ${pd.name} is not used in the circuit.`)); return startRoute(pd.net, [pd.x, pd.y]); }
+    if (pd) {
+      const c = S.comps.find(x => x === pd.c), x0 = e.clientX, y0 = e.clientY;
+      ui.drag = {
+        move: (q, ev) => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return; ui.drag = null; if (c) { ui.sel = { t: "c", id: c.id }; render(); startComp(ev, c); } },
+        up: () => { if (!pd.net) return toast(L(`Chân ${pd.name} không dùng trong mạch.`, `Pin ${pd.name} is not used in the circuit.`)); startRoute(pd.net, [pd.x, pd.y]); }
+      };
+      return;
+    }
     const jw = S.jumpers.find(j => segDist(p.x, p.y, j.a[0], j.a[1], j.b[0], j.b[1]) < .6);
     if (jw) { ui.sel = { t: "j", id: jw.id }; ui.hlNet = jw.net; return render(); }
     const sg = segAt(p);
@@ -992,9 +980,9 @@
   });
   svg.addEventListener("pointermove", e => {
     const p = toMM(e);
-    if (ui.mode === "route") { const pd = padAt(p); ui.route.cur = pd && pd.net === ui.route.net ? [pd.x, pd.y] : [snap(p.x, Q), snap(p.y, Q)]; drawRoute(); return; }
+    if (ui.mode === "route") { const pd = padAt(p); ui.route.cur = pd && pd.net === ui.route.net ? [pd.x, pd.y] : [snap(p.x, SN), snap(p.y, SN)]; drawRoute(); return; }
     if (ui.mode === "jump") return drawJump(p);
-    if (ui.mode === "jfree") { ui.jf.cur = [snap(p.x, Q), snap(p.y, Q)]; return drawJfree(); }
+    if (ui.mode === "jfree") { ui.jf.cur = [snap(p.x, SN), snap(p.y, SN)]; return drawJfree(); }
     if (ui.drag) return ui.drag.move(p, e);
     const pd = padAt(p), tip = $("#plTip");
     if (pd) { tip.innerHTML = `<b>${pd.c.id} · ${pd.name}</b><br>${pd.net ? L("Mạng ", "Net ") + pd.net : L("<i>không dùng</i>", "<i>unused</i>")}`; tip.classList.add("on"); const r = $("#plStage").getBoundingClientRect(); tip.style.left = e.clientX - r.left + 14 + "px"; tip.style.top = e.clientY - r.top + 14 + "px"; }
@@ -1012,7 +1000,7 @@
     const sg = segAt(p); if (!sg) return hideCtx();
     ui.sel = { t: "t", id: sg.t.id, k: sg.k }; ui.hlNet = sg.t.net; render();
     ctxMenu(e, [[L("Thêm điểm neo ở đây", "Add vertex here"), L("Đúp", "Dbl"), () => cmd.addVtx(p)], [L("Nắn ngang", "Make horizontal"), "H", () => cmd.straight("h")], [L("Nắn dọc", "Make vertical"), "V", () => cmd.straight("v")], [L("Nắn 45°", "Make 45°"), "A", () => cmd.straight("a")],
-      [L("Đặt lỗ + dây nhảy", "Hole + jumper"), "J", () => placeHole()], [L("Cắt bằng dây nhảy", "Cut with jumper"), "", cmd.jump], [sg.t.lock ? L("Bỏ khoá", "Unlock") : L("Khoá", "Lock"), "L", cmd.lock], [L("Xoá đường", "Delete trace"), "Del", cmd.del]]);
+      [L("Dây nhảy", "Jumper"), "J", () => placeHole()], [L("Cắt bằng dây nhảy", "Cut with jumper"), "", cmd.jump], [sg.t.lock ? L("Bỏ khoá", "Unlock") : L("Khoá", "Lock"), "L", cmd.lock], [L("Xoá đường", "Delete trace"), "Del", cmd.del]]);
   });
   function ctxMenu(e, items) {
     const m = $("#plCtx"), r = $("#plStage").getBoundingClientRect();
@@ -1242,7 +1230,7 @@
     }
     if (ui.sel && ui.sel.t === "t" && (k === "h" || k === "v" || k === "a")) return cmd.straight(k);
     if (k === "delete" || k === "backspace") { e.preventDefault(); cmd.del(); }
-    else if (k === "r") cmd.rotate(); else if (k === "l") cmd.lock(); else if (k === "a") cmd.auto(); else if (k === "f") fit(); else if (k === "v") cmd.flip(); else if (k === "j") placeHole(); else if (k === "w") startFree();
+    else if (k === "r") cmd.rotate(); else if (k === "l") cmd.lock(); else if (k === "a") cmd.auto(); else if (k === "f") fit(); else if (k === "v") cmd.flip(); else if (k === "j") placeHole();
   });
 
   /* ---------- khung bo ---------- */
@@ -1417,8 +1405,8 @@
     const open = new Set(A.rats.map(r => r.net)), bad = A.drc.length;
     const sel = ui.sel && ui.sel.t === "t" ? S.traces.find(t => t.id === ui.sel.id) : null, selC = ui.sel && ui.sel.t === "c" ? S.comps.find(c => c.id === ui.sel.id) : null;
     const allOk = !open.size && S.comps.length > 1, done = allOk && !bad, nj = S.jumpers.length;
-    const help = L(`<li>Bấm <b>một chân</b> → đường đồng đi theo chuột, bấm nền đặt góc, bấm chân cùng mạng để xong.</li><li>Kéo <b>thân đường</b> để dời song song, kéo <b>ô vuông</b> để dời góc.</li><li>Chọn đoạn dây: <b>H</b> nắn ngang · <b>V</b> nắn dọc · <b>A</b> nắn 45°. <b>Đúp</b> lên dây thêm điểm neo, đúp lên ô vuông để xoá.</li><li>Kéo <b>linh kiện</b> để dời, <b>R</b> xoay.</li><li>Đang vẽ đường nhấn <b>J</b> (hoặc nút Đặt lỗ) → đặt lỗ ở đầu bút, bấm chỗ lỗ thứ 2 rồi vẽ tiếp. Chọn đường → <b>J</b> → bấm 1 điểm để đặt lỗ trên đường. Cắt qua chỗ chắn: chuột phải → Cắt bằng dây nhảy. Nét <b>trắng</b> = dây nhảy / ký hiệu linh kiện.</li><li>Đường vẽ / sửa tay tự <b>khoá</b> 🔒: Tự đi dây giữ nguyên.</li><li><b>/</b> đổi tư thế 45° · <b>Esc</b> huỷ · <b>Ctrl+Z</b> hoàn tác.</li>`,
-      `<li>Click <b>a pin</b> → the trace follows the mouse; click to place corners, click a pin of the same net to finish.</li><li>Drag a <b>trace body</b> to move it in parallel, drag a <b>square</b> to move a corner.</li><li>Select a segment: <b>H</b> horizontal · <b>V</b> vertical · <b>A</b> 45°. <b>Double-click</b> a trace to add a vertex, a square to delete it.</li><li>Drag a <b>part</b> to move it, <b>R</b> rotates.</li><li>While drawing press <b>J</b> (or the Hole button) → a hole at the pen; click the 2nd hole, then keep drawing. Select a trace → <b>J</b> → click a point to put a hole on it. Cut past a blockage: right-click → Cut with jumper. <b>White</b> lines = jumpers / part outlines.</li><li>Hand-drawn / edited traces are <b>locked</b> 🔒: Autoroute keeps them.</li><li><b>/</b> flips the 45° posture · <b>Esc</b> cancels · <b>Ctrl+Z</b> undo.</li>`);
+    const help = L(`<li>Bấm <b>một chân</b> → đường đồng đi theo chuột, bấm nền đặt góc, bấm chân cùng mạng để xong.</li><li>Kéo <b>thân đường</b> để dời song song, kéo <b>ô vuông</b> để dời góc.</li><li>Chọn đoạn dây: <b>H</b> nắn ngang · <b>V</b> nắn dọc · <b>A</b> nắn 45°. <b>Đúp</b> lên dây thêm điểm neo, đúp lên ô vuông để xoá.</li><li>Kéo <b>linh kiện</b> để dời, <b>R</b> xoay.</li><li><b>Dây nhảy</b> (J): bấm điểm đầu rồi điểm cuối (chân, lỗ, đường hoặc chỗ trống). Đang vẽ đường nhấn <b>J</b> để đặt lỗ ở đầu bút rồi bắc dây nhảy. Nét <b>trắng</b> = dây nhảy / ký hiệu linh kiện.</li><li>Đường vẽ / sửa tay tự <b>khoá</b> 🔒: Tự đi dây giữ nguyên.</li><li><b>/</b> đổi tư thế 45° · <b>Esc</b> huỷ · <b>Ctrl+Z</b> hoàn tác.</li>`,
+      `<li>Click <b>a pin</b> → the trace follows the mouse; click to place corners, click a pin of the same net to finish.</li><li>Drag a <b>trace body</b> to move it in parallel, drag a <b>square</b> to move a corner.</li><li>Select a segment: <b>H</b> horizontal · <b>V</b> vertical · <b>A</b> 45°. <b>Double-click</b> a trace to add a vertex, a square to delete it.</li><li>Drag a <b>part</b> to move it, <b>R</b> rotates.</li><li><b>Jumper</b> (J): click the start, then the end (pin, hole, trace or free spot). While drawing press <b>J</b> to drop a hole at the pen and bridge with a jumper. <b>White</b> lines = jumpers / part outlines.</li><li>Hand-drawn / edited traces are <b>locked</b> 🔒: Autoroute keeps them.</li><li><b>/</b> flips the 45° posture · <b>Esc</b> cancels · <b>Ctrl+Z</b> undo.</li>`);
     $("#plPanel").innerHTML = `<ol class="steps"><li class="${S.comps.length > 1 ? "ok" : "now"}">${L("Thêm & đặt linh kiện", "Add & place parts")}<small>${L("bấm linh kiện bên trái · kéo · R xoay", "click a part on the left · drag · R rotates")}</small></li><li class="${allOk ? "ok" : "now"}">${L("Nối hết dây", "Route everything")}<small>${allOk ? L("xong", "done") : L("bấm Tự đi dây (A)", "press Autoroute (A)")}${nj ? L(` · ${nj} dây nhảy`, ` · ${nj} jumpers`) : ""}</small></li><li class="${done ? "ok" : bad ? "now" : ""}">${L("Không lỗi → Tải file in", "No errors → Download")}<small>${bad ? L(`${bad} lỗi cần sửa`, `${bad} errors to fix`) : done ? L("sẵn sàng in", "ready to print") : "…"}</small></li></ol>
       <div class="stat"><div><b>${Object.keys(nets).length - open.size}</b>/${Object.keys(nets).length}<span>${L("mạng đã nối", "nets routed")}</span></div><div class="${bad ? "red" : ""}"><b>${bad}</b><span>${L("lỗi khoảng cách", "clearance errors")}</span></div><div><b>${S.traces.length}</b><span>${L("đường đồng", "traces")}</span></div></div>
       ${sel ? `<div class="box"><h4>${L("Đường đang chọn", "Selected trace")}</h4><p>${L("Mạng", "Net")} <b>${sel.net}</b> · ${traceW(sel)} mm · ${sel.lock ? L("🔒 đã khoá", "🔒 locked") : L("tự động", "auto")}</p></div>` : selC ? compBoxHTML(selC) : ""}
@@ -1489,11 +1477,11 @@
     $("#plVbar").innerHTML = b("plAuto", "auto", L("Tự đi dây", "Autoroute"), L("Xoá đường tự động cũ rồi đi lại toàn bộ, giữ đường đã khoá (A)", "Remove old auto traces and route everything again, keep locked traces (A)"))
       + `<button type="button" class="tb tb-more" id="plAutoMore" title="${L("Tuỳ chọn tự đi dây", "Autoroute options")}">▾</button>` + b("plScheme", "scheme", "", "")
       + b("plUnwire", "unwire", L("Xoá dây LK", "Unwire part"), L("Xoá mọi đường / dây nhảy nối vào linh kiện đang chọn", "Remove every trace / jumper going to the selected part"))
-      + b("plJump", "jump", L("Dây nhảy", "Jumper"), L("Cắt đường đang chọn và bắc dây nhảy qua chỗ cắt", "Cut the selected trace and bridge it with a jumper")) + b("plHole", "hole", L("Đặt lỗ", "Hole"), L("Đặt lỗ rồi kéo dây nhảy: khi đang vẽ đường, hoặc trên đường đang chọn (J)", "Drop a hole and run a jumper: while drawing, or on the selected trace (J)")) + b("plFree", "wire", FREE()[S.freeK || 0][0], L("Vẽ dây đồng tự do từ điểm bất kỳ; ▾ chọn không lỗ / 1 lỗ / 2 lỗ (W)", "Draw a free copper wire from any point; ▾ picks no hole / 1 hole / 2 holes (W)")) + `<button type="button" class="tb tb-more" id="plFreeMore" title="${L("Kiểu dây", "Wire type")}">▾</button>` + b("plClear", "clear", L("Xoá tự động", "Clear auto"), L("Xoá các đường chưa khoá", "Remove unlocked traces")) + b("plPour", "pour", L("Phủ mass", "GND pour"), L("Đổ đồng GND vào chỗ trống (cách 0,6 mm, nan nhiệt)", "Fill free areas with GND copper (0.6 mm clearance, thermal spokes)"))
+      + b("plJump", "jump", L("Dây nhảy", "Jumper"), L("Bấm điểm đầu rồi điểm cuối: chân, lỗ, đường đồng hoặc chỗ trống (J)", "Click the start, then the end: pin, hole, trace or free spot (J)")) + b("plClear", "clear", L("Xoá tự động", "Clear auto"), L("Xoá các đường chưa khoá", "Remove unlocked traces")) + b("plPour", "pour", L("Phủ mass", "GND pour"), L("Đổ đồng GND vào chỗ trống (cách 0,6 mm, nan nhiệt)", "Fill free areas with GND copper (0.6 mm clearance, thermal spokes)"))
       + `<div class="vw"><small>${L("Độ rộng mm", "Width mm")}</small><button type="button" data-w="0.8">${L("0,8", "0.8")}</button><button type="button" data-w="1">${L("1,0", "1.0")}</button><button type="button" data-w="1.5">${L("1,5", "1.5")}</button></div>`;
     $("#plAlpha").oninput = e => { S.alpha = e.target.value / 100; render(); };
     const on = (id, f) => $(id).onclick = f;
-    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plFree", startFree); on("#plFreeMore", freeMenu); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); on("#plJump", cmd.jump); on("#plHole", () => placeHole()); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
+    on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plRot", cmd.rotate); on("#plDel", cmd.del); on("#plAuto", cmd.auto); on("#plScheme", cmd.scheme); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", cmd.reset); on("#plFlip", cmd.flip); on("#plJump", () => placeHole()); on("#plPour", cmd.pour); on("#plAutoMore", autoMenu); on("#plUnwire", cmd.unwire); on("#plArr", cmd.arrange);
     $$("[data-mode]").forEach(x => x.onclick = () => APP.toWiring(x.dataset.mode));
     $("#plExport").classList.add("primary");
     on("#plExport", exportDialog);
