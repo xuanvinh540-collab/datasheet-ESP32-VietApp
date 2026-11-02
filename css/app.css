@@ -696,3 +696,10 @@ main { padding-top: 12px; }
 .btools .bmode .bbtn span { display: inline; }
 .blist { display: block; overflow-x: hidden; } .blist > * + * { margin-top: 6px; } .blist .mods { display: block; min-width: 0; } .blist .mod-row { min-width: 0; }
 sup.beta { font: 700 8.5px var(--mono); padding: 0 3px; border-radius: 4px; background: #f59e0b; color: #1d232a; vertical-align: super; text-transform: uppercase; }
+/* nhóm linh kiện / board thu gọn được */
+.blist details.mods-cat > summary { list-style: none; display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; border-radius: 6px; padding: 3px 4px; }
+.blist details.mods-cat > summary::-webkit-details-marker { display: none; }
+.blist details.mods-cat > summary:hover { background: var(--surface2); color: var(--fg); }
+.blist .fold { margin-left: auto; font-style: normal; transition: transform .15s; }
+.blist details.mods-cat:not([open]) .fold { transform: rotate(-90deg); }
+.blist .bdhint { margin: 0 4px 2px; font-size: 10.5px; }

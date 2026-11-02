@@ -34,7 +34,7 @@
   }
   const at = (spec, xy) => pinsOf(spec).map((p, i) => ({ ...p, x: xy[i][0], y: xy[i][1] }));
   // linh kiện của Pindexio (tab Sơ đồ chân / Nối dây), kích thước theo hàng phổ biến (mm). "~" = ước lượng, nên đo bo thật
-  const FP = {
+  const FP0 = {
     // DevKitC-1 62,74 dài, 2 hàng chân cách 25,4 (1"), ăng-ten vượt quá chân 1
     S3: { pads: [...S3L.map((n, i) => ({ name: n, x: 0, y: i * G })), ...S3R.map((n, i) => ({ name: n, x: 10 * G, y: i * G }))], body: { x: -1.3, y: -7.4, w: 28, h: 62.74 }, label: "ESP32-S3-DevKitC-1", inner: true },
     ssd1306: hdr("SDA/d SCL/c VCC/3 GND/g", 27.3, 27.8, "T", "OLED 0.96\""),                       // 27,3 × 27,8, thứ tự chân theo Pindexio
@@ -54,6 +54,14 @@
     R: { pads: at("1 2", [[0, 0], [4 * G, 0]]), body: { x: 1.93, y: -1.25, w: 6.3, h: 2.5 }, label: "", val: "1k" },          // điện trở 1/4 W: thân 6,3 × 2,5, chân cách 10,16
     C: { pads: at("1/3 2/g", [[0, 0], [2 * G, 0]]), body: { x: -.96, y: -1.5, w: 7, h: 3 }, label: "", round: true, val: "100n" }   // tụ gốm chân cách 5,08 (mặc định lọc nguồn 3V3)
   };
+  // board khác ESP32-S3 (Arduino, Raspberry Pi, Pico…): không cắm thẳng lên bo mà nối dây Dupont qua hàng rào header J1.
+  // Footprint J1 sinh theo tên khoá "HDR:GND,3V3,D2,…": 1 hàng chân 2,54, mỗi chân mang tên chân của board (cũng là tên mạng)
+  function hdrFP(key) {
+    if (FP0[key]) return FP0[key];
+    const names = key.slice(4).split(","), span = (names.length - 1) * G;
+    return FP0[key] = { pads: names.map((n, i) => ({ name: n, x: i * G, y: 0 })), body: { x: -1.5, y: -1.5, w: span + 3, h: 3 }, label: "", hdr: true };
+  }
+  const FP = new Proxy(FP0, { get: (t, k) => t[k] || (typeof k === "string" && k.startsWith("HDR:") ? hdrFP(k) : undefined) });
   // [tiếng Việt, English, tên ngắn]. Trong Pindexio, module lấy tên từ MODULES (dịch qua từ điển của site)
   const NAMES = { S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
   const tr = s => (EN() && window.trEN ? window.trEN(s) : s);
@@ -68,14 +76,38 @@
   const PREF = "1 2 42 41 40 39 38 21 47 48 4 5 6 7 15 16 17 18 10 13 14 8 9 11 12".split(" ").map(n => "IO" + n);
   const RISKY = ["IO0", "IO3", "IO45", "IO46", "IO19", "IO20"];   // strapping / USB: dùng được nhưng dễ lỗi khởi động
   const BUS = { d: "IO8", c: "IO9", k: "IO12", m: "IO11" };
-  const fresh = () => ({
-    v: 2, board: { w: 120, h: 78 },
-    comps: [{ id: "U1", fp: "S3", x: 3 * G, y: 4 * G, rot: 0 }],
+  const S3ID = "esp32-s3-devkitc-1";
+  const isHost = c => c.fp === "S3" || c.fp.startsWith("HDR:");
+  // thông tin board đang làm (S.mcu): tên chân dùng được, chân ưu tiên / dễ lỗi, chân bus I2C / SPI, logic 5 V hay 3,3 V.
+  // Chân bus lấy theo chức năng ghi trong dữ liệu sơ đồ chân của Pindexio (giống cách tab Wiring chấm điểm chân)
+  const BUS_RE = { ESP32: { d: /Arduino SDA|I2C SDA/, c: /Arduino SCL|I2C SCL/, k: /Arduino SCK/, m: /Arduino MOSI/ }, RP2: { d: /I2C0 SDA/, c: /I2C0 SCL/, k: /SPI0 SCK/, m: /SPI0 TX/ }, AVR: { d: /I2C SDA/, c: /I2C SCL/, k: /SPI SCK/, m: /SPI MOSI/ }, "Raspberry Pi": { d: /SDA1|I2C1 SDA|SDA/, c: /SCL1|I2C1 SCL|SCL/, k: /SCLK|SPI0 SCLK/, m: /MOSI/ } };
+  const HOSTS = {};
+  function hostInfo() {
+    const id = S && S.mcu || S3ID, b = SITE && id !== S3ID && window.BOARDS && BOARDS.find(x => x.id === id);
+    if (!b) return HOSTS.S3 = HOSTS.S3 || { s3: true, id: S3ID, name: "ESP32-S3-DevKitC-1", tag: "S3", v5: false, pins: new Set(FP0.S3.pads.map(p => p.name)), pref: PREF, risky: RISKY, bus: BUS, order: () => 0 };
+    if (HOSTS[id]) return HOSTS[id];
+    const ps = b.headers.flatMap(h => h.pins), usable = p => p.gpio != null && !["power", "gnd", "ctl", "nc", "ban", "usb"].includes(p.cat);
+    const seen = new Set(), sig = ps.filter(p => usable(p) && !seen.has(p.name) && seen.add(p.name)), re = BUS_RE[b.family] || BUS_RE.ESP32, bus = {};
+    for (const k in re) { const p = sig.find(q => re[k].test(q.fn.join(" "))); if (p) bus[k] = p.name; }
+    const bv = new Set(Object.values(bus)), idx = new Map(ps.map((p, i) => [p.name, i]));
+    return HOSTS[id] = {
+      s3: false, id, name: b.name, tag: b.tag || "MCU", v5: /^5/.test(b.logic || ""), bus, order: n => idx.has(n) ? idx.get(n) : 1e3,
+      pins: new Set([...sig.map(p => p.name), "GND", "3V3", "5V"]),
+      pref: [...sig.filter(p => !p.warn && !bv.has(p.name)).map(p => p.name), ...bv], risky: sig.filter(p => p.warn && !bv.has(p.name)).map(p => p.name),
+      // nhãn chân nguồn theo tên in trên board (Uno "3.3V", Pico "VBUS" là 5 V từ USB)
+      alias: (pw => ({ "3V3": (pw.find(n => /^3.?3V?$|^3V3/.test(n)) || "3V3"), "5V": (pw.find(n => n === "5V") || pw.find(n => /VBUS|VIN/.test(n)) || "5V") }))(ps.filter(p => p.cat === "power").map(p => p.name))
+    };
+  }
+  const isSig = n => !!n && !PWR.has(n) && hostInfo().pins.has(n);
+  const fresh = (mcu = S3ID) => ({
+    v: 2, board: { w: 120, h: 78 }, mcu,
+    comps: [mcu === S3ID ? { id: "U1", fp: "S3", x: 3 * G, y: 4 * G, rot: 0 } : { id: "J1", fp: "HDR:GND", x: 3 * G, y: 4 * G, rot: 0 }],
     traces: [], jumpers: [], alpha: .7, uid: 1, scheme: 1, posture: 0, rats: true, width: null
   });
   let S;
   try { S = JSON.parse(localStorage.getItem("pcb-proto:v2") || "null"); } catch (e) { S = null; }
   if (!S || S.v !== 2) S = fresh();
+  S.mcu = S.mcu || S3ID;   // bản lưu cũ: chỉ có ESP32-S3
   const save = () => { try { localStorage.setItem("pcb-proto:v2", JSON.stringify(S)); } catch (e) { } };
   const undo = [], redo = [];
   const checkpoint = () => { undo.push(JSON.stringify(S)); if (undo.length > 100) undo.shift(); redo.length = 0; };
@@ -85,14 +117,14 @@
   const rot = (x, y, r) => r === 90 ? [-y, x] : r === 180 ? [-x, -y] : r === 270 ? [y, -x] : [x, y];
   // mạng của chân: module lưu theo tên chân (c.nets); chân ESP32-S3 mang tên chính nó khi có module nối tới (IO5 …)
   const usedNets = () => { const s = new Set(); for (const c of S.comps) for (const k in c.nets || {}) if (c.nets[k]) s.add(c.nets[k]); return s; };
-  const netOf = (c, name, used) => c.fp === "S3" ? (PWR.has(name) || used.has(name) ? name : null) : (c.nets && c.nets[name]) || null;
+  const netOf = (c, name, used) => isHost(c) ? (PWR.has(name) || used.has(name) ? name : null) : (c.nets && c.nets[name]) || null;
   function autoNets(fp) {   // nối sẵn khi thêm: nguồn, bus I2C / SPI, tín hiệu vào GPIO trống
-    const s3 = S.comps.some(c => c.fp === "S3"), used = usedNets(), out = {};
+    const s3 = S.comps.some(isHost), H = hostInfo(), used = usedNets(), out = {};
     for (const p of FP[fp].pads) {
       if (p.name in out) continue;
       let n = { g: "GND", 3: "3V3", 5: "5V" }[p.role] || null;
-      if (!n && s3 && BUS[p.role]) n = BUS[p.role];
-      if (!n && s3 && p.role === "s") { n = PREF.find(x => !used.has(x)) || null; if (n) used.add(n); }
+      if (!n && s3 && H.bus[p.role]) n = H.bus[p.role];
+      if (!n && s3 && p.role === "s") { n = H.pref.find(x => !used.has(x)) || null; if (n) used.add(n); }
       out[p.name] = n;
     }
     return out;
@@ -439,8 +471,17 @@
     LY.drc = el("g", { "pointer-events": "none" }, R); LY.sel = el("g", {}, R); LY.tmp = el("g", { "pointer-events": "none" }, R);
     LY.face = el("g", { "pointer-events": "none" }, svg);   // chữ FRONT / BACK: ngoài lớp lật gương để luôn đọc xuôi
   }
+  // J1 của board khác: GND, nguồn đang dùng rồi các chân tín hiệu (bus trước, theo thứ tự chân trên board). Đổi chân là J1 đổi theo
+  function syncHost() {
+    const H = hostInfo(), c = S.comps.find(isHost); if (H.s3 || !c) return;
+    const used = usedNets(), bv = Object.values(H.bus);
+    const sig = [...used].filter(isSig).sort((a, b) => (bv.includes(b) - bv.includes(a)) || (H.order(a) - H.order(b)));
+    const key = "HDR:" + ["GND", ...["5V", "3V3"].filter(n => used.has(n)), ...sig].join(",");
+    if (c.fp !== key) c.fp = key;
+  }
+  const pinLabel = n => hostInfo().alias && hostInfo().alias[n] || n;
   function render() {
-    analyze();
+    syncHost(); analyze();
     const hl = ui.hlNet;
     for (const k of ["board", "silk", "cu", "pads", "jw", "rats", "drc", "sel", "face"]) LY[k].innerHTML = "";
     const B = S.board;
@@ -457,7 +498,9 @@
       if (f.round) el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: b.h / 2, class: "body" }, g); else el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: .6, class: "body" }, g);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
       if (f.label) el("text", { x: cx, y: cy, class: "silkt", transform: c.rot % 180 ? `rotate(-90 ${cx} ${cy})` : "" }, g, f.label);
-      el("text", { x: b.x + .6, y: b.y - .8, class: "ref" }, g, c.id + (c.val ? " " + c.val : ""));
+      if (f.hdr) f.pads.forEach(p => el("text", { x: p.x, y: p.y - 2, class: "hdrl", transform: `rotate(-90 ${p.x} ${p.y - 2})` }, g, pinLabel(p.name)));
+      // J1: tên ngắn của board ghi bên phải hàng rào (không đè linh kiện bên dưới)
+      el("text", f.hdr ? { x: b.x + b.w + 1, y: b.y + b.h / 2 + .5, class: "ref" } : { x: b.x + .6, y: b.y - .8, class: "ref" }, g, c.id + (f.hdr ? " → " + hostInfo().name.split(" (")[0] : "") + (c.val ? " " + c.val : ""));
     }
     // mass GND
     // path mass lớn (vài trăm KB): chỉ dựng lại khi hình đổi, còn lại chỉ đổi lớp mờ
@@ -511,11 +554,14 @@
     else if (fp === "buzzer") { el("circle", { cx, cy, r: 6, fill: "#15171b" }, g); el("circle", { cx, cy, r: 1, fill: "#444" }, g); }
     else if (fp === "R") { R(b.x, b.y, b.w, b.h, "#d8c194", b.h / 2); [["#7b4a1e", .25], ["#111", .45], ["#c42a2a", .62]].forEach(([c, u]) => R(b.x + b.w * u, b.y, .7, b.h, c, 0)); }
     else if (fp === "C") R(b.x, b.y, b.w, b.h, "#d9a83a", b.h / 2);
+    else if (fp.startsWith("HDR:")) R(b.x, b.y, b.w, b.h, "#15171b", .3);   // hàng rào header nhựa đen
   }
 
   /* ---------- xuất file in 1:1 (đơn vị mm) ---------- */
   // cu: mặt đồng đen trên nền trắng, chấm trắng giữa pad = tâm khoan. silk: hướng dẫn cắm linh kiện + dây nhảy.
   // In ủi nhiệt mặt đồng: in KHÔNG lật (úp giấy xuống đồng là tự lật đúng). Bản "lật gương" cho phim / cách làm khác.
+  // nhãn tên chân của hàng rào J1 (in lên mặt linh kiện để cắm dây Dupont đúng chân board)
+  const hdrText = (f, fs) => f.hdr ? f.pads.map(p => `<text x="${p.x}" y="${p.y - 2}" font-size="${fs}" font-weight="700" font-family="sans-serif" dominant-baseline="central" transform="rotate(-90 ${p.x} ${p.y - 2})">${pinLabel(p.name)}</text>`).join("") : "";
   function exportSVG(kind, mirror) {
     const B = S.board, P = pads(), o = [];
     o.push(`<svg xmlns="${NS}" width="${B.w}mm" height="${B.h}mm" viewBox="0 0 ${B.w} ${B.h}"><rect width="${B.w}" height="${B.h}" fill="#fff"/>`);
@@ -531,7 +577,7 @@
       for (const c of S.comps) {
         const f = FP[c.fp], b = f.body, cx = b.x + b.w / 2, cy = b.y + b.h / 2, p1 = f.pads.find(p => p.sq) || f.pads[0];
         o.push(`<g transform="translate(${c.x} ${c.y}) rotate(${c.rot})"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${f.round ? b.h / 2 : .6}" fill="none" stroke="#000" stroke-width=".15"/>`
-          + (p1 ? `<circle cx="${p1.x - PAD_R - .9}" cy="${p1.y}" r=".35" fill="#000"/>` : "")
+          + (p1 ? `<circle cx="${p1.x - PAD_R - .9}" cy="${p1.y}" r=".35" fill="#000"/>` : "") + hdrText(f, 1.2)
           + (f.label ? `<text x="${cx}" y="${cy}" font-size="1.6" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
           + `<text x="${b.x + .4}" y="${b.y - .6}" font-size="1.3" font-weight="700" font-family="sans-serif">${c.id}${c.val ? " " + c.val : ""}</text></g>`);
       }
@@ -541,7 +587,7 @@
       for (const c of S.comps) {
         const f = FP[c.fp], b = f.body, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
         o.push(`<g transform="translate(${c.x} ${c.y}) rotate(${c.rot})"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${f.round ? b.h / 2 : .6}" fill="none" stroke="#000" stroke-width=".2"/>`
-          + (f.label ? `<text x="${cx}" y="${cy}" font-size="2" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
+          + hdrText(f, 1.3) + (f.label ? `<text x="${cx}" y="${cy}" font-size="2" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
           + `<text x="${b.x + .6}" y="${b.y - .8}" font-size="1.5" font-weight="700" font-family="sans-serif">${c.id}${c.val ? " " + c.val : ""}</text></g>`);
       }
       for (const p of P) o.push(`<circle cx="${p.x}" cy="${p.y}" r="${(p.r || PAD_R) * .8}" fill="none" stroke="#000" stroke-width=".15"/>`);
@@ -759,8 +805,8 @@
 
   /* ---------- lệnh ---------- */
   const cmd = {
-    undo() { if (!undo.length) return; redo.push(JSON.stringify(S)); S = JSON.parse(undo.pop()); ui.sel = null; render(); },
-    redo() { if (!redo.length) return; undo.push(JSON.stringify(S)); S = JSON.parse(redo.pop()); ui.sel = null; render(); },
+    undo() { if (!undo.length) return; redo.push(JSON.stringify(S)); S = JSON.parse(undo.pop()); ui.sel = null; render(); list(); },
+    redo() { if (!redo.length) return; undo.push(JSON.stringify(S)); S = JSON.parse(redo.pop()); ui.sel = null; render(); list(); },
     del() {
       const s = ui.sel; if (!s) return;
       if (s.t === "j") { checkpoint(); S.jumpers = S.jumpers.filter(j => j.id !== s.id); ui.sel = null; ui.hlNet = null; render(); }
@@ -789,10 +835,10 @@
       c.nets[pin] = v || null;
       S.traces = S.traces.filter(t => !on(t.pts[0]) && !on(t.pts[t.pts.length - 1])); prune(); dropDangling(new Set([old].filter(Boolean))); render();
       afterParts([], [old, v].filter(Boolean));
-      if (v && !PWR.has(v) && !v.startsWith("IO")) toast(L(`Chân ${pin} vào mạng riêng ${v}: chọn ${v} cho chân bên kia (điện trở, tụ…).`, `Pin ${pin} is on private net ${v}: pick ${v} for the other side (resistor, capacitor…).`));
+      if (v && !PWR.has(v) && !isSig(v)) toast(L(`Chân ${pin} vào mạng riêng ${v}: chọn ${v} cho chân bên kia (điện trở, tụ…).`, `Pin ${pin} is on private net ${v}: pick ${v} for the other side (resistor, capacitor…).`));
     },
     add(fp) {
-      if (fp === "S3" && S.comps.some(c => c.fp === "S3")) return toast(L("Bo chỉ dùng 1 board ESP32-S3.", "The PCB uses a single ESP32-S3 board."));
+      if (fp === "S3" && (!hostInfo().s3 || S.comps.some(c => c.fp === "S3"))) return toast(L("Bo chỉ dùng 1 board ESP32-S3.", "The PCB uses a single ESP32-S3 board."));
       const pre = PRE[fp] || "M"; let n = 1; while (S.comps.some(c => c.id === pre + n)) n++;
       const id = pre + n, f = FP[fp], b = f.body, B = S.board, vx = cam.x + cam.w / 2, cx = S.flip ? B.w - vx : vx, cy = cam.y + cam.h / 2;
       const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -802,7 +848,7 @@
       const e = S.autoB && extent();   // bo tự co giãn: đặt linh kiện mới vào chỗ trống bên phải, khung bo nới theo
       if (e) { c.x = snap(e.x1 + 4 - b.x, G); c.y = snap(Math.max(e.y0, BMARGIN) - b.y, G); }
       S.comps.push(c); ui.sel = { t: "c", id }; render(); afterParts([id]);
-      const sig = Object.entries(c.nets || {}).filter(([, v]) => v && v.startsWith("IO")).map(([k, v]) => `${k}→${v}`).join(", ");
+      const sig = Object.entries(c.nets || {}).filter(([, v]) => isSig(v)).map(([k, v]) => `${k}→${v}`).join(", ");
       toast(L(`Đã thêm ${id}`, `Added ${id}`) + (sig ? ": " + sig : "") + ". " + (TIP[fp] || L("Đổi chân nối ở bảng bên phải.", "Change pin connections in the right panel.")));
     },
     rotate() {
@@ -836,7 +882,7 @@
     autoMsg(f, t0) { render(); const nj = S.jumpers.filter(j => j.auto).length; toast(L(`Tự đi dây (${SCHEMES[S.scheme].name}): ${f ? "còn " + f + " đường chưa đi được" : "xong hết"}${nj ? " · " + nj + " dây nhảy" : ""}`, `Autoroute (${SCHEMES[S.scheme].name}): ${f ? f + " connections left unrouted" : "all done"}${nj ? " · " + nj + " jumpers" : ""}`) + ` · ${Math.round(performance.now() - t0)} ms`); },
     scheme() { S.scheme = (S.scheme + 1) % SCHEMES.length; checkpoint(); S.routed = true; const t0 = performance.now(); cmd.autoMsg(autoroute(S.scheme), t0); },
     clear() { checkpoint(); S.routed = false; S.traces = S.traces.filter(t => t.lock); S.jumpers = S.jumpers.filter(j => !j.auto); render(); toast(L("Đã xoá các đường tự động (giữ đường đã khoá).", "Removed autorouted traces (locked traces kept).")); },
-    reset() { if (!confirm(L("Xoá hết linh kiện và đường đồng, chỉ để lại board ESP32-S3?", "Remove all parts and traces, keeping only the ESP32-S3 board?"))) return; checkpoint(); S = fresh(); ui.sel = null; render(); fit(); },
+    reset() { if (!confirm(L(`Xoá hết linh kiện và đường đồng, chỉ để lại ${hostInfo().name}?`, `Remove all parts and traces, keeping only ${hostInfo().name}?`))) return; checkpoint(); S = fresh(S.mcu); ui.sel = null; render(); fit(); },
     rats() { S.rats = !S.rats; render(); },
     // nắn đoạn đang chọn: h ngang, v dọc, a 45°. Dời đầu tự do của đoạn; đoạn nối 2 chân thì chèn 1 điểm gập
     straight(m) {
@@ -960,21 +1006,23 @@
 
   /* ---------- lấy mạch từ tab Wiring của Pindexio ---------- */
   // Wiring lưu ở localStorage "build:<board>": mods[{type, pins{chân: tên chân board}, host}], buses[0]{vai trò bus: chân}.
-  // PCB Lab chỉ có ESP32-S3. Chân ra 5 V (ECHO) được chia áp 1k/2k, chân A của LED / các đoạn LED 7 đoạn được thêm R 220 Ω.
-  const WIRE_KEY = "build:esp32-s3-devkitc-1", PWR_ROLE = { "pwr.3v3": "3V3", "pwr.5v": "5V", gnd: "GND" };
+  // Board logic 3,3 V: chân ra 5 V (ECHO) được chia áp 1k/2k. Board 5 V (Arduino Uno): nối thẳng, nhưng module chỉ chịu 3,3 V thì cảnh báo.
+  // Chân A của LED / các đoạn LED 7 đoạn được thêm R 220 Ω.
+  const PWR_ROLE = { "pwr.3v3": "3V3", "pwr.5v": "5V", gnd: "GND" };
   const SHARED = ["spi.sck", "spi.mosi", "spi.miso", "i2c.sda", "i2c.scl"];
   function wiring() {
     if (!SITE) return null;
-    try { const o = JSON.parse(localStorage.getItem(WIRE_KEY) || "null"); return o && Array.isArray(o.mods) && o.mods.length ? o : null; } catch (e) { return null; }
+    try { const o = JSON.parse(localStorage.getItem("build:" + S.mcu) || "null"); return o && Array.isArray(o.mods) && o.mods.length ? o : null; } catch (e) { return null; }
   }
   // dấu vân tay mạch Wiring: chuyển qua lại giữa các chế độ mà Wiring không đổi thì giữ nguyên bo đang vẽ
   const wsig = o => JSON.stringify([o.mods.map(m => [m.type, m.pins, m.host || 0]), (Array.isArray(o.buses) && o.buses[0]) || o.bus || {}]);
   // kiểu sắp xếp: bề rộng kệ linh kiện bên phải ESP32-S3 (gọn / rộng / dọc)
   const ARR_W = [110, 140, 75], ARR_N = () => [L("gọn", "compact"), L("rộng", "wide"), L("dọc", "tall")];
   function layoutParts() {   // U1 bên trái, linh kiện xếp kệ bên phải (module cao trước, R / C sau), rồi bo vừa khít
-    const u = S.comps.find(c => c.fp === "S3"); if (u) { u.x = 3 * G; u.y = 4 * G; u.rot = 0; }
-    const x0 = u ? compBox(u).x1 + 8 : 6, W = ARR_W[S.arr || 0] || 110, gap = 8;   // khe 8 mm: đủ lối cho vài đường đồng giữa các linh kiện
-    let cx = x0, cy = 6, rowH = 0;
+    syncHost(); const u = S.comps.find(isHost); if (u) { u.x = 3 * G; u.y = 4 * G; u.rot = 0; }
+    // ESP32-S3 đứng bên trái, linh kiện xếp bên phải; hàng rào J1 nằm ngang trên cùng, linh kiện xếp bên dưới
+    const hd = u && u.fp !== "S3", x0 = u && !hd ? compBox(u).x1 + 8 : 6, W = ARR_W[S.arr || 0] || 110, gap = 8;   // khe 8 mm: đủ lối cho vài đường đồng giữa các linh kiện
+    let cx = x0, cy = hd ? compBox(u).y1 + 8 : 6, rowH = 0;
     const rest = S.comps.filter(c => c !== u).sort((a, b) => ((a.fp === "R" || a.fp === "C") - (b.fp === "R" || b.fp === "C")) || (FP[b.fp].body.h - FP[a.fp].body.h));
     for (const c of rest) {
       c.rot = 0; c.x = 0; c.y = 0; const b = compBox(c), w = b.x1 - b.x0, h = b.y1 - b.y0;
@@ -986,14 +1034,14 @@
     // hàng chân trái của ESP32-S3 chỉ ra được phía mép bo: chừa thêm hành lang 2 ô (5,08 mm) bên trái và bên dưới
     shiftAll(2 * G, 0); S.board = { w: Math.min(BMAX, Math.ceil(S.board.w + 2 * G)), h: Math.min(BMAX, Math.ceil(S.board.h + 2 * G)) };
   }
-  function importWiring(quiet) {
+  function importWiring(quiet, noCp) {   // noCp: đã có điểm hoàn tác (đổi board)
     const o = wiring();
-    if (!o) return quiet || toast(L("Tab Wiring chưa có mạch cho ESP32-S3-DevKitC-1. Mở ⚡ Wiring với board này, thêm module rồi quay lại.", "The Wiring tab has no circuit for ESP32-S3-DevKitC-1 yet. Open ⚡ Wiring with this board, add modules, then come back."));
+    if (!o) return quiet || toast(L(`Tab Wiring chưa có mạch cho ${hostInfo().name}. Mở ⚡ Wiring với board này, thêm module rồi quay lại.`, `The Wiring tab has no circuit for ${hostInfo().name} yet. Open ⚡ Wiring with this board, add modules, then come back.`));
     // không hỏi bằng hộp thoại trình duyệt: thay luôn, Ctrl+Z / Hoàn tác để quay lại bo cũ
     const had = S.comps.length > 1;
-    checkpoint(); S.wsig = wsig(o);
-    S.comps = [fresh().comps[0]]; S.traces = []; S.jumpers = []; S.routed = false; ui.sel = null;
-    const bus = (Array.isArray(o.buses) && o.buses[0]) || o.bus || {}, s3pins = new Set(FP.S3.pads.map(p => p.name));
+    if (!noCp) checkpoint(); S.wsig = wsig(o);
+    S.comps = [fresh(S.mcu).comps[0]]; S.traces = []; S.jumpers = []; S.routed = false; ui.sel = null;
+    const bus = (Array.isArray(o.buses) && o.buses[0]) || o.bus || {}, H = hostInfo(), s3pins = H.pins, hot = [];
     let nN = 1, nR = 0; const skip = [];
     const newNet = () => "N" + nN++;
     const addC = (fp, nets, val) => { const pre = PRE[fp] || "M"; let n = 1; while (S.comps.some(c => c.id === pre + n)) n++; const c = { id: pre + n, fp, x: 0, y: 0, rot: 0, nets }; if (val || FP[fp].val) c.val = val || FP[fp].val; S.comps.push(c); return c; };
@@ -1005,16 +1053,17 @@
         if (!names.has(label)) continue;
         let n = PWR_ROLE[role] || (SHARED.includes(role) ? bus[role] : (m.pins || {})[label]) || null;
         if (n && !PWR.has(n) && !s3pins.has(n)) n = null;   // tên chân lạ: bỏ, để người dùng chọn lại
-        if (n && !PWR.has(n) && v5) { const mid = newNet(); addC("R", { 1: mid, 2: n }, "1k"); addC("R", { 1: n, 2: "GND" }, "2k"); nR += 2; n = mid; }   // 5 V → 3,3 V
+        if (n && !PWR.has(n) && v5 && !H.v5) { const mid = newNet(); addC("R", { 1: mid, 2: n }, "1k"); addC("R", { 1: n, 2: "GND" }, "2k"); nR += 2; n = mid; }   // 5 V → 3,3 V
         else if (n && !PWR.has(n) && (m.type === "led" || m.type === "sevseg") && label !== "GND") { const mid = newNet(); addC("R", { 1: mid, 2: n }, "220"); nR++; n = mid; }   // giới hạn dòng LED
         nets[label] = n;
       }
+      if (H.v5 && d.vcc === "3V3" && Object.values(nets).some(isSig)) hot.push(d.short);   // module 3,3 V nối GPIO 5 V
       for (const p of f.pads) if (!(p.name in nets) && { g: 1, 3: 1, 5: 1 }[p.role]) nets[p.name] = { g: "GND", 3: "3V3", 5: "5V" }[p.role];   // chân nguồn chỉ có ở footprint (vd L/R của INMP441)
       addC(m.type, nets);
     }
-    layoutParts(); render(); fit(); list();
+    S.hot = hot; layoutParts(); render(); fit(); list();
     const n = S.comps.length - 1 - nR;
-    toast((had ? L("Đã thay bo cũ (Ctrl+Z để quay lại) · ", "Previous board replaced (Ctrl+Z to undo) · ") : "") + L(`Đã lấy ${n} linh kiện từ Wiring`, `Imported ${n} parts from Wiring`) + (nR ? L(` + ${nR} điện trở an toàn`, ` + ${nR} safety resistors`) : "") + (skip.length ? L(` · bỏ qua: ${skip.join(", ")}`, ` · skipped: ${skip.join(", ")}`) : "") + L(". Bấm Tự đi dây (A).", ". Press Autoroute (A)."));
+    toast((had ? L("Đã thay bo cũ (Ctrl+Z để quay lại) · ", "Previous board replaced (Ctrl+Z to undo) · ") : "") + L(`Đã lấy ${n} linh kiện từ Wiring`, `Imported ${n} parts from Wiring`) + (nR ? L(` + ${nR} điện trở an toàn`, ` + ${nR} safety resistors`) : "") + (skip.length ? L(` · bỏ qua: ${skip.join(", ")}`, ` · skipped: ${skip.join(", ")}`) : "") + L(". Bấm Tự đi dây (A).", ". Press Autoroute (A).") + (hot.length ? L(` ⚠ ${hot.join(", ")} chỉ chịu 3,3 V: tín hiệu từ board 5 V cần mạch chuyển mức.`, ` ⚠ ${hot.join(", ")} are 3.3 V only: signals from a 5 V board need a level shifter.`) : ""));
   }
   Object.assign(cmd, {
     boardSize(w, h) {
@@ -1034,7 +1083,16 @@
       toast(L(`Đã xếp ${S.comps.length} linh kiện · khung bo ${S.board.w} × ${S.board.h} mm.`, `Packed ${S.comps.length} parts · board ${S.board.w} × ${S.board.h} mm.`));
       if (re && S.autoRe) setTimeout(() => cmd.auto(true), 30);
     },
-    fromWiring: () => importWiring(false)
+    fromWiring: () => importWiring(false),
+    // đổi board: bo mới cho board đó (hoàn tác được), Wiring có mạch cho board này thì lấy luôn
+    setBoard(id, quiet) {
+      if (!id || id === S.mcu) return;
+      checkpoint(); const keep = { alpha: S.alpha, autoRe: S.autoRe, pour: S.pour, rats: S.rats };
+      S = Object.assign(fresh(id), keep); ui.sel = null; cancel();
+      if (wiring()) importWiring(true, true); else { render(); fit(); }
+      list(); render();
+      if (!quiet) toast(L(`Đổi sang ${hostInfo().name}`, `Switched to ${hostInfo().name}`) + (hostInfo().s3 ? "" : L(" · nối board với bo qua hàng rào J1 (dây Dupont)", " · wire the board to the PCB through header J1 (Dupont wires)")) + L(" · Ctrl+Z để quay lại", " · Ctrl+Z to undo"));
+    }
   });
 
   /* ---------- danh sách linh kiện bên trái (giống cột board của tab Sơ đồ chân) ---------- */
@@ -1049,13 +1107,18 @@
     const cnt = {}; for (const c of S.comps) cnt[c.fp] = (cnt[c.fp] || 0) + 1;
     const w = wiring(), n = k => cnt[k] ? `×${cnt[k]}` : "";
     const rows = ks => ks.map(k => `<button type="button" class="mod-row" data-add="${k}" aria-pressed="${!!cnt[k]}" title="${L("Thêm", "Add")} ${NAME[k]}">${k === "R" ? ICON_R : k === "C" ? ICON_C : `<img src="${iconSrc(k)}" alt="" loading="lazy">`}<span class="mr-name">${SHORT(k)}</span><span class="mr-if">${n(k)}</span></button>`).join("");
-    const cats = CATS();
-    $("#plList").innerHTML = `${w ? `<button type="button" class="pl-wire" id="plWire" title="${L("Lấy module và chân đã nối ở tab ⚡ Wiring (ESP32-S3)", "Take the modules and pins wired in the ⚡ Wiring tab (ESP32-S3)")}">⚡ ${L("Lấy mạch từ Wiring", "Import from Wiring")} <span class="mods-n">${w.mods.length}</span></button>` : ""}
-      <button type="button" class="board-card" data-add="S3" aria-pressed="${!!cnt.S3}" title="${NAME.S3}"><span class="bc-icon esp">${s3Icon()}<b>S3</b></span><span class="bc-txt"><span class="bc-name">ESP32-S3-DevKitC-1</span><span class="bc-chip">ESP32-S3 · 3.3 V</span></span></button>
+    const cats = CATS(), H = hostInfo();
+    // chọn board (trong Pindexio): ESP32-S3 cắm thẳng lên bo, board khác nối dây Dupont qua hàng rào J1
+    const pick = SITE && window.BOARDS ? `<select id="plMcu" class="pl-mcu" aria-label="Board">${BOARDS.filter(b => !b.mod && b.headers).map(b => `<option value="${b.id}"${b.id === S.mcu ? " selected" : ""}>${b.name}</option>`).join("")}</select>` : "";
+    const card = H.s3 ? `<button type="button" class="board-card" data-add="S3" aria-pressed="${!!cnt.S3}" title="${NAME.S3}"><span class="bc-icon esp">${s3Icon()}<b>S3</b></span><span class="bc-txt"><span class="bc-name">ESP32-S3-DevKitC-1</span><span class="bc-chip">${L("cắm thẳng lên bo · 3.3 V", "plugs into the PCB · 3.3 V")}</span></span></button>`
+      : `<div class="board-card" aria-pressed="true" title="${L("Board nối với bo qua hàng rào header J1 (dây Dupont)", "Board wired to the PCB through header J1 (Dupont wires)")}"><span class="bc-icon esp"><b>${H.tag}</b></span><span class="bc-txt"><span class="bc-name">${H.name}</span><span class="bc-chip">${L("nối dây qua J1", "wired via J1")} · ${H.v5 ? "5 V" : "3.3 V"}</span></span></div>`;
+    $("#plList").innerHTML = `${w ? `<button type="button" class="pl-wire" id="plWire" title="${L("Lấy module và chân đã nối ở tab ⚡ Wiring", "Take the modules and pins wired in the ⚡ Wiring tab")} (${H.name})">⚡ ${L("Lấy mạch từ Wiring", "Import from Wiring")} <span class="mods-n">${w.mods.length}</span></button>` : ""}
+      ${pick}${card}
       <div class="mods open"><div class="mods-h"><span>🧩 ${L("Linh kiện", "Components")}</span><span class="mods-n">${cats.slice(1).reduce((s, c) => s + c[2].length, 0)}</span></div>
       <div class="mods-list">${cats.slice(1).map(([g, ic, ks]) => `<div class="mods-cat"><div class="mods-ch" title="${g}"><span aria-hidden="true">${ic}</span> <span class="mc-t">${g}</span></div>${rows(ks)}</div>`).join("")}</div></div>
-      <p class="pl-note">${L("Bấm để thêm vào giữa khung. Nguồn, I2C, SPI tự nối vào ESP32-S3.", "Click to add at the centre. Power, I2C and SPI are wired to the ESP32-S3 automatically.")}</p>`;
+      <p class="pl-note">${L(`Bấm để thêm vào giữa khung. Nguồn, I2C, SPI tự nối vào ${H.name}.`, `Click to add at the centre. Power, I2C and SPI are wired to ${H.name} automatically.`)}</p>`;
     $$("[data-add]").forEach(b => b.onclick = () => cmd.add(b.dataset.add));
+    if ($("#plMcu")) $("#plMcu").onchange = e => cmd.setBoard(e.target.value);
     if ($("#plWire")) $("#plWire").onclick = cmd.fromWiring;
   }
 
@@ -1070,6 +1133,7 @@
     $("#plPanel").innerHTML = `<ol class="steps"><li class="${S.comps.length > 1 ? "ok" : "now"}">${L("Thêm & đặt linh kiện", "Add & place parts")}<small>${L("bấm linh kiện bên trái · kéo · R xoay", "click a part on the left · drag · R rotates")}</small></li><li class="${allOk ? "ok" : "now"}">${L("Nối hết dây", "Route everything")}<small>${allOk ? L("xong", "done") : L("bấm Tự đi dây (A)", "press Autoroute (A)")}${nj ? L(` · ${nj} dây nhảy`, ` · ${nj} jumpers`) : ""}</small></li><li class="${done ? "ok" : bad ? "now" : ""}">${L("Không lỗi → Tải file in", "No errors → Download")}<small>${bad ? L(`${bad} lỗi cần sửa`, `${bad} errors to fix`) : done ? L("sẵn sàng in", "ready to print") : "…"}</small></li></ol>
       <div class="stat"><div><b>${Object.keys(nets).length - open.size}</b>/${Object.keys(nets).length}<span>${L("mạng đã nối", "nets routed")}</span></div><div class="${bad ? "red" : ""}"><b>${bad}</b><span>${L("lỗi khoảng cách", "clearance errors")}</span></div><div><b>${S.traces.length}</b><span>${L("đường đồng", "traces")}</span></div></div>
       ${sel ? `<div class="box"><h4>${L("Đường đang chọn", "Selected trace")}</h4><p>${L("Mạng", "Net")} <b>${sel.net}</b> · ${traceW(sel)} mm · ${sel.lock ? L("🔒 đã khoá", "🔒 locked") : L("tự động", "auto")}</p></div>` : selC ? compBoxHTML(selC) : ""}
+      ${S.hot && S.hot.length ? `<div class="box warn"><p>${L(`⚠ ${S.hot.join(", ")} chỉ chịu 3,3 V: tín hiệu từ ${hostInfo().name} (5 V) cần mạch chuyển mức hoặc chia áp.`, `⚠ ${S.hot.join(", ")} are 3.3 V only: signals from ${hostInfo().name} (5 V) need a level shifter or divider.`)}</p></div>` : ""}
       ${A.cross ? `<div class="box warn"><p>${L(`⚠ ${A.cross} chỗ dây nhảy bắc chéo nhau: dùng dây có vỏ bọc.`, `⚠ ${A.cross} jumper crossings: use insulated wire.`)}</p></div>` : ""}
       <h4>${L("Khung bo", "Board size")}</h4><div class="bsz"><label>${L("Rộng", "W")} <input id="plBW" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.w}"></label><span>×</span><label>${L("Cao", "H")} <input id="plBH" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.h}"></label><span>mm</span></div>
       <div class="bszb">${[[50, 70], [70, 100], [100, 100], [100, 150]].map(([w, h]) => `<button type="button" data-bs="${w}x${h}"${S.board.w === w && S.board.h === h ? ' class="on"' : ""}>${w}×${h}</button>`).join("")}<button type="button" id="plFitB">${L("Vừa linh kiện", "Fit parts")}</button><button type="button" id="plPack" title="${L("Xếp lại ESP32-S3 + module cho gọn, khung bo vừa đủ số linh kiện", "Re-arrange the ESP32-S3 and modules compactly; board sized to the part count")}">${L("Xếp gọn", "Pack")}</button></div>
@@ -1093,18 +1157,18 @@
   // ô linh kiện đang chọn: chọn mạng cho từng chân (nguồn, GPIO của ESP32-S3, hoặc mạng riêng nối qua R / C)
   function compBoxHTML(c) {
     const f = FP[c.fp], head = `<h4>${c.id} · ${NAME[c.fp]}</h4>`, foot = `<p class="mut">${L(`Xoay ${c.rot}° · R xoay · kéo để dời (lưới 2,54 mm)`, `Rotation ${c.rot}° · R rotates · drag to move (2.54 mm grid)`)}</p>`;
-    if (c.fp === "S3") {
-      const who = {}; for (const m of S.comps) for (const k in m.nets || {}) { const v = m.nets[k]; if (v && v.startsWith("IO")) (who[v] = who[v] || []).push(m.id + "." + k); }
+    if (isHost(c)) {
+      const who = {}; for (const m of S.comps) for (const k in m.nets || {}) { const v = m.nets[k]; if (isSig(v)) (who[v] = who[v] || []).push(m.id + "." + k); }
       const rows = Object.keys(who).sort((a, b) => a.slice(2) - b.slice(2)).map(io => `<div><b>${io}</b> → ${who[io].join(", ")}</div>`).join("");
       return `<div class="box">${head}<div class="pinlist">${rows || `<div>${L("Chưa có module nào nối vào chân IO.", "No module is wired to an IO pin yet.")}</div>`}</div>${foot}</div>`;
     }
-    const s3 = S.comps.some(m => m.fp === "S3"), who = {};
+    const s3 = S.comps.some(isHost), H = hostInfo(), who = {};
     for (const m of S.comps) for (const k in m.nets || {}) if (m.nets[k] && m !== c) (who[m.nets[k]] = who[m.nets[k]] || []).push(m.id + "." + k);
-    const custom = [...usedNets()].filter(n => !PWR.has(n) && !n.startsWith("IO")).sort();
+    const custom = [...usedNets()].filter(n => !PWR.has(n) && !isSig(n)).sort();
     const opt = (v, cur, txt) => `<option value="${v}"${v === cur ? " selected" : ""}>${txt || v}</option>`;
-    const io = (n, cur) => opt(n, cur, n + (RISKY.includes(n) ? " ⚠" : "") + (who[n] ? " · " + who[n].join(", ") : ""));
+    const io = (n, cur) => opt(n, cur, n + (H.risky.includes(n) ? " ⚠" : "") + (who[n] ? " · " + who[n].join(", ") : ""));
     const sel = (pin, cur) => `<select data-pin="${pin}">${opt("", cur || "", L("— không nối —", "— not connected —"))}<optgroup label="${L("Nguồn", "Power")}">${["GND", "3V3", "5V"].map(n => opt(n, cur)).join("")}</optgroup>`
-      + (s3 ? `<optgroup label="${L("Chân ESP32-S3", "ESP32-S3 pins")}">${[...PREF, ...RISKY].map(n => io(n, cur)).join("")}</optgroup>` : "")
+      + (s3 ? `<optgroup label="${L("Chân ", "Pins of ") + H.name}">${[...H.pref, ...H.risky].map(n => io(n, cur)).join("")}</optgroup>` : "")
       + `<optgroup label="${L("Mạng riêng (qua R, C…)", "Private nets (via R, C…)")}">${custom.map(n => opt(n, cur, n + (who[n] ? " · " + who[n].join(", ") : ""))).join("")}${opt("+", "", L("＋ Mạng mới", "＋ New net"))}</optgroup></select>`;
     const names = [...new Set(f.pads.map(p => p.name))];
     return `<div class="box">${head}${f.val ? `<label class="pv">${L("Giá trị", "Value")} <input id="plVal" value="${c.val || ""}"></label>` : ""}
@@ -1165,6 +1229,7 @@
   window.PCBLAB = {
     // o.fromWiring: mở từ tab Wiring → lấy mạch. Bo trống (chỉ có ESP32-S3) và Wiring có mạch → tự lấy.
     open(o) {
+      if (o && o.board && o.board !== S.mcu) cmd.setBoard(o.board, true);   // đi theo board đang chọn ở Pindexio / Wiring
       const w = o && o.fromWiring && wiring();
       if (o && o.fromWiring && !(w && S.wsig === wsig(w) && S.comps.length > 1)) importWiring(false);
       else if (S.comps.length === 1 && !S.traces.length && wiring()) importWiring(true);

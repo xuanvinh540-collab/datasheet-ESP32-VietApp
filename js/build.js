@@ -837,7 +837,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=136"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=141"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -858,7 +858,16 @@
       const mark = main ? "★" : ex ? "✓" : B.bb.on ? "+" : "⇄", tip = main ? "Board chính" : B.bb.on ? (ex ? "Bỏ board này khỏi mạch" : "Cắm thêm board vào cùng mạch") : "Đổi board chính";
       return `<button class="mitem bdi${main || ex ? " on" : ""}" data-bd="${x.id}"${ok ? "" : " disabled"} title="${tip}" style="--mc:#f5d63d"><span>${mark}</span>${bdIcon(x)}<span class="mn">${esc(x.name.replace(/^Raspberry Pi /, "RPi "))}</span><span class="mi">${esc(x.family === "Raspberry Pi" ? "RPi" : x.family)}</span></button>`;
     }).join("");
-    return `<div class="mcat"><div class="mcat-h"><span aria-hidden="true">🧠</span> Dev board ${B.bb.on ? "· ★ chính, + cắm thêm" : "· ⇄ đổi board chính"}</div><div class="mlist">${items}</div></div>`;
+    return fold("board", "🧠", "Dev board", `<div class="muted small bdhint">${B.bb.on ? "★ chính · + cắm thêm" : "⇄ đổi board chính"}</div>${items}`, q);
+  }
+  // nhóm thu gọn / mở rộng bằng mũi tên; nhớ nhóm đã đóng (trên máy người dùng). Đang tìm thì luôn mở
+  const CLOSED = (() => { try { return new Set(JSON.parse(localStorage.getItem("wcat-closed") || "[]")); } catch (e) { return new Set(); } })();
+  const fold = (id, icon, name, body, q) => `<details class="mods-cat" data-cat="${esc(id)}"${q || !CLOSED.has(id) ? " open" : ""}><summary class="mods-ch" title="${esc(name)}"><span aria-hidden="true">${icon}</span> <span class="mc-t">${esc(name)}</span><i class="fold" aria-hidden="true">▾</i></summary>${body}</details>`;
+  function bindFolds(root) {
+    root.querySelectorAll("details[data-cat]").forEach(d => d.ontoggle = () => {
+      if (B.q) return; d.open ? CLOSED.delete(d.dataset.cat) : CLOSED.add(d.dataset.cat);
+      try { localStorage.setItem("wcat-closed", JSON.stringify([...CLOSED])); } catch (e) { }
+    });
   }
   // bỏ board phụ thứ k: linh kiện của nó chuyển về board chính
   function removeExtra(k) {
@@ -891,7 +900,7 @@
         // cùng kiểu hàng có icon với cột linh kiện của tab Sơ đồ chân / PCB Maker
         return `<button type="button" class="mod-row" data-add="${k}" aria-pressed="${on}"${ok ? "" : " disabled"} title="${esc(d.name)}"><img src="${esc(d.svg)}" alt="" loading="lazy"><span class="mr-name">${esc(d.short)}</span><span class="mr-if">${on ? "✓" : esc(d.iface.split(" ")[0])}</span></button>`;
       }).join("");
-      return `<div class="mods-cat"><div class="mods-ch" title="${esc(catName)}"><span aria-hidden="true">${icon}</span> <span class="mc-t">${esc(catName)}</span></div>${items}</div>`;
+      return fold(catName, icon, catName, items, q);
     }).join("") + boardItems(b, q) || `<div class="muted small">Không tìm thấy linh kiện phù hợp.</div>`;   // Dev board để cuối danh sách
   }
   function bindAddBtns(root) {
@@ -906,8 +915,8 @@
   function leftList(b) {
     const box = $("#blist"); if (!box) return;
     // board chưa hỗ trợ: như bản cũ, không cho thêm linh kiện; chỉ để danh sách board để đổi
-    if (!supported(b)) { box.innerHTML = `<p class="muted small">Chưa hỗ trợ board này.</p><div class="mods open"><div class="mods-list">${boardItems(b, "")}</div></div>`; bindAddBtns(box); return; }
-    const mc =() => { const el = box.querySelector("#mcats"); el.innerHTML = renderCatList(b); bindAddBtns(el); };
+    if (!supported(b)) { box.innerHTML = `<p class="muted small">Chưa hỗ trợ board này.</p><div class="mods open"><div class="mods-list">${boardItems(b, "")}</div></div>`; bindAddBtns(box); bindFolds(box); return; }
+    const mc = () => { const el = box.querySelector("#mcats"); el.innerHTML = renderCatList(b); bindAddBtns(el); bindFolds(el); };
     if (!box.querySelector("#mcats")) {
       box.innerHTML = `<label class="msearch"><span>⌕</span><input id="mq" type="search" placeholder="Tìm linh kiện, I2C, SPI..." autocomplete="off"></label>
         <div class="mods open"><div class="mods-h"><span>🧩 Linh kiện</span><span class="mods-n" id="mcount"></span></div><div class="mods-list" id="mcats"></div></div>`;
