@@ -188,7 +188,8 @@
     const add = k => { if (!par.has(k)) par.set(k, k); }, uni = (a, b) => { add(a); add(b); const x = find(a), y = find(b); if (x !== y) par.set(x, y); };
     P.forEach((p, i) => add("p" + i));
     // các chân cùng tên mạng trên board (GND, 3V3) đã nối sẵn bên trong board
-    P.forEach((p, i) => { if (p.jw && p.i === 1) uni("p" + i, "p" + (i - 1)); });   // dây nhảy nối 2 lỗ của nó
+    P.forEach((p, i) => { if (p.jw && p.i === 1) uni("p" + i, "p" + (i - 1)); });
+    P.forEach((p, i) => { if (p.jw || p.hole) P.forEach((q, k) => { if (k !== i && q.net === p.net && Math.hypot(q.x - p.x, q.y - p.y) < .1) uni("p" + i, "p" + k); }); });   // dây hàn thẳng vào chân / lỗ trùng chỗ   // dây nhảy nối 2 lỗ của nó
     P.forEach((p, i) => { if (FP[p.c.fp] && FP[p.c.fp].inner && p.net) P.forEach((q, j) => { if (j > i && q.c === p.c && q.net === p.net) uni("p" + i, "p" + j); }); });
     for (const t of S.traces) {
       add("t" + t.id);
@@ -278,6 +279,7 @@
 
   /* ---------- kiểm tra khoảng cách (DRC) ---------- */
   function drc(P) {
+    P = P.filter(p => !(p.jw && p.jw.pin));   // đầu dây hàn thẳng vào chân: trùng chân, không tính khoảng cách
     const bad = [], segs = [];
     for (const t of S.traces) for (let k = 0; k < t.pts.length - 1; k++) segs.push({ t, k, a: t.pts[k], b: t.pts[k + 1], w: traceW(t) });
     for (let i = 0; i < segs.length; i++) {
@@ -502,9 +504,9 @@
     // chỗ đặt lỗ + đoạn đồng thẳng chân → lỗ, chỉ xét chân / lỗ khác mạng (đường đồng xử lý riêng: tránh hoặc gỡ)
     const spots = (p, net, w, P) => {
       const out = [];
-      for (let dx = -4; dx <= 4; dx++) for (let dy = -4; dy <= 4; dy++) {
+      for (let dx = -5; dx <= 5; dx++) for (let dy = -5; dy <= 5; dy++) {
         const x = r3(snap(p.x, G) + dx * G), y = r3(snap(p.y, G) + dy * G), d = Math.hypot(x - p.x, y - p.y);
-        if (d < 2 * G - .01 || d > 4 * G + .01 || x < EDGE + JP_R || y < EDGE + JP_R || x > S.board.w - EDGE - JP_R || y > S.board.h - EDGE - JP_R) continue;
+        if (d < 2 * G - .01 || d > 5 * G + .01 || x < EDGE + JP_R || y < EDGE + JP_R || x > S.board.w - EDGE - JP_R || y > S.board.h - EDGE - JP_R) continue;
         if (P.some(q => q !== p && Math.hypot(q.x - x, q.y - y) < (q.r || PAD_R) + CLR + JP_R + (q.jw || q.hole ? 0 : HOLE_GAP))) continue;
         if (P.some(q => q !== p && q.net !== net && segDist(q.x, q.y, p.x, p.y, x, y) < (q.r || PAD_R) + w / 2 + CLR)) continue;
         // đường khác mạng bị chắn: đã khoá thì bỏ chỗ này, tự động thì ghi lại để gỡ
@@ -517,10 +519,11 @@
       return out.sort((u, v) => u.d - v.d).slice(0, 3);
     };
     while (performance.now() - t0 < budget) {
-      const A0 = analyze(), rt = A0.rats.find(r => !tried.has(r.a.c.id + r.a.i + "-" + r.b.c.id + r.b.i)); if (!rt) break;
+      const A0 = analyze(), rt = A0.rats.find(r => !r.a.jw && !r.b.jw && !r.a.hole && !r.b.hole && !tried.has(r.a.c.id + r.a.i + "-" + r.b.c.id + r.b.i)); if (!rt) break;
       tried.add(rt.a.c.id + rt.a.i + "-" + rt.b.c.id + rt.b.i);
       const P = pads(), net = rt.net, w = PWR.has(net) ? W_PWR : W_SIG, sa = spots(rt.a, net, w, P), sb = spots(rt.b, net, w, P);
       const pairs = []; for (const x of sa) for (const y of sb) if (Math.hypot(x.x - y.x, x.y - y.y) >= JP_MIN) pairs.push([x.d + y.d, x, y]);
+      let done = false;
       for (const [, x, y] of pairs.sort((u, v) => u[0] - v[0]).slice(0, 4)) {
         if (performance.now() - t0 > budget) break;
         const keep = JSON.stringify([S.traces, S.jumpers, S.uid]), gone = new Set([...x.hit, ...y.hit]), nets = new Set([...gone].map(t => t.net));
@@ -536,9 +539,11 @@
         S.traces.forEach(t => { if (t.lock && t.pts.length === 2 && (near2(t.pts[0], rt.a) || near2(t.pts[0], rt.b)) && (near2(t.pts[1], [x.x, x.y]) || near2(t.pts[1], [y.x, y.y]))) t.lock = false; });
         j.auto = true;
         const A2 = analyze();
-        if (A2.rats.length < A0.rats.length && A2.drc.length <= A0.drc.length) break;
+        if (A2.rats.length < A0.rats.length && A2.drc.length <= A0.drc.length) { done = true; break; }
         [S.traces, S.jumpers, S.uid] = JSON.parse(keep);
       }
+      // không còn chỗ khoan lỗ riêng: dây có vỏ hàn thẳng vào 2 chân (mặt đồng, cạnh mối hàn chân) để không sót đường nào
+      if (!done) S.jumpers.push({ id: S.uid++, net, a: [rt.a.x, rt.a.y], b: [rt.b.x, rt.b.y], ext: true, auto: true, pin: true });
     }
     return analyze().rats.length;
   }
@@ -1411,7 +1416,7 @@
       <div class="stat"><div><b>${Object.keys(nets).length - open.size}</b>/${Object.keys(nets).length}<span>${L("mạng đã nối", "nets routed")}</span></div><div class="${bad ? "red" : ""}"><b>${bad}</b><span>${L("lỗi khoảng cách", "clearance errors")}</span></div><div><b>${S.traces.length}</b><span>${L("đường đồng", "traces")}</span></div></div>
       ${sel ? `<div class="box"><h4>${L("Đường đang chọn", "Selected trace")}</h4><p>${L("Mạng", "Net")} <b>${sel.net}</b> · ${traceW(sel)} mm · ${sel.lock ? L("🔒 đã khoá", "🔒 locked") : L("tự động", "auto")}</p></div>` : selC ? compBoxHTML(selC) : ""}
       ${A.rats.length && S.comps.length > 1 ? `<div class="box warn"><p>${L(`Còn <b>${A.rats.length}</b> chỗ chưa nối (nét gạch). Vẽ dây nhảy để hoàn thiện mạch: bấm chân → rê ra chỗ trống → <b>J</b> → bấm chỗ đặt lỗ thứ 2 → vẽ tiếp tới chân cần nối.`, `<b>${A.rats.length}</b> connections are still open (dashed lines). Add jumpers to finish the board: click a pin → move to a free spot → <b>J</b> → click the 2nd hole → keep drawing to the target pin.`)}</p>${S.routed && S.comps.length > 2 ? `<p class="mut">${L("Hoặc thử sắp xếp lại linh kiện (dời linh kiện và đi dây lại, Ctrl+Z để quay lại).", "Or try re-arranging the parts (moves parts and re-routes, Ctrl+Z to undo).")}</p><button type="button" class="pl-try" id="plTryLay">🔁 ${L("Thử sắp xếp lại", "Try re-arranging")}</button>` : ""}</div>` : ""}
-      ${S.jumpers.length ? `<div class="box"><h4>${L("Dây nhảy", "Jumpers")} (${S.jumpers.length})</h4><p class="mut">${L("Hàn dây điện có vỏ bọc giữa 2 lỗ Ja ↔ Jb ở mặt linh kiện. Tổng dây cần chuẩn bị", "Solder insulated wire between holes Ja ↔ Jb on the component side. Total wire needed")} ~${Math.round(S.jumpers.reduce((s, j) => s + Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) + 10, 0) / 10)} cm.</p><div class="pinlist">${S.jumpers.map(j => { const len = Math.round(Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) + 10); return `<div><b>J${extNo(j)}</b> ${j.net} · ~${len} mm${len > 100 ? L(" ⚠ dài, tín hiệu nhanh có thể nhiễu", " ⚠ long, fast signals may pick up noise") : ""}</div>`; }).join("")}</div></div>` : ""}
+      ${S.jumpers.length ? `<div class="box"><h4>${L("Dây nhảy", "Jumpers")} (${S.jumpers.length})</h4><p class="mut">${L("Hàn dây điện có vỏ bọc giữa 2 lỗ Ja ↔ Jb ở mặt linh kiện. Tổng dây cần chuẩn bị", "Solder insulated wire between holes Ja ↔ Jb on the component side. Total wire needed")} ~${Math.round(S.jumpers.reduce((s, j) => s + Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) + 10, 0) / 10)} cm.</p><div class="pinlist">${S.jumpers.map(j => { const len = Math.round(Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) + 10); return `<div><b>J${extNo(j)}</b> ${j.net} · ~${len} mm${j.pin ? L(" · hàn thẳng vào chân", " · soldered onto the pins") : ""}${len > 100 ? L(" ⚠ dài, tín hiệu nhanh có thể nhiễu", " ⚠ long, fast signals may pick up noise") : ""}</div>`; }).join("")}</div></div>` : ""}
       ${S.hot && S.hot.length ? `<div class="box warn"><p>${L(`⚠ ${S.hot.join(", ")} chỉ chịu 3,3 V: tín hiệu từ ${hostInfo().name} (5 V) cần mạch chuyển mức hoặc chia áp.`, `⚠ ${S.hot.join(", ")} are 3.3 V only: signals from ${hostInfo().name} (5 V) need a level shifter or divider.`)}</p></div>` : ""}
       ${A.cross ? `<div class="box warn"><p>${L(`⚠ ${A.cross} chỗ dây nhảy bắc chéo nhau: dùng dây có vỏ bọc.`, `⚠ ${A.cross} jumper crossings: use insulated wire.`)}</p></div>` : ""}
       <h4>${L("Khung bo", "Board size")}</h4><div class="bsz"><label>${L("Rộng", "W")} <input id="plBW" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.w}"></label><span>×</span><label>${L("Cao", "H")} <input id="plBH" type="number" min="${BMIN}" max="${BMAX}" step="1" value="${S.board.h}"></label><span>mm</span></div>
