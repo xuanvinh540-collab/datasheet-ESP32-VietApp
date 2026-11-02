@@ -119,3 +119,9 @@
 .pcblab .pl-bar #plExport span { display: inline; font-weight: 700; }
 .pcblab .pl-try { margin-top: 6px; width: 100%; padding: 6px 8px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--accent-fg); font: 700 12px var(--sans); cursor: pointer; }
 .pcblab .jw.ext .jwl { stroke: #ff9f43; stroke-width: .35; stroke-dasharray: 1.2 .6; } .pcblab .extl { fill: #ff9f43; font-size: 1.4px; font-weight: 700; pointer-events: none; }
+/* hộp thông báo thử nghiệm */
+.pcblab { position: relative; }
+.pcblab .pl-beta { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .45); border-radius: 12px; }
+.pcblab .pl-beta-box { max-width: 460px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font: 13px/1.5 var(--sans); box-shadow: 0 12px 32px rgba(0, 0, 0, .4); }
+.pcblab .pl-beta-box h3 { margin: 0 0 8px; font-size: 15px; } .pcblab .pl-beta-box ul { margin: 4px 0 8px; padding-left: 18px; }
+.pcblab .pl-beta-box label { display: flex; align-items: center; gap: 6px; margin-top: 8px; cursor: pointer; }

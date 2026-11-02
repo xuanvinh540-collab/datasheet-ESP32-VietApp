@@ -1307,6 +1307,21 @@
   const prevLang = window.onLangChange;
   window.onLangChange = function () { if (prevLang) prevLang.apply(this, arguments); relang(); };
   window.PCB = { S: () => S, analyze, autoroute, cmd, ui, pads, exportSVG, pngDPI };
+  // hộp thông báo "đang thử nghiệm" khi mở PCB Maker (hộp của app, không dùng hộp thoại trình duyệt); chọn "Không hiện lại" thì nhớ trên máy
+  function betaNote() {
+    try { if (localStorage.getItem("pcbmaker-beta-ok") === "1") return; } catch (e) { }
+    if (ROOT.querySelector(".pl-beta")) return;
+    const d = document.createElement("div"); d.className = "pl-beta"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+    d.innerHTML = `<div class="pl-beta-box"><h3>🖨 PCB Maker <sup class="beta">beta</sup> · ${L("Tính năng thử nghiệm", "Experimental feature")}</h3>
+      <p>${L("Một số thông số chưa được kiểm chứng bằng bo thật:", "Some parameters have not been verified on a real board yet:")}</p>
+      <ul><li>${L("Kích thước / vị trí chân của vài module (WS2812, VL53L0X, INMP441…) là số ước lượng.", "Footprints of some modules (WS2812, VL53L0X, INMP441…) are estimates.")}</li>
+      <li>${L("Tự đi dây, dây nhảy và dây ngoài cần được xem lại bằng mắt.", "Autorouted traces, jumpers and insulated wires should be reviewed by eye.")}</li></ul>
+      <p><b>${L("Trước khi làm bo: in file 1:1 ra giấy, đặt module / board thật lên so lỗ chân, kiểm tra từng đường nối.", "Before making the PCB: print the file 1:1 on paper, place the real modules / board on it to check the holes, and check every connection.")}</b></p>
+      <label><input type="checkbox" id="plBetaHide"> ${L("Không hiện lại", "Don't show again")}</label>
+      <button type="button" class="pl-try" id="plBetaOk">${L("Tôi đã hiểu", "I understand")}</button></div>`;
+    ROOT.appendChild(d);
+    d.querySelector("#plBetaOk").onclick = () => { if (d.querySelector("#plBetaHide").checked) try { localStorage.setItem("pcbmaker-beta-ok", "1"); } catch (e) { } d.remove(); };
+  }
   window.PCBLAB = {
     // o.fromWiring: mở từ tab Wiring → lấy mạch. Bo trống (chỉ có ESP32-S3) và Wiring có mạch → tự lấy.
     open(o) {
@@ -1314,7 +1329,7 @@
       const w = o && o.fromWiring && wiring();
       if (o && o.fromWiring && !(w && S.wsig === wsig(w) && S.comps.length > 1)) importWiring(false);
       else if (S.comps.length === 1 && !S.traces.length && wiring()) importWiring(true);
-      list(); render(); requestAnimationFrame(fit);
+      list(); render(); requestAnimationFrame(fit); betaNote();
     },
     relang
   };
