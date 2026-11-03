@@ -2,7 +2,7 @@
    màu giao diện lấy biến của Pindexio (--surface --fg --muted --line --accent --canvas…) nên tự đổi theo giao diện / sáng tối.
    Riêng hình bo (FR4 xanh, đồng, pad) giữ màu cố định như bo thật. */
 /* --pl-front: mặt trước (viền thân linh kiện) vàng đậm; chữ ghi chú và dây nhảy trắng kiểu lớp silkscreen, tách khỏi mặt sau đồng (cam) */
-.pcblab { --pl-cu: #d2893d; --pl-pad: #d9a84a; --pl-front: #ffd400; display: grid; grid-template-columns: 210px minmax(0, 1fr) 64px 290px; grid-template-rows: auto minmax(0, 1fr);
+.pcblab { --pl-cu: #d2893d; --pl-pad: #d9a84a; --pl-front: #ffd400; display: grid; grid-template-columns: 210px minmax(0, 1fr) 80px 290px; grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas: "list bar bar side" "list stage vbar side"; gap: 10px; height: calc(100vh - 104px); min-height: 560px; color: var(--fg); font-family: var(--sans); }
 .pcblab .pl-list { grid-area: list; min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: 6px; scrollbar-width: thin; }
 .pcblab .pl-bar { grid-area: bar; display: flex; align-items: center; gap: 4px; padding: 5px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; scrollbar-width: thin; }
@@ -96,7 +96,7 @@
 .pcblab .pl-bar .tb span { display: none; } .pcblab .pl-bar .tb { padding: 6px 8px; } .pcblab .pl-bar { flex-wrap: wrap; overflow: visible; }
 .pcblab .alpha { padding: 0 4px; } .pcblab .alpha input { width: 70px; }
 .pcblab .pl-vbar .tb.primary { margin-top: auto; }
-@media (max-width: 1100px) { .pcblab { grid-template-columns: 170px minmax(0, 1fr) 60px 250px; } }
+@media (max-width: 1100px) { .pcblab { grid-template-columns: 170px minmax(0, 1fr) 76px 250px; } }
 /* điện thoại / máy tính bảng dọc: xếp chồng */
 @media (max-width: 899px) {
   .pcblab { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 62vh auto auto; grid-template-areas: "list" "bar" "stage" "vbar" "side"; height: auto; }
@@ -179,3 +179,12 @@
 .pcblab .measln { stroke: #00e5ff; stroke-dasharray: .8 .4; pointer-events: none; }
 .pcblab .measpt { fill: none; stroke: #00e5ff; stroke-width: .2; pointer-events: none; }
 .pcblab .meastx { fill: #00e5ff; font-family: var(--mono, monospace); font-weight: 700; paint-order: stroke; stroke: #0b2a1a; stroke-width: .35; pointer-events: none; }
+.pcblab .pourset { display: grid; gap: 4px; font: 12px var(--sans); color: var(--fg); } .pcblab .pourset select { margin-left: 6px; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); font: 600 12px var(--mono); }   /* chọn khe mass gọn */
+/* nút: icon to hơn, chữ ngắn 1–2 từ một dòng; tên đầy đủ + giải thích rê chuột (title) */
+.pcblab .pl-vbar .tb svg { width: 23px; height: 23px; } .pcblab .pl-vbar .tb > svg + span { font-size: 10.5px; line-height: 1.15; white-space: nowrap; }   /* thanh dọc rộng 80 px: chữ 1–2 từ luôn 1 dòng */
+.pcblab .pl-bar .tb span { display: inline; white-space: nowrap; } .pcblab .pl-bar .tb svg { width: 20px; height: 20px; }
+/* trong Pindexio: khi đang mở tab PCB Maker, khung trang bỏ giới hạn 1440 px để bàn vẽ dùng hết bề ngang màn hình lớn
+   (các tab chữ khác giữ nguyên cho dễ đọc). Cột trái / phải giữ bề rộng, phần dư cộng vào vùng vẽ bo */
+main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
+.pcblab .pl-vbar .tb-more, .pcblab .pl-vbar .tb-auto { white-space: nowrap; font-size: 10.5px; }   /* Auto now, ▸ Hàn: 1 dòng */
+.pcblab .pl-vbar #plAutoNow.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); border-color: var(--accent); }   /* Auto now bật: viền + chữ màu nhấn, không tô đặc */
