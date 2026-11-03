@@ -8,7 +8,7 @@
     <section class="pl-stage" id="plStage"><svg id="plSvg" xmlns="http://www.w3.org/2000/svg"></svg><div id="plTip"></div><div id="plHint"></div><div id="plToast"></div><div id="plCtx"></div></section>
     <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side"><div id="plPanel"></div></aside>`;
   const $ = s => ROOT.querySelector(s), $$ = s => ROOT.querySelectorAll(s);
-  const BUILD = "2026-11-03 14:42"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
+  const BUILD = "2026-11-03 17:58"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
   // chạy thử trên máy (tools/serve.py): build xong thì trang tự tải lại. Trên web thật không có /__ver nên không làm gì
   if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
     let ver = null;
@@ -70,7 +70,17 @@
     button: { pads: at("SIG/s SIG/s GND/g GND/g", [[0, 0], [6.5, 0], [0, 4.5], [6.5, 4.5]]), body: { x: .25, y: -.75, w: 6, h: 6 }, label: "", inner: true },   // nút 6 × 6, 4 chân, cặp cùng tên nối trong
     led: { pads: at("A GND/g", [[0, 0], [G, 0]]), body: { x: -1.63, y: -2.9, w: 5.8, h: 5.8 }, label: "", round: true },     // LED 5 mm: A phải qua điện trở 220–330 Ω
     R: { pads: at("1 2", [[0, 0], [4 * G, 0]]), body: { x: 1.93, y: -1.25, w: 6.3, h: 2.5 }, label: "", val: "1k" },          // điện trở 1/4 W: thân 6,3 × 2,5, chân cách 10,16
-    C: { pads: at("1/3 2/g", [[0, 0], [2 * G, 0]]), body: { x: -.96, y: -1.5, w: 7, h: 3 }, label: "", round: true, val: "100n" }   // tụ gốm chân cách 5,08 (mặc định lọc nguồn 3V3)
+    C: { pads: at("1/3 2/g", [[0, 0], [2 * G, 0]]), body: { x: -.96, y: -1.5, w: 7, h: 3 }, label: "", round: true, val: "100n" },   // tụ gốm chân cách 5,08 (mặc định lọc nguồn 3V3)
+    // tụ hoá 35 V chân thẳng (radial), 3 cỡ chuẩn: Ø5, Ø6,3 (chân 2,0 / 2,5 uốn ra 2,54 để pad Ø2 còn khe 0,5) · Ø8 chân 3,5. Chân 1 (vuông) là cực +, cực − về GND
+    ecap5: { pads: at("+ -/g", [[0, 0], [G, 0]]), body: { x: G / 2 - 2.5, y: -2.5, w: 5, h: 5 }, label: "", round: true, val: "47µ 35V", ecap: true },
+    ecap6: { pads: at("+ -/g", [[0, 0], [G, 0]]), body: { x: G / 2 - 3.15, y: -3.15, w: 6.3, h: 6.3 }, label: "", round: true, val: "100µ 35V", ecap: true },
+    ecap8: { pads: at("+ -/g", [[0, 0], [3.5, 0]]), body: { x: 1.75 - 4, y: -4, w: 8, h: 8 }, label: "", round: true, val: "470µ 35V", ecap: true },
+    // motor DC: 2 chân (domino / header) cách 5,08, nối ra A01/A02 hoặc B01/B02 của driver TB6612
+    motor: { pads: at("M+ M-", [[0, 0], [2 * G, 0]]), body: { x: -2.5, y: -3.5, w: 10.08, h: 7 }, label: "M", motor: true },
+    // MOSFET kênh N vỏ TO-220 đứng: G D S cách 2,54, thân 10,2 × 4,6 (tấm tản nhiệt phía sau = D). S về GND, G nhận tín hiệu
+    irfz44n: { pads: at("G/s D S/g", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -3.2, w: 10.2, h: 4.6 }, label: "", val: "IRFZ44N", to220: true },
+    irf540n: { pads: at("G/s D S/g", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -3.2, w: 10.2, h: 4.6 }, label: "", val: "IRF540N", to220: true },
+    irf520: { pads: at("G/s D S/g", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -3.2, w: 10.2, h: 4.6 }, label: "", val: "IRF520", to220: true }
   };
   // board khác ESP32-S3 (Arduino, Raspberry Pi, Pico…): không cắm thẳng lên bo mà nối dây Dupont qua hàng rào header J1.
   // Footprint J1 sinh theo tên khoá "HDR:GND,3V3,D2,…": 1 hàng chân 2,54, mỗi chân mang tên chân của board (cũng là tên mạng)
@@ -92,15 +102,24 @@
   }
   const FP = new Proxy(FP0, { get: (t, k) => t[k] || (typeof k === "string" ? (k.startsWith("HDR:") ? hdrFP(k) : k.startsWith("BRD:") ? brdFP(k) : undefined) : undefined) });
   // [tiếng Việt, English, tên ngắn]. Trong Pindexio, module lấy tên từ MODULES (dịch qua từ điển của site)
-  const NAMES = { S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], tb6612fng: ["Driver động cơ TB6612FNG", "TB6612FNG motor driver", "TB6612FNG"], servo: ["Động cơ Servo SG90", "SG90 servo", "Servo"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
+  const NAMES = { motor: ["Motor DC", "DC motor", "Motor DC"], ecap5: ["Tụ hoá Ø5 (35V)", "Electrolytic Ø5 (35V)", "Tụ hoá Ø5"], ecap6: ["Tụ hoá Ø6,3 (35V)", "Electrolytic Ø6.3 (35V)", "Tụ hoá Ø6,3"], ecap8: ["Tụ hoá Ø8 (35V)", "Electrolytic Ø8 (35V)", "Tụ hoá Ø8"],
+    irfz44n: ["MOSFET IRFZ44N", "MOSFET IRFZ44N", "IRFZ44N"], irf540n: ["MOSFET IRF540N / IRF540", "MOSFET IRF540N / IRF540", "IRF540N"], irf520: ["MOSFET IRF520", "MOSFET IRF520", "IRF520"], S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], tb6612fng: ["Driver động cơ TB6612FNG", "TB6612FNG motor driver", "TB6612FNG"], servo: ["Động cơ Servo SG90", "SG90 servo", "Servo"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
   const tr = s => (EN() && window.trEN ? window.trEN(s) : s);
   const NAME = new Proxy({}, { get: (_, k) => SITE && MODULES[k] ? tr(MODULES[k].name) : NAMES[k] ? L(NAMES[k][0], NAMES[k][1]) : k });
   const SHORT = k => SITE && MODULES[k] ? tr(MODULES[k].short) : NAMES[k] ? (EN() ? NAMES[k][1] : NAMES[k][2]) : k;
-  const CATS = () => [[L("Board", "Board"), "🧠", ["S3"]], [L("Màn hình & hiển thị", "Displays"), "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]], [L("Cảm biến", "Sensors"), "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]], [L("Âm thanh & còi", "Audio & buzzers"), "🔊", ["buzzer", "max98357a", "inmp441"]], [L("Động cơ", "Motors"), "⚙️", ["servo", "tb6612fng"]], [L("Cơ bản", "Basics"), "🎛️", ["button", "led", "R", "C"]]];
+  const CATS = () => [[L("Board", "Board"), "🧠", ["S3"]], [L("Màn hình & hiển thị", "Displays"), "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]], [L("Cảm biến", "Sensors"), "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]], [L("Âm thanh & còi", "Audio & buzzers"), "🔊", ["buzzer", "max98357a", "inmp441"]], [L("Động cơ", "Motors"), "⚙️", ["servo", "tb6612fng", "motor"]], [L("Cơ bản", "Basics"), "🎛️", ["button", "led", "R", "C", "ecap5", "ecap6", "ecap8"]], [L("Công suất", "Power"), "⚡", ["irfz44n", "irf540n", "irf520"]]];
   // lưu ý khi thêm (theo ghi chú linh kiện của Pindexio)
   const TIPS = { hcsr04: ["ECHO ra 5 V: để trống, nối qua chia áp R 1k + 2k rồi mới vào GPIO.", "ECHO outputs 5 V: left open, wire it through a 1k + 2k divider before a GPIO."], dht22: ["Thêm R 10k kéo SDA lên 3V3.", "Add a 10k pull-up from SDA to 3V3."], led: ["Chân A để trống: nối qua R 220–330 Ω rồi mới vào GPIO.", "Pin A is left open: wire it through 220–330 Ω before a GPIO."], sevseg: ["Các đoạn A–G, DP để trống: mỗi đoạn qua R 220–330 Ω.", "Segments A–G, DP are left open: each needs a 220–330 Ω resistor."], ws2812: ["Nên thêm R 330 Ω nối tiếp DIN.", "Add a 330 Ω series resistor on DIN."], inmp441: ["L/R nối GND = kênh trái. Chỉ chạy 3,3 V.", "L/R to GND = left channel. 3.3 V only."], max98357a: ["GAIN, SD để trống = 9 dB, bật.", "GAIN, SD left open = 9 dB, enabled."] };
+  Object.assign(TIPS, {
+    ecap5: ["Tụ có cực: chân vuông là +, vạch trắng trên thân là −. Đặt tên / giá trị ở bảng bên phải.", "Polarised: square pad is +, the stripe on the can is −. Set name / value in the right panel."],
+    irfz44n: ["IRFZ44N cần ~10 V ở cổng G mới mở hết: GPIO 3,3 V chỉ mở một phần, nên dùng mạch kích hoặc MOSFET logic-level.", "IRFZ44N needs ~10 V on G to fully turn on: a 3.3 V GPIO only half-opens it, use a driver or a logic-level MOSFET."],
+    irf540n: ["IRF540N cần ~10 V ở cổng G: GPIO 3,3 V không đủ, cần mạch kích.", "IRF540N needs ~10 V on G: a 3.3 V GPIO is not enough, use a driver."],
+    irf520: ["IRF520 cần ~10 V ở cổng G: GPIO 3,3 V không đủ, cần mạch kích (module IRF520 có sẵn mạch).", "IRF520 needs ~10 V on G: a 3.3 V GPIO is not enough, use a driver (IRF520 modules include one)."] });
+  TIPS.ecap6 = TIPS.ecap8 = TIPS.ecap5;
+  TIPS.motor = ["Motor DC nối ra kênh A (A01/A02) hoặc B (B01/B02) của TB6612. Chưa có TB6612 thì thêm driver trước.", "The DC motor connects to channel A (A01/A02) or B (B01/B02) of the TB6612. Add the driver first."];
+  TIPS.servo = ["Nguồn servo đi chung nguồn motor (chân VM của TB6612) nếu có driver. Servo kéo dòng lớn: dùng nguồn 5 V riêng, chung GND, thêm tụ hoá 470µ gần servo. Chân SIG vẫn nối GPIO.", "Servo power shares the motor supply (TB6612 VM) when a driver is present. Servos draw large currents: use a separate 5 V supply, common GND, and a 470µ cap near the servo. SIG still goes to a GPIO."];
   const TIP = new Proxy({}, { get: (_, k) => TIPS[k] && L(TIPS[k][0], TIPS[k][1]) });
-  const PRE = { S3: "U", R: "R", C: "C", led: "D", button: "SW", buzzer: "BZ" };
+  const PRE = { motor: "MOT", S3: "U", R: "R", C: "C", ecap5: "C", ecap6: "C", ecap8: "C", irfz44n: "Q", irf540n: "Q", irf520: "Q", led: "D", button: "SW", buzzer: "BZ" };
   // GPIO ESP32-S3 dùng được: hàng phải trước (gần module), IO8/9/11/12 để dành cho I2C / SPI. Tránh IO35–37 (PSRAM), TX/RX
   const PREF = "1 2 42 41 40 39 38 21 47 48 4 5 6 7 15 16 17 18 10 13 14 8 9 11 12".split(" ").map(n => "IO" + n);
   const RISKY = ["IO0", "IO3", "IO45", "IO46", "IO19", "IO20"];   // strapping / USB: dùng được nhưng dễ lỗi khởi động
@@ -157,6 +176,13 @@
       if (!n && s3 && H.bus[p.role]) n = H.bus[p.role];
       if (!n && s3 && p.role === "s") { n = H.pref.find(x => !used.has(x)) || null; if (n) used.add(n); }
       out[p.name] = n;
+    }
+    const drv = S.comps.find(c => c.fp === "tb6612fng");
+    if (fp === "servo" && drv && drv.nets && drv.nets.VM) out.VCC = drv.nets.VM;   // servo lấy nguồn chung nguồn motor của driver
+    if (fp === "motor" && drv) {   // nối vào kênh A, hết thì kênh B (mạng riêng MA1 / MA2…)
+      drv.nets = drv.nets || {};
+      const ch = [["A01", "A02"], ["B01", "B02"]].find(([a, b]) => !drv.nets[a] && !drv.nets[b]);
+      if (ch) { const k = ch[0][0]; drv.nets[ch[0]] = "M" + k + "1"; drv.nets[ch[1]] = "M" + k + "2"; out["M+"] = drv.nets[ch[0]]; out["M-"] = drv.nets[ch[1]]; }
     }
     return out;
   }
@@ -756,7 +782,7 @@
       if (f.label) el("text", { x: cx, y: cy, class: "silkt", transform: c.rot % 180 ? `rotate(-90 ${cx} ${cy})` : "" }, g, f.label);
       if (f.hdr) f.pads.forEach(p => el("text", { x: p.x, y: p.y - 2, class: "hdrl", transform: `rotate(-90 ${p.x} ${p.y - 2})` }, g, pinLabel(p.name)));
       // J1: tên ngắn của board ghi bên phải hàng rào (không đè linh kiện bên dưới)
-      el("text", f.hdr ? { x: b.x + b.w + 1, y: b.y + b.h / 2 + .5, class: "ref" } : { x: b.x + .6, y: b.y - .8, class: "ref" }, g, c.id + (f.hdr ? " → " + hostInfo().name.split(" (")[0] : "") + (c.val ? " " + c.val : ""));
+      el("text", f.hdr ? { x: b.x + b.w + 1, y: b.y + b.h / 2 + .5, class: "ref" } : { x: b.x + .6, y: b.y - .8, class: "ref" }, g, (c.lbl || c.id) + (f.hdr ? " → " + hostInfo().name.split(" (")[0] : "") + (c.val ? " " + c.val : ""));
     }
     // mass GND
     // path mass lớn (vài trăm KB): chỉ dựng lại khi hình đổi, còn lại chỉ đổi lớp mờ
@@ -765,7 +791,7 @@
     if (pd) LY.pour.firstChild.setAttribute("class", "pour" + (hl && hl !== GND ? " dim" : ""));
     // đường đồng
     for (const t of S.traces) {
-      const w = traceW(t), d = "M" + t.pts.map(p => p.join(" ")).join(" L"), on = ui.sel && ui.sel.t === "t" && ui.sel.id === t.id, sk = on && ui.sel.k != null && t.pts[ui.sel.k + 1] ? ui.sel.k : null;
+      const w = traceW(t), d = "M" + t.pts.map(p => p.join(" ")).join(" L"), on = ui.sel && ui.sel.t === "t" && (ui.sel.id === t.id || (ui.sel.ids || []).includes(t.id)), sk = on && ui.sel.k != null && t.pts[ui.sel.k + 1] ? ui.sel.k : null;
       const g = el("g", { class: "trace" + (on && sk == null ? " sel" : "") + (t.lock ? " lock" : "") + (isFree(t.net) ? " free" : "") + (hl && hl === t.net ? " hl" : "") + (hl && hl !== t.net ? " dim" : ""), "data-t": t.id }, LY.cu);
       el("path", { d, "stroke-width": w, class: "cu" }, g);
       el("path", { d, "stroke-width": Math.max(w, 2.2), class: "hit" }, g);
@@ -798,6 +824,9 @@
   // hình board thật (đơn giản) vẽ dưới nét in lụa, độ mờ chỉnh bằng thanh kéo
   function art(fp, b, g) {
     const R = (x, y, w, h, fill, rx = .6) => el("rect", { x, y, width: w, height: h, rx, fill }, g), cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    if (FP[fp] && FP[fp].ecap) { el("circle", { cx, cy, r: b.w / 2, fill: "#2b4f9e" }, g); el("path", { d: `M${cx + b.w * .22} ${cy - b.w * .45}A${b.w / 2} ${b.w / 2} 0 0 1 ${cx + b.w * .22} ${cy + b.w * .45}Z`, fill: "#c9d2e0" }, g); return; }   // vạch trắng phía cực −
+    if (FP[fp] && FP[fp].motor) { R(b.x, b.y, b.w, b.h, "#3a3f47", 1.2); el("circle", { cx, cy, r: 2.2, fill: "#b8bcc2" }, g); return; }
+    if (FP[fp] && FP[fp].to220) { R(b.x, b.y, b.w, b.h, "#1d1f24", .3); R(b.x, b.y, b.w, 1.1, "#b8bcc2", .2); return; }   // thân đen, mép tấm tản nhiệt kim loại
     if (fp === "S3") { R(b.x, b.y, b.w, b.h, "#1c2230", 1); R(cx - 9, b.y + .8, 18, 6, "#2a3142", .4); R(cx - 9, b.y + 6.8, 18, 18, "#c4c8ce", .5); R(cx - 4, b.y + b.h - 5.5, 8, 5.5, "#b8bcc2", .4); R(cx - 6.5, b.y + b.h - 13, 3, 2, "#e9e9e9", .3); R(cx + 3.5, b.y + b.h - 13, 3, 2, "#e9e9e9", .3); }
     else if (fp === "st7789") { R(b.x, b.y, b.w, b.h, "#1f4e96", 1); R(b.x + 1.5, b.y + 5.5, b.w - 3, b.h - 7.5, "#0b0e13", .8); R(b.x + 3, b.y + 7.5, b.w - 6, b.h - 11.5, "#1a2433", .4); }
     else if (fp === "hcsr04") { R(b.x, b.y, b.w, b.h, "#1d5fae", 1); for (const x of [cx - 13.25, cx + 13.25]) { el("circle", { cx: x, cy, r: 8, fill: "#c9cdd2" }, g); el("circle", { cx: x, cy, r: 6.3, fill: "#2b2f35" }, g); } R(cx - 2.5, b.y + 2, 5, 3, "#c9cdd2", .4); }
@@ -843,7 +872,7 @@
         o.push(`<g transform="translate(${c.x} ${c.y}) rotate(${c.rot})"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${f.round ? b.h / 2 : .6}" fill="none" stroke="#000" stroke-width=".15"/>`
           + (p1 ? `<circle cx="${p1.x - PAD_R - .9}" cy="${p1.y}" r=".35" fill="#000"/>` : "") + hdrText(f, 1.2)
           + (f.label ? `<text x="${cx}" y="${cy}" font-size="1.6" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
-          + `<text x="${b.x + .4}" y="${b.y - .6}" font-size="1.3" font-weight="700" font-family="sans-serif">${c.id}${c.val ? " " + c.val : ""}</text></g>`);
+          + `<text x="${b.x + .4}" y="${b.y - .6}" font-size="1.3" font-weight="700" font-family="sans-serif">${c.lbl || c.id}${c.val ? " " + c.val : ""}</text></g>`);
       }
       for (const j of S.jumpers) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width=".15" stroke-dasharray=".8 .5"/>` + jText(j, 1.2));
       for (const p of P) o.push(`<circle cx="${p.x}" cy="${p.y}" r="${(p.r || PAD_R) + .25}" fill="#fff"/>`);
@@ -852,7 +881,7 @@
         const f = FP[c.fp], b = f.body, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
         o.push(`<g transform="translate(${c.x} ${c.y}) rotate(${c.rot})"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${f.round ? b.h / 2 : .6}" fill="none" stroke="#000" stroke-width=".2"/>`
           + hdrText(f, 1.3) + (f.label ? `<text x="${cx}" y="${cy}" font-size="2" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
-          + `<text x="${b.x + .6}" y="${b.y - .8}" font-size="1.5" font-weight="700" font-family="sans-serif">${c.id}${c.val ? " " + c.val : ""}</text></g>`);
+          + `<text x="${b.x + .6}" y="${b.y - .8}" font-size="1.5" font-weight="700" font-family="sans-serif">${c.lbl || c.id}${c.val ? " " + c.val : ""}</text></g>`);
       }
       for (const p of P) o.push(`<circle cx="${p.x}" cy="${p.y}" r="${(p.r || PAD_R) * .8}" fill="none" stroke="#000" stroke-width=".15"/>`);
       for (const j of S.jumpers) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width=".35" stroke-linecap="round"/>` + jText(j, 1.4));
@@ -1569,11 +1598,20 @@
     m.querySelectorAll("button").forEach(b => b.onclick = () => { hideCtx(); items[+b.dataset.i][2](); });
   }
   // đúp chuột: lên đoạn dây → thêm điểm neo; lên điểm neo → xoá
+  // các đường cùng mạng chạm nhau (đầu chạm đầu / đầu chạm giữa / qua lỗ dây nhảy), không đi xuyên qua chân linh kiện
+  function chainOf(t0) {
+    const P = pads().filter(p => S.comps.includes(p.c)), atPad = q => P.some(p => Math.hypot(p.x - q[0], p.y - q[1]) < .1);
+    const touch = (a, b) => [a.pts[0], a.pts[a.pts.length - 1]].some(e => !atPad(e) && b.pts.some((q, k) => k && segDist(e[0], e[1], b.pts[k - 1][0], b.pts[k - 1][1], q[0], q[1]) < .05));
+    const hole = (a, b) => S.jumpers.some(j => j.net === a.net && [j.a, j.b].some(e => [a.pts[0], a.pts[a.pts.length - 1]].some(q => Math.hypot(q[0] - e[0], q[1] - e[1]) < .1)) && [j.a, j.b].some(e => [b.pts[0], b.pts[b.pts.length - 1]].some(q => Math.hypot(q[0] - e[0], q[1] - e[1]) < .1)));
+    const out = [t0], seen = new Set([t0]);
+    for (let i = 0; i < out.length; i++) for (const u of S.traces) if (!seen.has(u) && u.net === out[i].net && (touch(out[i], u) || touch(u, out[i]) || hole(out[i], u))) { seen.add(u); out.push(u); }
+    return out.map(t => t.id);
+  }
   svg.addEventListener("dblclick", e => {
     if (ui.mode !== "idle") return;
     const p = toMM(e), vt = e.target.closest("[data-v]");
     if (vt && ui.sel && ui.sel.t === "t") return cmd.delVtx(+vt.dataset.v);
-    const sg = segAt(p); if (sg && !padAt(p)) { ui.sel = { t: "t", id: sg.t.id }; ui.hlNet = sg.t.net; render(); }
+    const sg = segAt(p); if (sg && !padAt(p)) { const ids = chainOf(sg.t); ui.sel = { t: "t", id: sg.t.id, ids }; ui.hlNet = sg.t.net; render(); if (ids.length > 1) toast(L(`Đã chọn cả chuỗi ${ids.length} đoạn dây nối liền`, `Selected the whole chain of ${ids.length} joined traces`)); }
   });
   addEventListener("pointerdown", e => { if (!e.target.closest("#plCtx")) hideCtx(); }, true);
 
@@ -1689,6 +1727,7 @@
       const s = ui.sel; if (!s) return;
       if (s.t === "j") { checkpoint(); S.jumpers = S.jumpers.filter(j => j.id !== s.id); gcHoles(); ui.sel = null; ui.hlNet = null; render(); }
       else if (s.t === "t") {   // chỉ xoá đoạn đang chọn (giữa 2 góc), phần còn lại giữ
+        if (s.ids && s.ids.length > 1) { checkpoint(); S.traces = S.traces.filter(x => !s.ids.includes(x.id)); gcHoles(); ui.sel = null; ui.hlNet = null; render(); return toast(L(`Đã xoá chuỗi ${s.ids.length} đoạn dây.`, `Deleted a chain of ${s.ids.length} traces.`)); }
         checkpoint(); const t = S.traces.find(x => x.id === s.id); S.traces = S.traces.filter(x => x !== t);
         if (t && s.k != null && t.pts[s.k + 1]) for (const pc of [t.pts.slice(0, s.k + 1), t.pts.slice(s.k + 1)]) if (pc.length >= 2) S.traces.push({ ...t, id: S.uid++, pts: pc });
         gcHoles(); ui.sel = null; ui.hlNet = null; render(); }
@@ -1731,14 +1770,15 @@
       S.comps.push(c); ui.sel = { t: "c", id }; render(); afterParts([id]);
       const sig = Object.entries(c.nets || {}).filter(([, v]) => isSig(v)).map(([k, v]) => `${k}→${v}`).join(", ");
       toast(L(`Đã thêm ${id}`, `Added ${id}`) + (sig ? ": " + sig : "") + ". " + (TIP[fp] || L("Đổi chân nối ở bảng bên phải.", "Change pin connections in the right panel.")));
+      if (f.ecap || f.to220) { const n = $("#plName"); if (n) { n.focus(); n.select(); } }
     },
     rotate() {
       const s = ui.sel; if (!s || s.t !== "c") return toast(L("Chọn một linh kiện để xoay.", "Select a part to rotate."));
       const c = S.comps.find(x => x.id === s.id); checkpoint(); c.rot = (c.rot + 90) % 360;   // đường cũ giữ nguyên, chỗ hở hiện thành dây bay / lỗi để sửa
       render(); afterParts([c.id]);
     },
-    lock() { const s = ui.sel; if (!s || s.t !== "t") return toast(L("Chọn một đường đồng để khoá / bỏ khoá.", "Select a trace to lock / unlock.")); checkpoint(); const t = S.traces.find(x => x.id === s.id); t.lock = !t.lock; render(); toast(t.lock ? L("Đã khoá: Tự đi dây sẽ giữ nguyên đường này.", "Locked: Autoroute keeps this trace.") : L("Đã bỏ khoá.", "Unlocked.")); },
-    width(w) { const s = ui.sel; if (!s || s.t !== "t") return toast(L("Chọn một đường đồng để đổi độ rộng.", "Select a trace to change its width.")); checkpoint(); const t = S.traces.find(x => x.id === s.id); t.w = w; t.lock = true; render(); },
+    lock() { const s = ui.sel; if (!s || s.t !== "t") return toast(L("Chọn một đường đồng để khoá / bỏ khoá.", "Select a trace to lock / unlock.")); checkpoint(); const t = S.traces.find(x => x.id === s.id); t.lock = !t.lock; for (const x of S.traces) if ((s.ids || []).includes(x.id)) x.lock = t.lock; render(); toast(t.lock ? L("Đã khoá: Tự đi dây sẽ giữ nguyên đường này.", "Locked: Autoroute keeps this trace.") : L("Đã bỏ khoá.", "Unlocked.")); },
+    width(w) { const s = ui.sel; if (!s || s.t !== "t") return toast(L("Chọn một đường đồng để đổi độ rộng.", "Select a trace to change its width.")); checkpoint(); for (const t of S.traces) if (t.id === s.id || (s.ids || []).includes(t.id)) { t.w = w; t.lock = true; } render(); },
     // thử cả 3 phương án, giữ bản ít đường hỏng nhất, rồi ít / ngắn dây nhảy nhất, rồi đồng ngắn nhất
     auto(re, only) {   // re === true: đi lại sau khi sửa linh kiện, đã có điểm hoàn tác của thao tác đó. only: chỉ thử 1 kiểu đi dây (giữ kiểu người dùng chọn)
       if (re !== true) checkpoint(); S.routed = true; const t0 = performance.now(), base = JSON.stringify([S.traces, S.jumpers]), sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
@@ -2070,6 +2110,9 @@
 
   /* ---------- danh sách linh kiện bên trái (giống cột board của tab Sơ đồ chân) ---------- */
   const ICON_R = '<svg viewBox="0 0 40 28"><path d="M2 14h9M29 14h9" stroke="#9aa3a0" stroke-width="2"/><rect x="11" y="9" width="18" height="10" rx="5" fill="#d8c194"/><path d="M15 9v10M19 9v10M23 9v10" stroke-width="2" stroke="#7b4a1e"/></svg>';
+  const ICON_E = '<svg viewBox="0 0 40 28"><path d="M16 22v4M24 22v4" stroke="#9aa3a0" stroke-width="2"/><rect x="12" y="2" width="16" height="20" rx="3" fill="#2b4f9e"/><rect x="23" y="2" width="4" height="20" fill="#c9d2e0"/></svg>';
+  const ICON_Q = '<svg viewBox="0 0 40 28"><rect x="12" y="1" width="16" height="7" rx="1" fill="#b8bcc2"/><circle cx="20" cy="4.5" r="1.8" fill="#555"/><rect x="12" y="8" width="16" height="11" rx="1" fill="#1d1f24"/><path d="M15 19v8M20 19v8M25 19v8" stroke="#9aa3a0" stroke-width="2"/></svg>';
+  const ICON_M = '<svg viewBox="0 0 40 28"><rect x="8" y="5" width="22" height="18" rx="5" fill="#3a3f47"/><rect x="30" y="12" width="6" height="4" fill="#b8bcc2"/><text x="19" y="18" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">M</text></svg>';
   const ICON_C = '<svg viewBox="0 0 40 28"><path d="M14 22v4M26 22v4" stroke="#9aa3a0" stroke-width="2"/><rect x="9" y="4" width="22" height="18" rx="9" fill="#d9a83a"/></svg>';
   const iconSrc = k => SITE && MODULES[k] ? MODULES[k].svg : ({ button: "pushbutton", hcsr04: "hc-sr04" }[k] ? "src/assets/" + { button: "pushbutton", hcsr04: "hc-sr04" }[k] + ".svg" : "src/assets/" + k + ".svg");
   function s3Icon() {   // icon board vẽ từ chính footprint, như icon board của Pindexio
@@ -2079,7 +2122,7 @@
   function list() {
     const cnt = {}; for (const c of S.comps) cnt[c.fp] = (cnt[c.fp] || 0) + 1;
     const w = wiring(), n = k => cnt[k] ? `×${cnt[k]}` : "";
-    const rows = ks => ks.map(k => `<button type="button" class="mod-row" data-add="${k}" aria-pressed="${!!cnt[k]}" title="${L("Thêm", "Add")} ${NAME[k]}">${k === "R" ? ICON_R : k === "C" ? ICON_C : `<img src="${iconSrc(k)}" alt="" loading="lazy">`}<span class="mr-name">${SHORT(k)}</span><span class="mr-if">${n(k)}</span></button>`).join("");
+    const rows = ks => ks.map(k => `<button type="button" class="mod-row" data-add="${k}" aria-pressed="${!!cnt[k]}" title="${L("Thêm", "Add")} ${NAME[k]}">${k === "motor" ? ICON_M : k === "R" ? ICON_R : k === "C" ? ICON_C : FP[k] && FP[k].ecap ? ICON_E : FP[k] && FP[k].to220 ? ICON_Q : `<img src="${iconSrc(k)}" alt="" loading="lazy">`}<span class="mr-name">${SHORT(k)}</span><span class="mr-if">${n(k)}</span></button>`).join("");
     const cats = CATS(), H = hostInfo();
     // chọn board (trong Pindexio): ESP32-S3 cắm thẳng lên bo, board khác nối dây Dupont qua hàng rào J1
     const pick = SITE && window.BOARDS ? `<select id="plMcu" class="pl-mcu" aria-label="Board">${BOARDS.filter(b => !b.mod && b.headers).map(b => `<option value="${b.id}"${b.id === S.mcu ? " selected" : ""}>${b.name}</option>`).join("")}</select>` : "";
@@ -2135,6 +2178,7 @@
     $$("[data-chkx]").forEach(b => b.onclick = () => b.dataset.chkx !== "" && showSpot(+b.dataset.chkx, +b.dataset.chky));
     $("#plSpread").oninput = e => e.target.nextElementSibling.textContent = e.target.value + " mm"; $("#plSpread").onchange = e => cmd.spread(e.target.value);
     if ($("#plVal")) $("#plVal").onchange = e => { checkpoint(); selC.val = e.target.value.trim(); render(); };
+    if ($("#plName")) $("#plName").onchange = e => { checkpoint(); const v = e.target.value.trim(); if (v) selC.lbl = v; else delete selC.lbl; render(); };
     $("#plScheme").querySelector("span").textContent = SCHEMES[S.scheme].short;
     $("#plScheme").title = L("Phương án: ", "Scheme: ") + SCHEMES[S.scheme].name + L(" – bấm để đổi và đi lại", " – click to switch and re-route");
     $("#plRats").classList.toggle("on", S.rats); $("#plAutoNow").classList.toggle("on", !!S.autoRe); $("#plFlip").classList.toggle("on", !!S.flip); $("#plPour").classList.toggle("on", !!S.pour);
@@ -2158,7 +2202,7 @@
       + (s3 ? `<optgroup label="${L("Chân ", "Pins of ") + H.name}">${[...H.pref, ...H.risky].map(n => io(n, cur)).join("")}</optgroup>` : "")
       + `<optgroup label="${L("Mạng riêng (qua R, C…)", "Private nets (via R, C…)")}">${custom.map(n => opt(n, cur, n + (who[n] ? " · " + who[n].join(", ") : ""))).join("")}${opt("+", "", L("＋ Mạng mới", "＋ New net"))}</optgroup></select>`;
     const names = [...new Set(f.pads.map(p => p.name))];
-    return `<div class="box">${head}${f.val ? `<label class="pv">${L("Giá trị", "Value")} <input id="plVal" value="${c.val || ""}"></label>` : ""}
+    return `<div class="box">${head}<label class="pv">${L("Tên", "Name")} <input id="plName" value="${c.lbl || ""}" placeholder="${c.id}"></label>${f.val ? `<label class="pv">${L("Giá trị", "Value")} <input id="plVal" value="${c.val || ""}"></label>` : ""}
       <div class="pins">${names.map(n => `<label><span>${n}</span>${sel(n, (c.nets || {})[n])}</label>`).join("")}</div>${TIP[c.fp] ? `<p class="mut">💡 ${TIP[c.fp]}</p>` : ""}${foot}</div>`;
   }
   // menu thả của nút Tự đi dây: "Tự đi lại khi sửa linh kiện" mặc định tắt (nhẹ máy, người dùng tự bấm)
