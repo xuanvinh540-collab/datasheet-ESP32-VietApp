@@ -829,6 +829,7 @@
 
   // vẽ đường bằng tay: 2 đoạn theo tư thế 45°: thẳng-rồi-chéo hoặc chéo-rồi-thẳng (phím /)
   function posture(a, b) {
+    if (ui.free) return [b];
     const dx = b[0] - a[0], dy = b[1] - a[1], ax = Math.abs(dx), ay = Math.abs(dy), d = Math.min(ax, ay), sx = Math.sign(dx), sy = Math.sign(dy);
     if (!ax || !ay || ax === ay) return [b];
     if (SCHEMES[S.scheme].dirs === 4) return S.posture ? [[a[0], b[1]], b] : [[b[0], a[1]], b];
@@ -837,7 +838,7 @@
   }
   function startRoute(net, start) {
     ui.mode = "route"; ui.route = { net, pts: [start], cur: start }; ui.hlNet = net; svg.classList.add("routing");
-    $("#plHint").textContent = L("Bấm nền để đặt góc · bấm chân cùng mạng để xong · / đổi tư thế 45° · Backspace bớt góc · Esc huỷ", "Click to place a corner · click a pin of the same net to finish · / flips the 45° posture · Backspace removes a corner · Esc cancels");
+    $("#plHint").textContent = L("Bấm để đặt góc · bấm chân / đường để nối · chuột phải / Enter dừng tại chỗ · Shift = góc tự do · / đổi tư thế 45° · Backspace bớt góc · Esc huỷ", "Click to place a corner · click a pin / trace to connect · right-click / Enter stops here · Shift = any angle · / flips 45° · Backspace removes a corner · Esc cancels");
     render(); drawRoute();
   }
   function drawRoute() {
@@ -949,14 +950,14 @@
     S.jumpers.push(j);
     const len = Math.hypot(b[0] - J.a[0], b[1] - J.a[1]), cp = P.filter(q => !q.jw && !q.hole), near = Math.min(...[J.a, b].filter(e => !cp.some(q => Math.hypot(q.x - e[0], q.y - e[1]) < .1)).map(e => Math.min(...cp.map(q => Math.hypot(q.x - e[0], q.y - e[1])))));   // chỉ xét lỗ mới, không xét đầu nằm trên chân
     const warn = (len < 10 ? L(` · ⚠ dây chỉ dài ${len.toFixed(1)} mm (nên ≥ 10 mm)`, ` · ⚠ only ${len.toFixed(1)} mm long (≥ 10 mm advised)`) : "") + (near < 5 ? L(` · ⚠ lỗ cách chân ${near.toFixed(1)} mm (nên ≥ 5 mm)`, ` · ⚠ hole ${near.toFixed(1)} mm from a pin (≥ 5 mm advised)`) : "");
-    if (end) { cancel(); ui.sel = { t: "j", id: j.id }; render(); return toast(L("Đã nối xong. Chuột phải lên nét nhảy → Đổi thành đồng, hoặc dùng Bút đồng tô lên.", "Connected. Right-click a jumper → Convert to copper, or trace over it with the Copper pen.") + warn); }
+    if (end) { cancel(); ui.sel = { t: "j", id: j.id }; render(); return toast(L("Đã nối xong. Chuột phải lên nét nhảy → Đổi thành đồng, hoặc dùng Pen tô lên.", "Connected. Right-click a jumper → Convert to copper, or trace over it with the Pen.") + warn); }
     if (!J.cont) { startJfree(J.net, b); $("#plHint").textContent = L("Bấm tiếp điểm kế (tạo lỗ) hoặc chân / lỗ đích · chuột phải hoặc Esc để dừng", "Click the next point (adds a hole) or the target pin / hole · right-click or Esc to stop"); return warn && toast(warn.slice(3)); }
     startRoute(J.net, b); toast(L("Đã đặt dây nhảy – vẽ tiếp đường đồng từ lỗ thứ 2.", "Jumper placed – keep drawing copper from the 2nd hole.") + warn);
   }
-  /* ---------- 4 công cụ kiểu bút chì: Chọn · Bút đồng · Bút dây nhảy · Gôm ---------- */
+  /* ---------- 4 công cụ kiểu bút chì: Chọn · Pen · Bút dây nhảy · Gôm ---------- */
   const TOOLS = () => ({ sel: [L("Chọn", "Select"), L("Kéo linh kiện, chọn đường, kéo nền để di chuyển (Esc)", "Drag parts, select traces, drag the background to pan (Esc)")],
-    cu: [L("Bút đồng", "Copper pen"), L("Bấm chân / lỗ / đường → bấm các góc → bấm chân cùng mạng để xong (B)", "Click a pin / hole / trace → click corners → click a pin of the same net to finish (B)")],
-    jw: [L("Bút dây nhảy", "Jumper pen"), L("Bấm X → các điểm A, B… (tự tạo lỗ) → chân đích Y; chuột phải để dừng. Sau đó đổi nét thành đồng hoặc tô bằng Bút đồng (J)", "Click X → points A, B… (holes added) → target pin Y; right-click stops. Then convert to copper or trace over with the Copper pen (J)")],
+    cu: ["Pen", L("Bấm bất kỳ đâu → bấm các góc → bấm chân / đường để nối, hoặc chuột phải / Enter để dừng tại chỗ · giữ Shift: góc tự do (B)", "Click anywhere → click corners → click a pin / trace to connect, or right-click / Enter to stop there · hold Shift: any angle (B)")],
+    jw: [L("Bút dây nhảy", "Jumper pen"), L("Bấm X → các điểm A, B… (tự tạo lỗ) → chân đích Y; chuột phải để dừng. Sau đó đổi nét thành đồng hoặc tô bằng Pen (J)", "Click X → points A, B… (holes added) → target pin Y; right-click stops. Then convert to copper or trace over with the Pen (J)")],
     er: [L("Gôm", "Eraser"), L("Bôi qua đường đồng / dây nhảy để xoá đúng đoạn đó (E)", "Rub over copper / jumpers to erase just that part (E)")] });
   function setTool(t) {
     if (LY.tmp) cancel(); ui.tool = t; svg.dataset.tool = t;
@@ -998,13 +999,13 @@
 
   svg.addEventListener("pointerdown", e => {
     if (e.button === 2) return;
-    const p = toMM(e), g = [snap(p.x, SN), snap(p.y, SN)];
+    const p = toMM(e); let g = [snap(p.x, SN), snap(p.y, SN)];
     if (e.button === 1) return startPan(e);
     if (ui.mode === "route") {
       const pd = padAt(p);
       if (pd) { if (pd.net !== ui.route.net && !joinNet(pd.net)) return toast(L(`Chân ${pd.name} thuộc mạng ${pd.net || "trống"}, không nối được.`, `Pin ${pd.name} is on net ${pd.net || "none"}, can't connect.`)); return finishRoute([pd.x, pd.y], true); }
       const sg = segAt(p), pj = sg && proj(sg.t, p); if (pj && pj.d < traceW(sg.t) / 2 + .3 && (sg.t.net === ui.route.net || joinNet(sg.t.net))) return finishRoute(pj.q.map(r3), true);
-      const last = ui.route.pts[ui.route.pts.length - 1]; ui.route.pts.push(...posture(last, g).filter(q => q[0] !== last[0] || q[1] !== last[1])); drawRoute(); return;
+      ui.free = e.shiftKey; const last = ui.route.pts[ui.route.pts.length - 1]; if (e.shiftKey) g = [snap(p.x, Q), snap(p.y, Q)]; ui.route.pts.push(...posture(last, g).filter(q => q[0] !== last[0] || q[1] !== last[1])); drawRoute(); return;
     }
     if (ui.mode === "jump") return pickJump(p);
     if (ui.mode === "hole") return pickHole(p);
@@ -1016,7 +1017,7 @@
       if (pd) { if (!pd.net) return toast(L(`Chân ${pd.name} không dùng trong mạch.`, `Pin ${pd.name} is not used in the circuit.`)); return startRoute(pd.net, [pd.x, pd.y]); }
       const sg = segAt(p), pj = sg && proj(sg.t, p);
       if (pj && pj.d < traceW(sg.t) / 2 + .3) return startRoute(sg.t.net, pj.q.map(r3));
-      return toast(L("Bút đồng: bấm vào chân, lỗ hoặc đường đồng để bắt đầu.", "Copper pen: click a pin, hole or trace to start."));
+      return startRoute("~" + S.uid++, g);
     }
     const vt = e.target.closest("[data-v]");
     if (vt && ui.sel && ui.sel.t === "t") return startVertex(e, +vt.dataset.v);
@@ -1032,7 +1033,7 @@
   });
   svg.addEventListener("pointermove", e => {
     const p = toMM(e);
-    if (ui.mode === "route") { const pd = padAt(p); ui.route.cur = pd && pd.net === ui.route.net ? [pd.x, pd.y] : [snap(p.x, SN), snap(p.y, SN)]; drawRoute(); return; }
+    if (ui.mode === "route") { ui.free = e.shiftKey; const pd = padAt(p), sn = e.shiftKey ? Q : SN; ui.route.cur = pd && pd.net === ui.route.net ? [pd.x, pd.y] : [snap(p.x, sn), snap(p.y, sn)]; drawRoute(); return; }
     if (ui.mode === "jump") return drawJump(p);
     if (ui.mode === "jfree") { ui.jf.cur = [snap(p.x, SN), snap(p.y, SN)]; return drawJfree(); }
     if (ui.tool === "er") { LY.tmp.innerHTML = ""; el("circle", { cx: p.x, cy: p.y, r: ER, class: "erc" }, LY.tmp); }
@@ -1047,7 +1048,9 @@
   svg.addEventListener("pointerleave", () => $("#plTip").classList.remove("on"));
   svg.addEventListener("wheel", e => { e.preventDefault(); const f = e.deltaY < 0 ? 1 / 1.15 : 1.15, p = toV(e); cam.x = p.x - (p.x - cam.x) * f; cam.y = p.y - (p.y - cam.y) * f; cam.w *= f; cam.h *= f; applyCam(); }, { passive: false });
   svg.addEventListener("contextmenu", e => {
-    e.preventDefault(); if (ui.mode !== "idle") { cancel(); return render(); }
+    e.preventDefault();
+    if (ui.mode === "route") { const r = ui.route; if (r.pts.length > 1 || r.cur[0] !== r.pts[0][0] || r.cur[1] !== r.pts[0][1]) return finishRoute(r.cur, true); cancel(); return render(); }
+    if (ui.mode !== "idle") { cancel(); return render(); }
     const p = toMM(e), vt = e.target.closest("[data-v]");
     if (vt && ui.sel && ui.sel.t === "t") return ctxMenu(e, [[L("Xoá điểm neo", "Delete vertex"), L("Đúp", "Dbl"), () => cmd.delVtx(+vt.dataset.v)]]);
     const jw = S.jumpers.find(j => segDist(p.x, p.y, j.a[0], j.a[1], j.b[0], j.b[1]) < .6);
@@ -1463,8 +1466,8 @@
     const open = new Set(A.rats.map(r => r.net)), bad = A.drc.length;
     const sel = ui.sel && ui.sel.t === "t" ? S.traces.find(t => t.id === ui.sel.id) : null, selC = ui.sel && ui.sel.t === "c" ? S.comps.find(c => c.id === ui.sel.id) : null;
     const allOk = !open.size && S.comps.length > 1, done = allOk && !bad, nj = S.jumpers.length;
-    const help = L(`<li>Chọn bút như bút chì: <b>✏️ Bút đồng</b> (B) vẽ đường, <b>Bút dây nhảy</b> (J) bấm 2 điểm, <b>Gôm</b> (E) bôi chỗ không thích rồi vẽ lại, <b>Chọn</b> (Esc) để kéo linh kiện.</li><li>Kéo <b>thân đường</b> để dời song song, kéo <b>ô vuông</b> để dời góc.</li><li>Chọn đoạn dây: <b>H</b> nắn ngang · <b>V</b> nắn dọc · <b>A</b> nắn 45°. <b>Đúp</b> lên dây thêm điểm neo, đúp lên ô vuông để xoá.</li><li>Kéo <b>linh kiện</b> để dời, <b>R</b> xoay.</li><li><b>Dây nhảy</b> (J): bấm điểm đầu rồi điểm cuối (chân, lỗ, đường hoặc chỗ trống). Đang vẽ đường nhấn <b>J</b> để đặt lỗ ở đầu bút rồi bắc dây nhảy. Nét <b>trắng</b> = dây nhảy / ký hiệu linh kiện.</li><li>Đường vẽ / sửa tay tự <b>khoá</b> 🔒: Tự đi dây giữ nguyên.</li><li><b>/</b> đổi tư thế 45° · <b>Esc</b> huỷ · <b>Ctrl+Z</b> hoàn tác.</li>`,
-      `<li>Pick a pen like a pencil: <b>✏️ Copper pen</b> (B) draws traces, <b>Jumper pen</b> (J) clicks 2 points, <b>Eraser</b> (E) rubs out what you don\'t like so you can redraw, <b>Select</b> (Esc) moves parts.</li><li>Drag a <b>trace body</b> to move it in parallel, drag a <b>square</b> to move a corner.</li><li>Select a segment: <b>H</b> horizontal · <b>V</b> vertical · <b>A</b> 45°. <b>Double-click</b> a trace to add a vertex, a square to delete it.</li><li>Drag a <b>part</b> to move it, <b>R</b> rotates.</li><li><b>Jumper</b> (J): click the start, then the end (pin, hole, trace or free spot). While drawing press <b>J</b> to drop a hole at the pen and bridge with a jumper. <b>White</b> lines = jumpers / part outlines.</li><li>Hand-drawn / edited traces are <b>locked</b> 🔒: Autoroute keeps them.</li><li><b>/</b> flips the 45° posture · <b>Esc</b> cancels · <b>Ctrl+Z</b> undo.</li>`);
+    const help = L(`<li>Chọn bút như bút chì: <b>✏️ Pen</b> (B) vẽ đường, <b>Bút dây nhảy</b> (J) bấm 2 điểm, <b>Gôm</b> (E) bôi chỗ không thích rồi vẽ lại, <b>Chọn</b> (Esc) để kéo linh kiện.</li><li>Kéo <b>thân đường</b> để dời song song, kéo <b>ô vuông</b> để dời góc.</li><li>Chọn đoạn dây: <b>H</b> nắn ngang · <b>V</b> nắn dọc · <b>A</b> nắn 45°. <b>Đúp</b> lên dây thêm điểm neo, đúp lên ô vuông để xoá.</li><li>Kéo <b>linh kiện</b> để dời, <b>R</b> xoay.</li><li><b>Dây nhảy</b> (J): bấm điểm đầu rồi điểm cuối (chân, lỗ, đường hoặc chỗ trống). Đang vẽ đường nhấn <b>J</b> để đặt lỗ ở đầu bút rồi bắc dây nhảy. Nét <b>trắng</b> = dây nhảy / ký hiệu linh kiện.</li><li>Đường vẽ / sửa tay tự <b>khoá</b> 🔒: Tự đi dây giữ nguyên.</li><li><b>/</b> đổi tư thế 45° · <b>Esc</b> huỷ · <b>Ctrl+Z</b> hoàn tác.</li>`,
+      `<li>Pick a pen like a pencil: <b>✏️ Pen</b> (B) draws traces, <b>Jumper pen</b> (J) clicks 2 points, <b>Eraser</b> (E) rubs out what you don\'t like so you can redraw, <b>Select</b> (Esc) moves parts.</li><li>Drag a <b>trace body</b> to move it in parallel, drag a <b>square</b> to move a corner.</li><li>Select a segment: <b>H</b> horizontal · <b>V</b> vertical · <b>A</b> 45°. <b>Double-click</b> a trace to add a vertex, a square to delete it.</li><li>Drag a <b>part</b> to move it, <b>R</b> rotates.</li><li><b>Jumper</b> (J): click the start, then the end (pin, hole, trace or free spot). While drawing press <b>J</b> to drop a hole at the pen and bridge with a jumper. <b>White</b> lines = jumpers / part outlines.</li><li>Hand-drawn / edited traces are <b>locked</b> 🔒: Autoroute keeps them.</li><li><b>/</b> flips the 45° posture · <b>Esc</b> cancels · <b>Ctrl+Z</b> undo.</li>`);
     $("#plPanel").innerHTML = `<ol class="steps"><li class="${S.comps.length > 1 ? "ok" : "now"}">${L("Thêm & đặt linh kiện", "Add & place parts")}<small>${L("bấm linh kiện bên trái · kéo · R xoay", "click a part on the left · drag · R rotates")}</small></li><li class="${allOk ? "ok" : "now"}">${L("Nối hết dây", "Route everything")}<small>${allOk ? L("xong", "done") : L("bấm Tự đi dây (A)", "press Autoroute (A)")}${nj ? L(` · ${nj} dây nhảy`, ` · ${nj} jumpers`) : ""}</small></li><li class="${done ? "ok" : bad ? "now" : ""}">${L("Không lỗi → Tải file in", "No errors → Download")}<small>${bad ? L(`${bad} lỗi cần sửa`, `${bad} errors to fix`) : done ? L("sẵn sàng in", "ready to print") : "…"}</small></li></ol>
       <div class="stat"><div><b>${Object.keys(nets).length - open.size}</b>/${Object.keys(nets).length}<span>${L("mạng đã nối", "nets routed")}</span></div><div class="${bad ? "red" : ""}"><b>${bad}</b><span>${L("lỗi khoảng cách", "clearance errors")}</span></div><div><b>${S.traces.length}</b><span>${L("đường đồng", "traces")}</span></div></div>
       ${sel ? `<div class="box"><h4>${L("Đường đang chọn", "Selected trace")}</h4><p>${L("Mạng", "Net")} <b>${sel.net}</b> · ${traceW(sel)} mm · ${sel.lock ? L("🔒 đã khoá", "🔒 locked") : L("tự động", "auto")}</p></div>` : selC ? compBoxHTML(selC) : ""}
