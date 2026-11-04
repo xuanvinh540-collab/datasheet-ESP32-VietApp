@@ -39,7 +39,8 @@
 
   const S = { parts: null, mode: "store", view: "breadboard", mount: "tht", src: "", q: "", shown: PAGE, sel: null, prev: null, busy: false };
   const enc = p => p.split("/").map(encodeURIComponent).join("/");
-  const BASE = "https://cdn.jsdelivr.net/gh/fritzing/fritzing-parts@develop/";
+  const BASE = "https://cdn.jsdelivr.net/gh/fritzing/fritzing-parts@develop/", RAW = "https://raw.githubusercontent.com/fritzing/fritzing-parts/develop/";   // jsDelivr chặn vài file lẻ (403): lấy trực tiếp từ GitHub
+  document.addEventListener("error", e => { const t = e.target; if (t && t.tagName === "IMG" && t.src.startsWith(BASE) && !t.dataset.f) { t.dataset.f = 1; t.src = RAW + t.src.slice(BASE.length); } }, true);   // ảnh bị jsDelivr chặn: thử lại từ GitHub
   const imgUrl = (p, view) => BASE + "svg/" + p[1] + "/" + enc(view === "pcb" ? p[3] : p[4]);
   const ghUrl = p => "https://github.com/fritzing/fritzing-parts/blob/develop/" + enc(p[1] + "/" + p[2]);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -75,7 +76,7 @@
     return ["n", 0];
   }
   async function build(p) {
-    const txt = async u => { const r = await fetch(u); if (!r.ok) throw new Error(u.split("/").pop() + " (" + r.status + ")"); return r.text(); };
+    const txt = async u => { let r = await fetch(u); if (!r.ok && u.startsWith(BASE)) r = await fetch(RAW + u.slice(BASE.length)); if (!r.ok) throw new Error(u.split("/").pop() + " (" + r.status + ")"); return r.text(); };
     const [fzpT, pcbT, bbT] = await Promise.all([txt(BASE + enc(p[1] + "/" + p[2])), txt(BASE + "svg/" + p[1] + "/" + enc(p[3])), txt(BASE + "svg/" + p[1] + "/" + enc(p[4])).catch(() => "")]);
     const fz = new DOMParser().parseFromString(fzpT, "application/xml");
     if (fz.querySelector("parsererror")) throw new Error(L("File .fzp không đọc được.", "The .fzp file cannot be read."));
