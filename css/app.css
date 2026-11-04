@@ -726,3 +726,24 @@ sup.beta { font: 700 8.5px var(--mono); padding: 0 3px; border-radius: 4px; back
 .btools .zoom { margin-left: 4px; }
 .btools .zoom { margin-left: auto; } .btools #bpng { margin-left: 4px; }
 .btools .zoom { flex-wrap: nowrap; align-items: center; }
+
+/* Kiểm PCB trong Wiring (kiểu ERC) */
+#bsvg .xrbox { fill: none; stroke-width: .5; stroke-dasharray: 1.6 1.1; pointer-events: none } #bsvg .xr-red .xrbox { stroke: #ff4d4d } #bsvg .xr-orange .xrbox { stroke: #ffa31a }
+#bsvg .xrbadge { cursor: pointer } #bsvg .xr-red .xrbadge circle { fill: #ff4d4d } #bsvg .xr-orange .xrbadge circle { fill: #ffa31a } #bsvg .xrbadge text { fill: #111; font-weight: 700; dominant-baseline: middle }
+.xrpanel { position: absolute; top: 118px; right: 10px; z-index: 30; width: min(420px, calc(100% - 20px)); max-height: 60%; overflow: auto; background: var(--surface, #1b2028); color: var(--fg, #e6ebf2); border: 1px solid var(--line, #384050); border-radius: 10px; padding: 8px 10px; box-shadow: 0 10px 30px rgba(0,0,0,.4); font-size: 13px }
+.xrpanel .xrh { display: flex; gap: 10px; align-items: center; margin-bottom: 6px } .xrpanel .xrx { margin-left: auto; background: none; border: 0; color: inherit; cursor: pointer } .xrpanel .xr-red { color: #ff6b6b } .xrpanel .xr-orange { color: #ffb347 }
+.xrpanel .xri { display: flex; gap: 8px; align-items: baseline; padding: 5px 6px; border-left: 3px solid currentColor; margin: 4px 0; background: rgba(255,255,255,.04) } .xrpanel .xri span { color: var(--fg, #e6ebf2); flex: 1 } .xrpanel .xri a, .xrpanel .xri button { white-space: nowrap; font-size: 12px }
+
+.xsync { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(0,0,0,.55) } .xsync-box { width: min(520px, calc(100% - 24px)); max-height: 80vh; overflow: auto; background: var(--surface, #1b2028); color: var(--fg, #e6ebf2); border: 1px solid var(--line, #384050); border-radius: 12px; padding: 14px 16px; font-size: 13.5px }
+.xsync h3 { margin: 0 0 6px } .xsync h4 { margin: 10px 0 3px; font-size: 12.5px } .xsync ul { margin: 0; padding-left: 18px } .xsync .xs-add { color: #7ee08a } .xsync .xs-del { color: #ff7b7b } .xsync .xs-chg { color: #ffb347 } .xsync .xs-skip { color: var(--muted, #9aa4b1) } .xsync-b { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px } .xsync-b .xs-go { background: #2e9d52; color: #fff; border: 0; border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 700 } .xsync-b .xs-no { border-radius: 8px; padding: 7px 12px; cursor: pointer }
+.xundo { top: 118px; width: auto } .xundo .xs-undo { margin-left: auto }
+
+/* Giao diện tab Wiring đồng bộ với PCB Maker: bề rộng, font, nút, icon */
+main:has(> section[data-panel="build"]:not([hidden])) { max-width: none; }
+.btools .bbtn { font: 600 12px var(--sans, "Be Vietnam Pro", sans-serif); border-radius: 8px; padding: 5px 9px; } .btools .bbtn i svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px }
+.bmode .bbtn { border-radius: 8px } .btools { border-radius: 12px }
+
+/* Hộp Export của Wiring (giống PCB Maker) */
+.xexp .xexp-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 } .xexp .xexp-row > span { width: 86px; flex: none; color: var(--muted, #9aa4b1) } .xexp .xexp-row input { flex: 1; min-width: 0; background: var(--surface2, #232a35); color: inherit; border: 1px solid var(--line, #384050); border-radius: 8px; padding: 6px 9px; font: inherit }
+.xexp .xexp-seg { display: inline-flex; border: 1px solid var(--line, #384050); border-radius: 8px; overflow: hidden } .xexp .xexp-seg button { border: 0; background: none; color: inherit; padding: 6px 14px; cursor: pointer; font: 600 12px var(--sans, sans-serif) } .xexp .xexp-seg button.on { background: var(--accent, #2e9d52); color: #fff } .xexp .xexp-sub { margin: 4px 0 8px; color: var(--muted, #9aa4b1); font-size: 12px }
+.xexp .bset { position: static !important; width: auto !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; background: none !important; display: block } .xexp .bset[hidden] { display: block }

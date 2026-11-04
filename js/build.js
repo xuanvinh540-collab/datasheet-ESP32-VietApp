@@ -6,11 +6,11 @@
   const SHARED = ["spi.sck", "spi.mosi", "spi.miso", "i2c.sda", "i2c.scl"];
   const POWER = ["pwr.3v3", "pwr.5v", "gnd"];                       // nhiều module dùng chung một pad nguồn
   const COLOR = { "pwr.3v3": "#e2442f", "pwr.5v": "#ff7a45", gnd: "#9aa0a6", "i2c.sda": "#29adff", "i2c.scl": "#f5d63d", "spi.sck": "#ff8a00", "spi.mosi": "#b26bff",
-    "spi.miso": "#2fd6c3", "spi.cs": "#ff4fa3", "i2s.bclk": "#ff8a00", "i2s.ws": "#f5d63d", "i2s.dout": "#2fd36b", "i2s.din": "#2fd36b", out: "#7fd1c4", in: "#c3e88d", pwm: "#e879f9", mot: "#c8a165", adc: "#a78bfa" };
+    "spi.miso": "#2fd6c3", "spi.cs": "#ff4fa3", "i2s.bclk": "#ff8a00", "i2s.ws": "#f5d63d", "i2s.dout": "#2fd36b", "i2s.din": "#2fd36b", out: "#7fd1c4", in: "#c3e88d", any: "#c8a165", pwm: "#e879f9", mot: "#c8a165", adc: "#a78bfa" };
   const LEGEND = [["pwr.3v3", "VCC 3V3"], ["pwr.5v", "VCC 5V"], ["gnd", "GND"], ["i2c.sda", "SDA"], ["i2c.scl", "SCL"], ["spi.sck", "SCK / BCLK"], ["spi.mosi", "MOSI"], ["spi.miso", "MISO"], ["spi.cs", "CS"], ["i2s.dout", "I2S data"], ["out", "Tín hiệu ra"], ["in", "Tín hiệu vào"], ["pwm", "PWM"]];
   // thêm VCC/GND vào đầu danh sách chân của mỗi module (một lần)
   for (const d of Object.values(M)) {
-    if (!d.svg && !d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
+    if (!d.svg && !d.passive && !d.mine && !d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
     if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { d.svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); if (B.boardId) draw(); }).catch(() => {});
   }
   const B = { boardId: null, buses: [{}], mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "", brot: 0, needPlace: false, bb: { on: false, n: 1, board: null } };
@@ -61,6 +61,11 @@
   };
   const PICO_DEF = { "spi.sck": 18, "spi.mosi": 19, "spi.miso": 16, "i2c.sda": 4, "i2c.scl": 5 };
   function score(p, role, b) {
+    if (role === "any") {   // chân tự do (linh kiện rời / Fritzing chưa rõ vai trò): nối tay vào GND, 3V3, 5V hoặc GPIO
+      if (p.cat === "gnd" && p.name !== "AGND") return 90;
+      if (p.cat === "power" && /^(3V3|3\.3V|5V|VBUS)$/.test(p.name)) return 90;
+      role = "out";
+    }
     if (role === "gnd") return p.cat === "gnd" && p.name !== "AGND" ? 100 : -1e9;
     if (role === "pwr.3v3") return p.cat === "power" && /^(3V3|3\.3V)$/.test(p.name) ? 100 : -1e9;
     if (role === "pwr.5v") return p.cat === "power" && /^(5V|VBUS)$/.test(p.name) ? 100 : -1e9;
@@ -91,6 +96,7 @@
   function best(role, b, taken) { let top = null, ts = -1e8; for (const p of pads()) { if (taken.has(p.name) && !POWER.includes(role)) continue; const s = score(p, role, b); if (s > ts) { ts = s; top = p; } } return top; }
   function autoAssign(m) { return withHost(hostOf(m), () => autoAssignH(m)); }
   function autoAssignH(m) {
+    if (M[m.type].noauto) return;   // TB6612, linh kiện rời, linh kiện của tôi: người dùng tự nối
     const b = board(), taken = used();
     for (const [label, role] of M[m.type].pins) {
       if (getPin(m, label) || role === "mot") continue;   // ngõ ra động cơ: nối motor, không nối board
@@ -418,7 +424,60 @@
     return { d: `M${a.x} ${a.y} C${c1x} ${c1y} ${c2x} ${c2y} ${p.x} ${p.y}`, mx, my };
   }
 
+  /* ----- Kiểm PCB (kiểu ERC): nét đứt đỏ = chắc chắn sai, cam = nghi ngờ; chỉ báo, không sửa mạch ----- */
+  const xrNth = mi => B.mods.slice(0, mi).filter(x => x.type === B.mods[mi].type && !hostOf(x)).length;
+  const xrItems = (m, mi) => B.xr ? B.xr.items.filter(i => i.t === m.type && (i.nth == null || i.nth === xrNth(mi))) : [];
+  function xrMark(m, mi, d, w, h, parent) {
+    if (hostOf(m)) return; const it = xrItems(m, mi); if (!it.length) return; const sev = it.some(i => i.sev === "red") ? "red" : "orange", c = mCenter(m), rot = mrot(m) ? { transform: `rotate(${mrot(m)} ${c.x} ${c.y})` } : {};
+    const g = el("g", { class: "xr xr-" + sev, ...rot }, parent);
+    el("rect", { x: c.x - w / 2 - 1, y: c.y - h / 2 - 1, width: w + 2, height: h + 2, rx: 1.5, class: "xrbox" }, g);
+    const b = el("g", { class: "xrbadge", transform: `translate(${c.x + w / 2 + 1} ${c.y - h / 2 - 1})` }, g); el("circle", { r: 1.5 }, b); el("text", { y: .6, "text-anchor": "middle", "font-size": 1.7 }, b, it.length);
+    b.addEventListener("pointerdown", e => { e.stopPropagation(); xrPanel(m.type, mi); });
+  }
+  /* ----- Đồng bộ PCB → Wiring: hỏi trước, có bản sao để hoàn tác ----- */
+  async function xSync() {
+    try { await A.loadPcb(); } catch (e) { return A.toast("Không đọc được PCB Maker."); }
+    const pl = window.PCBLAB.plan(board().id);
+    if (pl.other) return A.toast("PCB Maker đang làm board khác: mở PCB Maker của board này rồi đồng bộ lại.");
+    const oldMods = B.mods.filter(m => !hostOf(m)), key = (m, list) => m.type + "#" + list.filter(x => x.type === m.type).indexOf(m);
+    const oldMap = new Map(oldMods.map(m => [key(m, oldMods), m])), newMap = new Map(pl.mods.map(m => [key(m, pl.mods), m]));
+    const add = [], del = [], chg = [], sname = t => (M[t] && M[t].short) || t;
+    for (const [k, m] of newMap) { const o = oldMap.get(k); if (!o) add.push(sname(m.type)); else { for (const [lab, v] of Object.entries(m.pins)) if ((o.pins || {})[lab] !== v) chg.push(`${sname(m.type)} · ${lab}: ${(o.pins || {})[lab] || "trống"} → ${v}`); for (const lab of Object.keys(o.pins || {})) if (!(lab in m.pins) && (o.pins || {})[lab]) chg.push(`${sname(m.type)} · ${lab}: ${o.pins[lab]} → trống`); } }
+    for (const [k, m] of oldMap) if (!newMap.has(k)) del.push(sname(m.type));
+    const b0 = B.buses[0] || {}; for (const [role, v] of Object.entries(pl.buses)) if (b0[role] !== v) chg.push(`Bus ${role}: ${b0[role] || "trống"} → ${v}`);
+    const none = !add.length && !del.length && !chg.length, ul = (a, cls) => a.length ? `<ul class="${cls}">${a.slice(0, 14).map(x => `<li>${esc(x)}</li>`).join("")}${a.length > 14 ? `<li>… và ${a.length - 14} mục nữa</li>` : ""}</ul>` : "";
+    const d = document.createElement("div"); d.className = "xsync"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+    d.innerHTML = `<div class="xsync-box"><h3>Đồng bộ tab Wiring theo PCB Maker</h3>${none ? "<p>Wiring đã khớp với PCB: không có gì để đổi ✓</p>" : `<p><b>Tab Wiring sẽ bị thay đổi theo PCB.</b> Bản cũ được lưu lại để hoàn tác.</p>${add.length ? `<h4>Thêm vào Wiring (${add.length})</h4>${ul(add, "xs-add")}` : ""}${del.length ? `<h4>Bỏ khỏi Wiring (${del.length}): không có trên PCB</h4>${ul(del, "xs-del")}` : ""}${chg.length ? `<h4>Đổi chân nối (${chg.length})</h4>${ul(chg, "xs-chg")}` : ""}`}${pl.skipped.length ? `<h4>Không chuyển được (Wiring không biểu diễn)</h4>${ul(pl.skipped, "xs-skip")}` : ""}<div class="xsync-b">${none ? "" : '<button type="button" class="xs-go">Cập nhật Wiring theo PCB</button>'}<button type="button" class="xs-no">${none ? "Đóng" : "Huỷ"}</button></div></div>`;
+    document.body.appendChild(d); const close = () => d.remove(); d.querySelector(".xs-no").onclick = close; d.onclick = e => { if (e.target === d) close(); };
+    const go = d.querySelector(".xs-go"); if (!go) return;
+    go.onclick = () => {
+      close(); const bak = JSON.stringify(dump()); try { localStorage.setItem("build:" + board().id + ":bak", bak); } catch (e) { }
+      const extras = B.mods.filter(m => hostOf(m)), next = pl.mods.map(m => { const o = oldMap.get(key(m, pl.mods)); return o ? { ...o, pins: { ...m.pins } } : { type: m.type, pins: { ...m.pins } }; });
+      B.mods = [...next, ...extras]; B.buses = [{ ...(B.buses[0] || {}), ...pl.buses }, ...B.buses.slice(1)]; save(); draw(); if (B.xr) xrToggle().then(() => xrToggle());
+      const u = document.createElement("div"); u.className = "xrpanel xundo"; u.innerHTML = `<div class="xrh"><b>Đã cập nhật Wiring theo PCB</b><button type="button" class="xs-undo">Hoàn tác</button><button type="button" class="xrx" aria-label="Đóng">✕</button></div>`;
+      const host = (document.querySelector("#bsvg") || document.body).parentNode; if (getComputedStyle(host).position === "static") host.style.position = "relative"; host.appendChild(u);
+      u.querySelector(".xrx").onclick = () => u.remove(); u.querySelector(".xs-undo").onclick = () => { u.remove(); try { load(JSON.parse(bak)); save(); draw(); A.toast("Đã hoàn tác: Wiring về như trước khi đồng bộ."); } catch (e) { A.toast("Không hoàn tác được."); } };
+    };
+  }
+  async function xrToggle() {
+    const old = document.querySelector("#xrPanel"); if (B.xr) { B.xr = null; if (old) old.remove(); return draw(); }
+    try { await A.loadPcb(); B.xr = window.PCBLAB.report(board().id); } catch (e) { return A.toast("Không đọc được PCB Maker."); }
+    if (B.xr.other) { B.xr = null; return A.toast("PCB Maker đang làm board khác: mở PCB Maker của board này rồi kiểm lại."); }
+    if (B.xr.noWiring) { B.xr = null; return A.toast("PCB Maker chưa có module nào để so."); }
+    draw(); xrPanel();
+  }
+  function xrPanel(type, mi) {
+    const old = document.querySelector("#xrPanel"); if (old) old.remove(); if (!B.xr) return;
+    const all = B.xr.items, items = type ? xrItems(B.mods[mi], mi) : all, red = all.filter(i => i.sev === "red").length, org = all.length - red;
+    const p = document.createElement("div"); p.id = "xrPanel"; p.className = "xrpanel";
+    p.innerHTML = `<div class="xrh"><b>Kiểm PCB</b> <span class="xr-red">● ${red} đỏ</span> <span class="xr-orange">● ${org} cam</span>${type ? ` · <button type="button" data-all>Xem tất cả</button>` : ""}<button type="button" class="xrx" aria-label="Đóng">✕</button></div>`
+      + (items.length ? items.map((i, k) => `<div class="xri xr-${i.sev}"><span>${esc(i.msg)}</span>${i.t && M[i.t] ? `<a target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent(M[i.t].name + " datasheet")}">Datasheet</a>` : ""}${i.pcbOnly || i.code === "drc" || i.code === "open" || i.code === "unverified" ? `<button type="button" data-pcb>Mở PCB</button>` : ""}</div>`).join("") : `<div class="xri">Không có gì cần báo ✓</div>`);
+    p.querySelector(".xrx").onclick = () => p.remove(); const all2 = p.querySelector("[data-all]"); if (all2) all2.onclick = () => xrPanel();
+    p.querySelectorAll("[data-pcb]").forEach(b => b.onclick = () => A.openPcbLab(false));
+    { const host = (document.querySelector("#bsvg") || document.body).parentNode; if (getComputedStyle(host).position === "static") host.style.position = "relative"; host.appendChild(p); }
+  }
   function draw() {
+    if (B.mods.some(m => !M[m.type])) { B.mods = B.mods.filter(m => M[m.type]); save(); }   // linh kiện đã bị xoá khỏi "Linh kiện của tôi": bỏ khỏi mạch thay vì làm hỏng tab
     if (B.bb.on && window.BBOARD && BBOARD.ok()) return BBOARD.draw();
     const s = svg(); s.innerHTML = "";
     const bg = el("g", { class: "brd" }, s); if (brot()) bg.setAttribute("transform", bTransform());
@@ -447,6 +506,7 @@
         const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: c, "fill-opacity": .35, stroke: c, "stroke-width": .5, class: "wend", "data-wm": mi, "data-wl": label }, wires);
         end.addEventListener("pointerdown", e => startWire(e, mi, label, true)); });
       const g = el("g", { class: "bnode", "data-m": mi }, nodes);
+      xrMark(m, mi, d, w, h, nodes);
       const head = el("g", { class: "bhead", "data-m": mi }, g);
       if (d.svg) {
         // Vẽ trực tiếp ảnh SVG của module, nối dây thẳng vào chân trên SVG
@@ -691,6 +751,25 @@
     return p;
   }
 
+  function exportDialog() {
+    if (document.querySelector(".xexp")) return;
+    let fmt = "png"; try { fmt = localStorage.getItem("build:expfmt") || "png"; } catch (e) { }
+    if (!["png", "json", "link"].includes(fmt)) fmt = "png";
+    const d = document.createElement("div"); d.className = "xsync xexp"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+    const sub = { png: "Ảnh PNG: sơ đồ đấu dây, sơ đồ nguyên lý và code theo tuỳ chọn dưới đây", json: "File .json của mạch này: mở lại bằng nút \"Mở .json\"", link: "Copy link: người nhận mở link là thấy đúng mạch này" };
+    d.innerHTML = `<div class="xsync-box"><h3>Xuất file</h3>
+      <label class="xexp-row"><span>Tên file</span><input id="xeName" value="pindex-${esc(board().id)}" spellcheck="false"></label>
+      <div class="xexp-row"><span>Định dạng</span><div class="xexp-seg">${[["png", "PNG"], ["json", "JSON"], ["link", "Link"]].map(([k, t]) => `<button type="button" data-fmt="${k}"${fmt === k ? ' class="on"' : ""}>${t}</button>`).join("")}</div></div>
+      <p class="xexp-sub" id="xeSub"></p><div id="xeOpts"></div>
+      <div class="xsync-b"><button type="button" class="xs-no">Huỷ</button><button type="button" class="xs-go" id="xeGo">⬇ Tải xuống</button></div></div>`;
+    const sp = settingsPanel(); sp.hidden = false; sp.querySelector(".bset-t").remove(); sp.querySelector(".bset-f").remove(); d.querySelector("#xeOpts").appendChild(sp);
+    const show = () => { d.querySelector("#xeSub").textContent = sub[fmt]; sp.style.display = fmt === "png" ? "" : "none"; d.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === fmt)); d.querySelector("#xeGo").textContent = fmt === "link" ? "🔗 Copy link" : "⬇ Tải xuống"; };
+    d.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => { fmt = b.dataset.fmt; try { localStorage.setItem("build:expfmt", fmt); } catch (e) { } show(); });
+    const close = () => d.remove(); d.querySelector(".xs-no").onclick = close; d.onclick = e => { if (e.target === d) close(); };
+    d.querySelector("#xeGo").onclick = () => { const nm = d.querySelector("#xeName").value; close(); exportAs(fmt, nm); };
+    show(); document.body.appendChild(d); d.querySelector("#xeName").select();
+  }
+
   // sơ đồ nguyên lý gọn kiểu KiCad: MCU giữa, linh kiện chia hai bên cho cân, nối ngang thẳng; nguồn/GND vẽ ký hiệu
   function schemLayout() {
     const RH = 22, HD = 26, GAP = 26, MW = 130, DW = 150, LINK = 120, isPwr = r => r === "gnd" || r.startsWith("pwr");
@@ -749,34 +828,35 @@
         tools.id = "btools"; tools.className = "btools";
         // thanh công cụ kiểu KiCad: nút phẳng icon + chữ, ngăn nhóm bằng vạch dọc
         // chỉ hiện icon (gọn hàng như PCB Maker); rê chuột xem tên + mô tả
-        const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${tip}" aria-label="${t}"><i aria-hidden="true">${ic}</i><span>${t}</span></button>`;
+        // icon: dùng bộ icon SVG của PCB Maker ("svg:tên") cho giống nhau giữa hai tab; không có thì giữ emoji
+        const SVGI = { arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', check: '<path d="M4 12l5 5L20 6"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', wire: '<path d="M4 19c4-1 3-8 8-8s4-7 8-8"/><circle cx="4" cy="19" r="1.6"/><circle cx="20" cy="3" r="1.6"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>' };
+        const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${tip}" aria-label="${t}"><i aria-hidden="true">${String(ic).startsWith("svg:") ? `<svg viewBox="0 0 24 24">${SVGI[ic.slice(4)] || ""}</svg>` : ic}</i><span>${t}</span></button>`;
         // chế độ: Nối dây (mặc định) | Breadboard – bấm Breadboard lần nữa để đổi 1 → 2 → 3 tấm
-        tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "🔌", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + tb("bmpcb", "🖨", "PCB Maker", "Làm bo mạch in 1 lớp từ mạch này (in ủi nhiệt, ăn mòn tại nhà)") + `</span>`
-          + `<span class="bwtools">` + tb("barr", "🧲", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "🔀", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "⟳", "Xoay board", "Xoay board 90°")
+        tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "svg:wire", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + tb("bmpcb", "🖨", "PCB Maker", "Làm bo mạch in 1 lớp từ mạch này (in ủi nhiệt, ăn mòn tại nhà)") + `</span>`
+          + `<span class="bwtools">` + tb("barr", "svg:arr", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "svg:scheme", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "svg:rot", "Xoay board", "Xoay board 90°")
           + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label></span>`
           + `<span class="bbtools" hidden>` + tb("bbstyle", "🔀", "Đi dây", "Đổi kiểu dây: vuông góc / tách / cong / vát 45°") + `<label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bbspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bbspreadv">×${B.spread}</output></label>`
           + tb("bbghost", "👁", "Viền", "Ẩn nhanh linh kiện, chỉ để viền mỏng định vị (bấm lần nữa để hiện lại)")
           + `<label class="bslider bop" title="Độ rõ linh kiện"><i aria-hidden="true">◐</i><input id="bbop" type="range" min="0.1" max="1" step="0.05" value="${B.bb.op ?? .5}" aria-label="Độ rõ linh kiện"><output id="bbopv">${Math.round((B.bb.op ?? .5) * 100)}%</output></label></span>`
-          + `<span class="bsep"></span>` + tb("breset", "⟲", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "⬇", "Export", "Xuất ảnh PNG theo cài đặt")
-          + `<button type="button" class="bbtn" id="bsetBtn" aria-expanded="false" title="Cài đặt xuất ảnh"><i aria-hidden="true">⚙</i><span>Cài đặt</span></button>`;
+          + `<span class="bsep"></span>` + tb("bsync", "⇄", "Đồng bộ PCB", "Cập nhật tab Wiring theo PCB Maker: thêm / bỏ module và đổi chân nối. Có hộp xác nhận và hoàn tác") + tb("bxchk", "svg:check", "Kiểm PCB", "So PCB Maker với mạch này và datasheet: nét đứt đỏ = chắc chắn sai, cam = nghi ngờ (chỉ báo, không sửa gì)") + `<span class="bsep"></span>` + tb("breset", "svg:reset", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "svg:dl", "Export", "Xuất ảnh PNG theo cài đặt")
+;
         // hàng 1: 3 nút chế độ; hàng 2: công cụ còn lại + zoom
         bar.insertBefore(tools, zoomBox); if (zoomBox) tools.appendChild(zoomBox); zoomBox && zoomBox.appendChild(tools.querySelector("#bpng"));   // Export cuối cùng bên phải, đi cùng cụm zoom
-        bar.appendChild(settingsPanel());
         $("#barr").onclick = () => arrangeModules();
         $("#brot").onclick = () => rotateBoard();
         $("#bstyle").onclick = () => cycleStyle();
         $("#bspread").oninput = e => setSpread(+e.target.value);
-        $("#bpng").onclick = () => exportAs("png");
+        $("#bpng").onclick = () => exportDialog();
         $("#breset").onclick = () => resetView();
         $("#bmwire").onclick = () => { if (B.bb.on) { B.bb.on = false; B.cam = null; save(); refresh(); } };
         $("#bbtog").onclick = () => toggleBB();
+        $("#bxchk").onclick = () => xrToggle(); $("#bsync").onclick = () => xSync();
         $("#bmpcb").onclick = () => A.openPcbLab(true); $("#bmpcb span").insertAdjacentHTML("beforeend", ' <sup class="beta">beta</sup>');
         $("#bbspread").oninput = e => setSpread(+e.target.value);
         $("#bbstyle").onclick = () => { cycleStyle(); A.toast("Dây: " + STYLE_NAMES[B.style]); };
         $("#bbop").oninput = e => { B.bb.op = +e.target.value; $("#bbopv").textContent = Math.round(B.bb.op * 100) + "%"; svg().querySelectorAll(".bbmod > g[opacity], .bbmcu[opacity]").forEach(g => g.setAttribute("opacity", B.bb.op)); };
         $("#bbop").onchange = () => save();
         $("#bbghost").onclick = () => { B.bb.ghost = !B.bb.ghost; save(); refresh(); };
-        $("#bsetBtn").onclick = () => toggleSet();
       }
     }
     if (!$("#btitle")) { const t = document.createElement("div"); t.id = "btitle"; t.className = "btitle"; $("#bboard").after(t); }
@@ -841,7 +921,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=176"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=178"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -892,7 +972,9 @@
   }
   function renderCatList(b) {
     const q = (B.q || "").trim().toLowerCase();
-    return CATS.map(([catName, icon, keys]) => {
+    const mineKeys = Object.keys(M).filter(k => k.startsWith("MY:"));
+    const loose = Object.keys(M).filter(k => M[k].passive);
+    return [...CATS, ...(loose.length ? [["Linh kiện rời (PCB)", "🔩", loose]] : []), ...(mineKeys.length ? [["Linh kiện của tôi", "⭐", mineKeys]] : [])].map(([catName, icon, keys]) => {
       const filtered = keys.filter(k => {
         const d = M[k]; if (!d) return false;
         if (!q) return true;
@@ -902,7 +984,7 @@
       const items = filtered.map(k => {
         const d = M[k], on = B.mods.some(m => m.type === k), ok = modOK(d, b);
         // cùng kiểu hàng có icon với cột linh kiện của tab Sơ đồ chân / PCB Maker
-        return `<button type="button" class="mod-row" data-add="${k}" aria-pressed="${on}"${ok ? "" : " disabled"} title="${esc(d.name)}"><img src="${esc(d.svg)}" alt="" loading="lazy"><span class="mr-name">${esc(d.short)}</span><span class="mr-if">${on ? "✓" : esc(d.iface.split(" ")[0])}</span></button>`;
+        return `<button type="button" class="mod-row" data-add="${k}" aria-pressed="${on}"${ok ? "" : " disabled"} title="${esc(d.name)}"><img src="${esc(d.icon || d.svg)}" alt="" loading="lazy"><span class="mr-name">${esc(d.short)}</span><span class="mr-if">${on ? "✓" : esc(d.iface.split(" ")[0])}</span></button>`;
       }).join("");
       return fold(catName, icon, catName, items, q);
     }).join("") + boardItems(b, q) || `<div class="muted small">Không tìm thấy linh kiện phù hợp.</div>`;   // Dev board để cuối danh sách
@@ -951,7 +1033,7 @@
     const au = box.querySelector("[data-auto]"); if (au) au.onclick = () => { B.mods.forEach(autoAssign); save(); refresh(); };
     box.querySelectorAll("[data-tab]").forEach(x => x.onclick = () => { B.tab = x.dataset.tab; side(); });
     const cp = box.querySelector("[data-copy]"); if (cp) cp.onclick = () => navigator.clipboard.writeText(code()).then(() => A.toast("Đã copy"));
-    box.querySelectorAll("[data-exp]").forEach(x => x.onclick = () => exportAs(x.dataset.exp));
+    box.querySelectorAll("[data-exp]").forEach(x => x.onclick = () => x.dataset.exp === "png" ? exportDialog() : exportAs(x.dataset.exp));
     box.querySelector("input[type=file]").onchange = e => { const f = e.target.files[0]; if (f) f.text().then(t => { load(JSON.parse(t)); refresh(); }); };
   }
   function cleanBus() { for (const h of hosts()) withHost(h, () => { const need = new Set(B.mods.filter(m => hostOf(m) === h).flatMap(m => M[m.type].pins.map(x => x[1]))); for (const r in B.bus) if (!need.has(r)) delete B.bus[r]; }); }
@@ -980,9 +1062,9 @@
       try { IMG_CACHE[h] = IMG_CACHE[h] || await fetch(h).then(r => r.blob()).then(bl => new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); })); im.setAttribute("href", IMG_CACHE[h]); } catch (e) { }
     }
   }
-  async function exportAs(kind) {
-    const b = board();
-    if (kind === "json") return dl(`pindex-${b.id}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
+  async function exportAs(kind, name) {
+    const b = board(), fname = (name || "").trim().replace(/[\\/:*?"<>|]+/g, "-") || `pindex-${b.id}`;
+    if (kind === "json") return dl(`${fname}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
     if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Wiring"); } catch (e) { A.toast(u); } return; }
     toggleSet(false);
     let img = null, logo = null;
@@ -1063,7 +1145,7 @@
       const tw = g.measureText("pindexio.com").width, ly = H - 20 - z / 2;
       g.fillStyle = ink; g.fillText("pindexio.com", W - P, ly); g.drawImage(logo, W - P - tw - 12 - z, ly - z / 2, z, z);
     }
-    dl(`pindex-${b.id}.png`, c.toDataURL("image/png"));
+    dl(`${fname}.png`, c.toDataURL("image/png"));
   }
   function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Wiring không hợp lệ."); } }
 

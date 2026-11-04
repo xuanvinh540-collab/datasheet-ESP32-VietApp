@@ -496,13 +496,29 @@
   }
 
   /* ---------- Khởi tạo ---------- */
+  // nhớ chỗ đang làm việc (Sơ đồ chân / Wiring-Breadboard / PCB Maker) để quay lại đúng chỗ khi rời sang tab khác
+  let work = "pins"; try { work = localStorage.getItem("workTab") || "pins"; } catch (e) { }
   function setTab(t) {
+    if (t === "pins" || t === "build" || t === "pcblab") { work = t; try { localStorage.setItem("workTab", t); } catch (e) { } }
     state.tab = t;
     if (t === "pins" && state.b) syncHash();
     document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
     document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== t);
   }
-  document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+  // Pinworld: kho linh kiện Fritzing (bản thử), tải js/pinworld.js khi mở lần đầu
+  let pwLoad = null;
+  async function openPinworld() {
+    setTab("pinworld");
+    pwLoad = pwLoad || loadJs("js/pinworld.js?v=178");
+    await pwLoad; PINWORLD.open();
+  }
+  document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => {
+    const t = b.dataset.tab;
+    if (t === "pinworld") return openPinworld();
+    // bấm Sơ đồ chân từ tab khác: về lại chỗ đang làm (Wiring / Breadboard / PCB Maker); đang ở đó thì bấm lần nữa mới về Sơ đồ chân
+    if (t === "pins" && !["pins", "build", "pcblab"].includes(state.tab) && state.b && !state.b.mod) { if (work === "build") return openBuild(); if (work === "pcblab") return openPcbLab(false); }
+    setTab(t);
+  });
   $("#viewWire").onclick = () => openBuild();
   $("#viewPcb").onclick = () => { state.view = "pcb"; draw(); renderDetail(); };
   $("#viewSch").onclick = () => { state.view = "sch"; draw(); renderDetail(); };
@@ -556,16 +572,54 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=176");
-    if (!window.BUILD) await loadJs("js/build.js?v=176");
+    if (!window.MODULES) await loadJs("js/modules.js?v=178");
+    regMine();
+    if (!window.BUILD) await loadJs("js/build.js?v=178");
     setTab("build"); BUILD.open(h);
   }
   // PCB Lab: vẽ bo 1 lớp tại nhà (chỉ ESP32-S3-DevKitC-1), tải js/pcblab.js khi mở lần đầu. fromWiring: lấy mạch của tab Wiring
   let pcbLoad = null;
-  async function openPcbLab(fromWiring) {
-    // nhớ promise: mở 2 lần liền (link #pcblab + bấm nút) không tải / chạy pcblab.js hai lần
-    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=176"); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=176"); })();
+  // Linh kiện của tôi (Fritzing) có hình breadboard + vị trí chân → thành module dùng được ở Wiring, Breadboard và PCB Maker
+  const MINE_ROLE = { g: "gnd", d: "i2c.sda", c: "i2c.scl", k: "spi.sck", m: "spi.mosi", s: "out", n: "out" };
+  // Linh kiện rời có ở PCB Maker (R, C, tụ hoá, MOSFET, transistor, motor): module dạng hộp trong Wiring, chân nối được vào GPIO / nguồn
+  // Linh kiện rời có ở PCB Maker (R, C, tụ hoá, MOSFET, transistor, motor): vẽ bằng đúng hình của danh sách PCB Maker, chân nối được vào GPIO / nguồn của board
+  // hình: viewBox 40 × 28 (hoặc 26 × 41 cho TO-92); chân: [tên, x, y, hướng ra dây] theo toạ độ viewBox
+  const PCB_ICON = {"R":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Cpath%20d%3D%22M2%2014h9M29%2014h9%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3Crect%20x%3D%2211%22%20y%3D%229%22%20width%3D%2218%22%20height%3D%2210%22%20rx%3D%225%22%20fill%3D%22%23d8c194%22%2F%3E%3Cpath%20d%3D%22M15%209v10M19%209v10M23%209v10%22%20stroke-width%3D%222%22%20stroke%3D%22%237b4a1e%22%2F%3E%3C%2Fsvg%3E","C":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Cpath%20d%3D%22M14%2022v4M26%2022v4%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3Crect%20x%3D%229%22%20y%3D%224%22%20width%3D%2222%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%23d9a83a%22%2F%3E%3C%2Fsvg%3E","ecap5":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Cpath%20d%3D%22M16%2022v4M24%2022v4%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%222%22%20width%3D%2216%22%20height%3D%2220%22%20rx%3D%223%22%20fill%3D%22%232b4f9e%22%2F%3E%3Crect%20x%3D%2223%22%20y%3D%222%22%20width%3D%224%22%20height%3D%2220%22%20fill%3D%22%23c9d2e0%22%2F%3E%3C%2Fsvg%3E","ecap6":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Cpath%20d%3D%22M16%2022v4M24%2022v4%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%222%22%20width%3D%2216%22%20height%3D%2220%22%20rx%3D%223%22%20fill%3D%22%232b4f9e%22%2F%3E%3Crect%20x%3D%2223%22%20y%3D%222%22%20width%3D%224%22%20height%3D%2220%22%20fill%3D%22%23c9d2e0%22%2F%3E%3C%2Fsvg%3E","ecap8":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Cpath%20d%3D%22M16%2022v4M24%2022v4%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%222%22%20width%3D%2216%22%20height%3D%2220%22%20rx%3D%223%22%20fill%3D%22%232b4f9e%22%2F%3E%3Crect%20x%3D%2223%22%20y%3D%222%22%20width%3D%224%22%20height%3D%2220%22%20fill%3D%22%23c9d2e0%22%2F%3E%3C%2Fsvg%3E","to92":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%223%200%2026%2041%22%20width%3D%22100%25%22%20height%3D%22100%25%22%3E%3Cg%20fill%3D%22%238C8C8C%22%3E%3Crect%20x%3D%2214.641%22%20y%3D%2231.79%22%20width%3D%222.692%22%20height%3D%228.989%22%2F%3E%3Crect%20x%3D%225.669%22%20y%3D%2231.79%22%20width%3D%222.693%22%20height%3D%228.989%22%2F%3E%3Crect%20x%3D%2223.614%22%20y%3D%2231.79%22%20width%3D%222.693%22%20height%3D%228.989%22%2F%3E%3Crect%20x%3D%2214.641%22%20y%3D%2220.104%22%20width%3D%222.692%22%20height%3D%2211.688%22%2F%3E%3Cpath%20d%3D%22M9.778%2C20.104v4.146c0%2C0.528-0.978%2C1.323-1.498%2C1.78c-1.282%2C1.113-2.61%2C2.273-2.61%2C3.74v2.023h2.693c0%2C0%2C0-1.25%2C0-1.512c0-0.646%2C1.13-1.736%2C1.688-2.211c1.246-1.088%2C2.431-2.113%2C2.431-3.437v-4.53H9.778z%22%2F%3E%3Cpath%20d%3D%22M22.195%2C20.104v4.146c0%2C0.528%2C0.977%2C1.323%2C1.499%2C1.78c1.285%2C1.113%2C2.61%2C2.273%2C2.61%2C3.74v2.023h-2.693c0%2C0%2C0-1.25%2C0-1.512c0-0.646-1.13-1.736-1.686-2.211c-1.248-1.088-2.433-2.113-2.433-3.437v-4.53H22.195z%22%2F%3E%3C%2Fg%3E%3Crect%20x%3D%227.688%22%20y%3D%227.512%22%20fill%3D%22%231A1A1A%22%20width%3D%2216.598%22%20height%3D%2212.588%22%2F%3E%3Cpath%20fill%3D%22%23141414%22%20d%3D%22M23.029%2C7.512v3.066v10.286v2.303c0.79-0.891%2C1.256-1.941%2C1.256-3.065V7.512H23.029z%22%2F%3E%3Cpath%20fill%3D%22%23242424%22%20d%3D%22M8.945%2C7.512H7.69v12.588c0%2C1.125%2C0.466%2C2.175%2C1.256%2C3.065v-2.303V10.58L8.945%2C7.512z%22%2F%3E%3Cpath%20fill%3D%22%231F1F1F%22%20d%3D%22M7.688%2C7.512c0%2C1.125%2C0.466%2C2.176%2C1.256%2C3.066h14.095c0.79-0.891%2C1.256-1.941%2C1.256-3.066H7.688z%22%2F%3E%3Cpath%20fill%3D%22%23141414%22%20d%3D%22M15.987%2C1.689c-4.584%2C0-8.3%2C2.607-8.3%2C5.827h16.598C24.285%2C4.297%2C20.572%2C1.689%2C15.987%2C1.689z%22%2F%3E%3Crect%20x%3D%228.945%22%20y%3D%2210.58%22%20width%3D%2214.096%22%20height%3D%2212.587%22%20fill%3D%22%23111%22%2F%3E%3Ctext%20x%3D%2216%22%20y%3D%2217%22%20font-size%3D%224.6%22%20font-weight%3D%22700%22%20fill%3D%22%23e6e6e6%22%20text-anchor%3D%22middle%22%20font-family%3D%22sans-serif%22%3ETO-92%3C%2Ftext%3E%3C%2Fsvg%3E","irfz44n":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Crect%20x%3D%2212%22%20y%3D%221%22%20width%3D%2216%22%20height%3D%227%22%20rx%3D%221%22%20fill%3D%22%23b8bcc2%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%224.5%22%20r%3D%221.8%22%20fill%3D%22%23555%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%2216%22%20height%3D%2211%22%20rx%3D%221%22%20fill%3D%22%231d1f24%22%2F%3E%3Cpath%20d%3D%22M15%2019v8M20%2019v8M25%2019v8%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E","irf540n":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Crect%20x%3D%2212%22%20y%3D%221%22%20width%3D%2216%22%20height%3D%227%22%20rx%3D%221%22%20fill%3D%22%23b8bcc2%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%224.5%22%20r%3D%221.8%22%20fill%3D%22%23555%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%2216%22%20height%3D%2211%22%20rx%3D%221%22%20fill%3D%22%231d1f24%22%2F%3E%3Cpath%20d%3D%22M15%2019v8M20%2019v8M25%2019v8%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E","irf520":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Crect%20x%3D%2212%22%20y%3D%221%22%20width%3D%2216%22%20height%3D%227%22%20rx%3D%221%22%20fill%3D%22%23b8bcc2%22%2F%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%224.5%22%20r%3D%221.8%22%20fill%3D%22%23555%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%2216%22%20height%3D%2211%22%20rx%3D%221%22%20fill%3D%22%231d1f24%22%2F%3E%3Cpath%20d%3D%22M15%2019v8M20%2019v8M25%2019v8%22%20stroke%3D%22%239aa3a0%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E","motor":"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2028%22%3E%3Crect%20x%3D%228%22%20y%3D%225%22%20width%3D%2222%22%20height%3D%2218%22%20rx%3D%225%22%20fill%3D%22%233a3f47%22%2F%3E%3Crect%20x%3D%2230%22%20y%3D%2212%22%20width%3D%226%22%20height%3D%224%22%20fill%3D%22%23b8bcc2%22%2F%3E%3Ctext%20x%3D%2219%22%20y%3D%2218%22%20font-size%3D%2210%22%20font-weight%3D%22700%22%20text-anchor%3D%22middle%22%20fill%3D%22%23fff%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"};
+  const PCB_ONLY = {
+    R: ["Điện trở (R)", "Điện trở", [0, 0, 40, 28], 14, 9.8, [["1", 2, 14, "L"], ["2", 38, 14, "R"]]], C: ["Tụ gốm (C)", "Tụ gốm", [0, 0, 40, 28], 14, 9.8, [["1", 14, 26, "B"], ["2", 26, 26, "B"]]],
+    ecap5: ["Tụ hoá 35V · Ø5", "Tụ hoá Ø5", [0, 0, 40, 28], 14, 9.8, [["+", 16, 26, "B"], ["-", 24, 26, "B"]]], ecap6: ["Tụ hoá 35V · Ø6,3", "Tụ hoá Ø6,3", [0, 0, 40, 28], 14, 9.8, [["+", 16, 26, "B"], ["-", 24, 26, "B"]]], ecap8: ["Tụ hoá 35V · Ø8", "Tụ hoá Ø8", [0, 0, 40, 28], 14, 9.8, [["+", 16, 26, "B"], ["-", 24, 26, "B"]]],
+    to92: ["Transistor TO-92", "TO-92", [3, 0, 26, 41], 9.1, 14.3, [["E", 7, 40.5, "B"], ["B", 16, 40.5, "B"], ["C", 25, 40.5, "B"]]],
+    irfz44n: ["MOSFET IRFZ44N", "IRFZ44N", [0, 0, 40, 28], 14, 9.8, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]], irf540n: ["MOSFET IRF540N", "IRF540N", [0, 0, 40, 28], 14, 9.8, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]], irf520: ["MOSFET IRF520", "IRF520", [0, 0, 40, 28], 14, 9.8, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]],
+    motor: ["Motor DC", "Motor DC", [0, 0, 40, 28], 14, 9.8, [["M+", 8, 9, "L"], ["M-", 8, 19, "L"]]] };
+  function regPcbOnly() {
+    if (!window.MODULES) return;
+    for (const k in PCB_ONLY) if (!MODULES[k]) { const [name, short, vb, w, h, pins] = PCB_ONLY[k]; MODULES[k] = { name, short, color: "#c8a165", iface: "Linh kiện rời", vcc: "—", svg: PCB_ICON[k], svgData: PCB_ICON[k], icon: PCB_ICON[k], w, h, vb, pinDir: pins[0][3], pins: pins.map(([l, x, y, d]) => [l, "any", 0, x, y, d]), noauto: true, lib: "", note: "Linh kiện rời của PCB Maker. Wiring chỉ nối chân vào GPIO / nguồn của board; nối giữa các linh kiện (ví dụ qua điện trở) làm ở PCB Maker.", passive: true }; }
+  }
+  function regMine() {
+    regPcbOnly();
+    if (!window.MODULES) return;
+    let lib = null; try { lib = JSON.parse(localStorage.getItem("pindexio-myparts") || "null"); } catch (e) { }
+    const parts = lib && lib.parts ? lib.parts : {};
+    for (const k of Object.keys(MODULES)) if (k.startsWith("MY:") && !parts[k.slice(3)]) delete MODULES[k];
+    for (const id in parts) {
+      const p = parts[id], q = p && p.bbm; if (!p || !Array.isArray(p.pads)) continue;
+      if (!q || !p.icon || !/^data:image\/svg\+xml/.test(p.icon) || !Array.isArray(q.pins) || q.pins.length < 2) {   // linh kiện thêm từ bản cũ (chưa có vị trí chân trên hình breadboard): vẫn có trong danh sách, dạng hộp tên chân
+        const seen = new Set(), pins = []; for (const z of p.pads) { if (seen.has(z.name)) continue; seen.add(z.name); pins.push([z.name, z.conf >= .5 ? MINE_ROLE[z.role] || "any" : "any"]); }
+        if (pins.length >= 2) MODULES["MY:" + id] = { name: p.title, short: p.title.length > 18 ? p.title.slice(0, 17) + "…" : p.title, color: "#9aa0a6", iface: "Fritzing", vcc: "?", icon: p.icon, pins, noauto: true, mine: true, lib: "", note: "Linh kiện Fritzing (CC BY-SA 3.0), chưa kiểm. Thêm lại ở Pinworld để có hình breadboard và vị trí chân." };
+        continue;
+      }
+      const seen = new Set(), pins = [], [vx, vy, vw, vh] = q.vb, gx = q.pins.reduce((t, z) => t + z[1], 0) / q.pins.length, gy = q.pins.reduce((t, z) => t + z[2], 0) / q.pins.length, dd = [[gx - vx, "L"], [vx + vw - gx, "R"], [gy - vy, "T"], [vy + vh - gy, "B"]].sort((m, n) => m[0] - n[0])[0][1];   // hướng ra dây: cạnh gần nhất của cả cụm chân
+      for (const [name, x, y] of q.pins) { if (seen.has(name)) continue; seen.add(name); const pd = (p.pads || []).find(z => z.name === name), role = pd && pd.conf >= .5 ? MINE_ROLE[pd.role] || "any" : "any";
+        pins.push([name, role, 0, x, y, dd]); }
+      MODULES["MY:" + id] = { name: p.title, short: p.title.length > 18 ? p.title.slice(0, 17) + "…" : p.title, color: "#9aa0a6", iface: "Fritzing", vcc: "?", svg: p.icon, svgData: p.icon, w: q.w, h: q.h, vb: q.vb, pinDir: "T", pins, noauto: true, lib: "", note: "Linh kiện Fritzing (CC BY-SA 3.0): chưa kiểm, hãy đối chiếu chân với datasheet.", mine: true };
+    }
+  }
+  async function ensurePcb() {   // nhớ promise: mở 2 lần liền không tải / chạy pcblab.js hai lần
+    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=178"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=178"); })();
     await pcbLoad;
+  }
+  async function openPcbLab(fromWiring) {
+    await ensurePcb();
     setTab("pcblab"); PCBLAB.open({ fromWiring, board: state.b && !state.b.mod ? state.b.id : null });   // PCB Maker đi theo board đang chọn
   }
   // từ Mạch in PCB quay về Wiring: mode "wire" = nối dây tự do, "bb" = breadboard
@@ -578,9 +632,9 @@
   $("#viewPcbLab").onclick = () => openPcbLab(false);
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=176").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
-    if (!window.POSTS) await loadJs("js/posts.js?v=176");
-    if (!window.HOME) await loadJs("js/home.js?v=176");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=178").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=178");
+    if (!window.HOME) await loadJs("js/home.js?v=178");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());
@@ -590,7 +644,7 @@
     try { localStorage.setItem("region", r.dataset.r); } catch (err) { }
     renderBuy();
   });
-  window.APP = { state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
+  window.APP = { regMine, loadPcb: ensurePcb, state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });

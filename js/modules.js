@@ -112,7 +112,7 @@ window.MODULES = {
     note: "Nguồn 5 V riêng nếu nhiều LED (~60 mA/LED). Thêm điện trở 330 Ω nối tiếp DIN và tụ 1000 µF ở nguồn."
   },
   tb6612fng: {
-    name: "Driver động cơ TB6612FNG", short: "TB6612FNG", color: "#e6321e", iface: "PWM/GPIO", vcc: "3V3",
+    name: "Driver động cơ TB6612FNG", short: "TB6612FNG", color: "#e6321e", iface: "PWM/GPIO", vcc: "3V3", noauto: true,
     svg: "svg/tb6612fng.svg", w: 20.3, h: 20.3, vb: [0, 0, 57.6, 57.6], pinDir: "L",
     pins: [
       ["VM", "pwr.5v", 0, 7.2, 3.2339, "L"],
