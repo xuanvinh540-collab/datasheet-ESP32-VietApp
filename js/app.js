@@ -509,7 +509,7 @@
   let pwLoad = null;
   async function openPinworld() {
     setTab("pinworld");
-    pwLoad = pwLoad || loadJs("js/pinworld.js?v=179");
+    pwLoad = pwLoad || loadJs("js/pinworld.js?v=180");
     await pwLoad; PINWORLD.open();
   }
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => {
@@ -572,9 +572,9 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=179");
+    if (!window.MODULES) await loadJs("js/modules.js?v=180");
     regMine();
-    if (!window.BUILD) await loadJs("js/build.js?v=179");
+    if (!window.BUILD) await loadJs("js/build.js?v=180");
     setTab("build"); BUILD.open(h);
   }
   // PCB Lab: vẽ bo 1 lớp tại nhà (chỉ ESP32-S3-DevKitC-1), tải js/pcblab.js khi mở lần đầu. fromWiring: lấy mạch của tab Wiring
@@ -614,8 +614,20 @@
       MODULES["MY:" + id] = { name: p.title, short: p.title.length > 18 ? p.title.slice(0, 17) + "…" : p.title, color: "#9aa0a6", iface: "Fritzing", vcc: "?", svg: p.icon, svgData: p.icon, w: q.w, h: q.h, vb: q.vb, pinDir: "T", pins, noauto: true, lib: "", note: "Linh kiện Fritzing (CC BY-SA 3.0): chưa kiểm, hãy đối chiếu chân với datasheet.", mine: true };
     }
   }
+  // hộp xác nhận tự vẽ (đẹp hơn confirm() của trình duyệt); trả về Promise<boolean>
+  function confirmBox(msg, o = {}) {
+    const en = document.documentElement.lang === "en";
+    return new Promise(res => {
+      const d = document.createElement("div"); d.className = "xsync cfm"; d.setAttribute("role", "alertdialog"); d.setAttribute("aria-modal", "true");
+      d.innerHTML = `<div class="xsync-box cfm-box"><div class="cfm-ic${o.danger ? " bad" : ""}" aria-hidden="true">${o.danger ? "!" : "?"}</div><h3>${esc(o.title || (en ? "Please confirm" : "Xác nhận"))}</h3><p>${esc(msg)}</p><div class="xsync-b"><button type="button" class="xs-no">${esc(o.cancel || (en ? "Cancel" : "Huỷ"))}</button><button type="button" class="xs-go${o.danger ? " danger" : ""}">${esc(o.ok || (en ? "OK" : "Đồng ý"))}</button></div></div>`;
+      const done = v => { document.removeEventListener("keydown", key, true); d.remove(); res(v); };
+      const key = e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); } else if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); done(!o.danger || document.activeElement === d.querySelector(".xs-go")); } };
+      d.querySelector(".xs-no").onclick = () => done(false); d.querySelector(".xs-go").onclick = () => done(true); d.onclick = e => { if (e.target === d) done(false); };
+      document.body.appendChild(d); document.addEventListener("keydown", key, true); (o.danger ? d.querySelector(".xs-no") : d.querySelector(".xs-go")).focus();
+    });
+  }
   async function ensurePcb() {   // nhớ promise: mở 2 lần liền không tải / chạy pcblab.js hai lần
-    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=179"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=179"); })();
+    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=180"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=180"); })();
     await pcbLoad;
   }
   async function openPcbLab(fromWiring) {
@@ -632,9 +644,9 @@
   $("#viewPcbLab").onclick = () => openPcbLab(false);
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=179").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
-    if (!window.POSTS) await loadJs("js/posts.js?v=179");
-    if (!window.HOME) await loadJs("js/home.js?v=179");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=180").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=180");
+    if (!window.HOME) await loadJs("js/home.js?v=180");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());
@@ -644,7 +656,7 @@
     try { localStorage.setItem("region", r.dataset.r); } catch (err) { }
     renderBuy();
   });
-  window.APP = { regMine, loadPcb: ensurePcb, state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
+  window.APP = { confirmBox, regMine, loadPcb: ensurePcb, state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });

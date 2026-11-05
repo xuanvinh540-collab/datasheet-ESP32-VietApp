@@ -829,20 +829,21 @@
         // thanh công cụ kiểu KiCad: nút phẳng icon + chữ, ngăn nhóm bằng vạch dọc
         // chỉ hiện icon (gọn hàng như PCB Maker); rê chuột xem tên + mô tả
         // icon: dùng bộ icon SVG của PCB Maker ("svg:tên") cho giống nhau giữa hai tab; không có thì giữ emoji
-        const SVGI = { arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', check: '<path d="M4 12l5 5L20 6"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', wire: '<path d="M4 19c4-1 3-8 8-8s4-7 8-8"/><circle cx="4" cy="19" r="1.6"/><circle cx="20" cy="3" r="1.6"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>' };
+        const SVGI = { spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>', sync: '<path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5"/>', arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', check: '<path d="M4 12l5 5L20 6"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', wire: '<path d="M4 19c4-1 3-8 8-8s4-7 8-8"/><circle cx="4" cy="19" r="1.6"/><circle cx="20" cy="3" r="1.6"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>' };
         const tb = (id, ic, t, tip) => `<button type="button" class="bbtn" id="${id}" title="${tip}" aria-label="${t}"><i aria-hidden="true">${String(ic).startsWith("svg:") ? `<svg viewBox="0 0 24 24">${SVGI[ic.slice(4)] || ""}</svg>` : ic}</i><span>${t}</span></button>`;
         // chế độ: Nối dây (mặc định) | Breadboard – bấm Breadboard lần nữa để đổi 1 → 2 → 3 tấm
         tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "svg:wire", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + tb("bmpcb", "🖨", "PCB Maker", "Làm bo mạch in 1 lớp từ mạch này (in ủi nhiệt, ăn mòn tại nhà)") + `</span>`
-          + `<span class="bwtools">` + tb("barr", "svg:arr", "Sắp xếp", "Đổi cách sắp xếp linh kiện") + tb("bstyle", "svg:scheme", "Đi dây", "Đổi kiểu đi dây") + tb("brot", "svg:rot", "Xoay board", "Xoay board 90°")
+          + tb("bauto", "svg:spark", "Auto Wire", "Auto Wire: tự nối các chân linh kiện chưa nối vào chân hợp lý của board (nguồn, GND, bus I2C / SPI, GPIO). Không đụng chân bạn đã nối tay.").replace('class="bbtn"', 'class="bbtn key"')
+          + `<span class="bwtools">` + tb("barr", "svg:arr", "Arrange", "Đổi cách sắp xếp linh kiện").replace('class="bbtn"', 'class="bbtn key"') + tb("bstyle", "svg:scheme", "Wire style", "Đổi kiểu đi dây").replace('class="bbtn"', 'class="bbtn key"') + tb("brot", "svg:rot", "Xoay board", "Xoay board 90°")
           + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label></span>`
           + `<span class="bbtools" hidden>` + tb("bbstyle", "🔀", "Đi dây", "Đổi kiểu dây: vuông góc / tách / cong / vát 45°") + `<label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bbspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bbspreadv">×${B.spread}</output></label>`
           + tb("bbghost", "👁", "Viền", "Ẩn nhanh linh kiện, chỉ để viền mỏng định vị (bấm lần nữa để hiện lại)")
           + `<label class="bslider bop" title="Độ rõ linh kiện"><i aria-hidden="true">◐</i><input id="bbop" type="range" min="0.1" max="1" step="0.05" value="${B.bb.op ?? .5}" aria-label="Độ rõ linh kiện"><output id="bbopv">${Math.round((B.bb.op ?? .5) * 100)}%</output></label></span>`
-          + `<span class="bsep"></span>` + tb("bsync", "⇄", "Đồng bộ PCB", "Cập nhật tab Wiring theo PCB Maker: thêm / bỏ module và đổi chân nối. Có hộp xác nhận và hoàn tác") + tb("bxchk", "svg:check", "Kiểm PCB", "So PCB Maker với mạch này và datasheet: nét đứt đỏ = chắc chắn sai, cam = nghi ngờ (chỉ báo, không sửa gì)") + `<span class="bsep"></span>` + tb("breset", "svg:reset", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "svg:dl", "Export", "Xuất ảnh PNG theo cài đặt")
+          + `<span class="bsep"></span>` + tb("bsync", "svg:sync", "Đồng bộ PCB", "Cập nhật tab Wiring theo PCB Maker: thêm / bỏ module và đổi chân nối. Có hộp xác nhận và hoàn tác") + tb("bxchk", "svg:check", "Kiểm PCB", "So PCB Maker với mạch này và datasheet: nét đứt đỏ = chắc chắn sai, cam = nghi ngờ (chỉ báo, không sửa gì)") + `<span class="bsep"></span>` + tb("breset", "svg:reset", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "svg:dl", "Export", "Xuất ảnh PNG theo cài đặt")
 ;
         // hàng 1: 3 nút chế độ; hàng 2: công cụ còn lại + zoom
         bar.insertBefore(tools, zoomBox); if (zoomBox) tools.appendChild(zoomBox); zoomBox && zoomBox.appendChild(tools.querySelector("#bpng"));   // Export cuối cùng bên phải, đi cùng cụm zoom
-        $("#barr").onclick = () => arrangeModules();
+        $("#barr").onclick = () => arrangeModules(); $("#bauto").onclick = () => autoWireAll(); ["bsync", "bxchk"].forEach(id => $("#" + id).classList.add("big"));
         $("#brot").onclick = () => rotateBoard();
         $("#bstyle").onclick = () => cycleStyle();
         $("#bspread").oninput = e => setSpread(+e.target.value);
@@ -914,14 +915,19 @@
   }
   // Reset: board chính về nguyên trạng, linh kiện xếp lại, khung nhìn vừa màn hình (giữ nguyên các mối nối)
   // Reset: xoá hết linh kiện và dây, board chính về chỗ cũ, breadboard còn 1 tấm
-  function resetView() {
-    if (B.mods.length && !confirm(window.trEN ? trEN("Xoá hết linh kiện và dây nối, chỉ giữ board chính và 1 breadboard?") : "Xoá hết linh kiện và dây nối, chỉ giữ board chính và 1 breadboard?")) return;
+  function autoWireAll() {
+    if (!B.mods.length) return A.toast("Chưa có linh kiện để tự nối.");
+    const n = B.mods.reduce((s, m) => s + (getPin(m, M[m.type].pins[0][0]) ? 0 : 1), 0); B.mods.forEach(autoAssign); save(); refresh(); A.toast("Auto Wire: đã tự nối chân" + (n ? "" : " (các linh kiện này đã nối sẵn)") + ". Chân bạn nối tay được giữ nguyên.");
+  }
+  async function resetView() {
+    const tt = x => window.trEN ? trEN(x) : x;
+    if (B.mods.length && !(await A.confirmBox(tt("Xoá hết linh kiện và dây nối, chỉ giữ board chính và 1 breadboard?"), { danger: true, title: tt("Xoá hết?"), ok: tt("Xoá hết"), cancel: tt("Huỷ") }))) return;
     B.mods = []; B.buses = [{}]; B.brot = 0; B.arrLast = null; B.arm = null;
     if (window.BBOARD) BBOARD.resetAll(); else B.bb = { ...B.bb, n: 1, board: null };
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=179"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=180"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -1023,7 +1029,7 @@
       <table class="btbl">${d.pins.map(([label]) => { const n = getPin(m, label); return `<tr><th>${esc(label)}</th><td>${n ? `<b>${esc(n)}</b>` : '<span class="muted">chưa nối</span>'}</td><td>${n ? `<button class="tap" data-un="${i}" data-l="${esc(label)}" title="Gỡ dây">✕</button>` : ""}</td></tr>`; }).join("")}</table></div>`; }).join("");
     box.innerHTML = `<div class="seg btabs"><button data-tab="mods" aria-pressed="${B.tab === "mods"}">Module</button><button data-tab="code" aria-pressed="${B.tab === "code"}">Code</button></div>
       ${B.tab === "mods" ? `<p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân / Xoay. Phím R xoay linh kiện đang chọn.</p>
-        <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>${B.mods.length ? `<button class="btn-auto" data-auto>✨ Tự nối chân</button>` : ""}
+        <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>
         ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
       : `<pre class="code bcode">${esc(code())}</pre><button class="btn-share" data-copy>Copy #define</button>`}
       <div class="bexp"><button data-exp="png">⬇ Ảnh PNG</button><button data-exp="json">⬇ File .json</button><button data-exp="link">🔗 Link</button><label>⬆ Mở .json<input type="file" accept=".json,application/json" hidden></label></div>`;
