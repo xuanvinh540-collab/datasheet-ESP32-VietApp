@@ -96,9 +96,10 @@
   function best(role, b, taken) { let top = null, ts = -1e8; for (const p of pads()) { if (taken.has(p.name) && !POWER.includes(role)) continue; const s = score(p, role, b); if (s > ts) { ts = s; top = p; } } return top; }
   function autoAssign(m) { return withHost(hostOf(m), () => autoAssignH(m)); }
   function autoAssignH(m) {
-    if (M[m.type].noauto) return;   // TB6612, linh kiện rời, linh kiện của tôi: người dùng tự nối
+    if (M[m.type].noauto && !M[m.type].mine) return;   // TB6612, linh kiện rời: người dùng tự nối. Linh kiện của tôi: tự nối theo dữ liệu Fritzing, mỗi chân kèm cảnh báo "cần kiểm" tới khi bạn bấm Đã kiểm
     const b = board(), taken = used();
     for (const [label, role] of M[m.type].pins) {
+      if (M[m.type].mine && role === "any") continue;   // chân chưa rõ vai trò: để người dùng tự nối
       if (getPin(m, label) || role === "mot") continue;   // ngõ ra động cơ: nối motor, không nối board
       let p = null;
       if (b.family === "RP2" && role === "i2s.ws") { const bl = pinByName(getPin(m, M[m.type].pins.find(x => x[1] === "i2s.bclk")[0]) || ""); p = bl && pads().find(x => x.gpio === bl.gpio + 1 && !taken.has(x.name)); }
@@ -109,7 +110,7 @@
 
   /* ---------- Cảnh báo ---------- */
   const forHosts = fn => hosts().flatMap(h => { const all = B.mods, mine = all.filter(m => hostOf(m) === h); if (h && !mine.length) return []; B.mods = mine; try { return withHost(h, () => fn(h)); } finally { B.mods = all; } });
-  const warnings = () => forHosts(h => warnFor().map(([t, x]) => [t, (hosts().length > 1 ? `[${board().name}] ` : "") + x]));
+  const warnings = () => forHosts(h => warnFor().map(([t, x, k]) => [t, (hosts().length > 1 ? `[${board().name}] ` : "") + x, k]));
   const code = () => forHosts(h => [codeFor()]).join("\n\n");
   function warnFor() {
     const b = board(), out = [];
@@ -121,6 +122,7 @@
         const n = getPin(m, label), p = n && pinByName(n);
         if (!p) { out.push(["todo", `${d.short} ${label}: chưa nối.`]); continue; }
         if (!SHARED.includes(role) && !POWER.includes(role)) (busy[n] = busy[n] || []).push(d.short + " " + label);
+        if (d.mine && !(m.ok && m.ok[label])) out.push(["check", `${d.short} ${label} → ${p.name}: nối theo dữ liệu Fritzing, cần kiểm tra với datasheet.`, d.short + "|" + label]);
         const s = score(p, role, b);
         if (s <= -1e8) out.push(["ban", `${d.short} ${label} → ${p.name}: chân này không làm được ${label}.`]);
         else if (s < 60 && p.warn) out.push(["warn", `${d.short} ${label} → ${p.name}: ${p.warn}`]);
@@ -523,7 +525,7 @@
         // hộp linh kiện: vẽ ở toạ độ chưa xoay rồi xoay cả nhóm quanh tâm
         const c = mCenter(m), o = { x: c.x - w / 2, y: c.y - h / 2 }, tf = mrot(m) ? { transform: `rotate(${mrot(m)} ${c.x} ${c.y})` } : {};
         const bx = el("g", tf, g); if (mrot(m)) head.setAttribute("transform", tf.transform);
-        el("rect", { x: o.x, y: o.y, width: NW, height: h, rx: 1, class: "modbox", stroke: d.color }, bx);
+        el("rect", { x: o.x, y: o.y, width: NW, height: h, rx: 1, class: "modbox", stroke: d.color }, bx).addEventListener("pointerdown", e => { if (e.button !== 2) startNode(e, mi); });   // kéo / chọn được cả thân hộp, không chỉ thanh tên
         el("rect", { x: o.x, y: o.y, width: NW, height: HH - .4, rx: 1, fill: d.color }, head);
         el("text", { x: o.x + 1.2, y: o.y + HH / 2 - .2, "dominant-baseline": "central", "font-size": 1.5, class: "modt" }, head, d.short);
         el("text", { x: o.x + NW - 1.2, y: o.y + HH / 2 - .2, "text-anchor": "end", "dominant-baseline": "central", "font-size": 1.1, class: "modt" }, head, d.vcc);
@@ -927,7 +929,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=180"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=181"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -1002,6 +1004,19 @@
       if (i >= 0) B.mods.splice(i, 1); else { B.mods.push({ type: k, pins: {}, ...(B.bb.on ? { fresh: true, host: Math.min(B.bb.cur || 0, (B.bb.extra || []).length) } : {}) }); if (!B.bb.on) B.cam = null; }
       cleanBus(); B.arm = null; save(); refresh();
     });
+    // Linh kiện của tôi: chuột phải hoặc phím Delete (khi đang chọn dòng) để xoá khỏi thư viện
+    root.querySelectorAll('[data-add^="MY:"]').forEach(x => {
+      x.addEventListener("contextmenu", e => { e.preventDefault(); e.stopPropagation(); ctxMenu(e, [["🗑 Xoá khỏi Linh kiện của tôi", () => mineDel(x.dataset.add), "Del"]]); });
+      x.addEventListener("keydown", e => { if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); mineDel(x.dataset.add); } });
+    });
+  }
+  async function mineDel(k) {
+    const d = M[k]; if (!d) return;
+    const used = B.mods.some(m => m.type === k);
+    if (!(await A.confirmBox(`Xoá "${d.name}" khỏi Linh kiện của tôi?` + (used ? " Linh kiện này đang có trong bo, sẽ bị bỏ khỏi bo." : ""), { danger: true, title: "Xoá linh kiện?", ok: "Xoá" }))) return;
+    try { const lib = JSON.parse(localStorage.getItem("pindexio-myparts") || "null"); if (lib && lib.parts) { delete lib.parts[k.slice(3)]; localStorage.setItem("pindexio-myparts", JSON.stringify(lib)); } } catch (e) { }
+    B.mods = B.mods.filter(m => m.type !== k); cleanBus(); B.arm = null; B.selM = null;
+    A.regMine(); save(); refresh(); A.toast("Đã xoá khỏi Linh kiện của tôi.");
   }
   // cột trái: tìm + danh sách linh kiện có icon (giống PCB Maker)
   function leftList(b) {
@@ -1030,12 +1045,13 @@
     box.innerHTML = `<div class="seg btabs"><button data-tab="mods" aria-pressed="${B.tab === "mods"}">Module</button><button data-tab="code" aria-pressed="${B.tab === "code"}">Code</button></div>
       ${B.tab === "mods" ? `<p class="muted small bhint">Chọn linh kiện hoặc dây rồi nhấn Delete, hoặc nhấp chuột phải để mở menu Xoá / Tự nối chân / Xoay. Phím R xoay linh kiện đang chọn.</p>
         <div class="blegend">${LEGEND.map(([r, t]) => `<span><i style="background:${COLOR[r]}"></i>${t}</span>`).join("")}</div>
-        ${W.length ? `<div class="bwarn">${W.map(([t, s]) => `<div class="w-${t}">${t === "ban" ? "⛔" : t === "warn" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}</div>`).join("")}</div>` : ""}${cards}`
+        ${W.length ? `<div class="bwarn">${W.map(([t, s, k]) => `<div class="w-${t === "check" ? "warn" : t}">${t === "ban" ? "⛔" : t === "warn" || t === "check" ? "⚠" : t === "todo" ? "○" : "ℹ"} ${esc(s)}${k ? ` <button type="button" class="wok" data-wok="${esc(k)}">✓ Đã kiểm</button>` : ""}</div>`).join("")}</div>` : ""}${cards}`
       : `<pre class="code bcode">${esc(code())}</pre><button class="btn-share" data-copy>Copy #define</button>`}
       <div class="bexp"><button data-exp="png">⬇ Ảnh PNG</button><button data-exp="json">⬇ File .json</button><button data-exp="link">🔗 Link</button><label>⬆ Mở .json<input type="file" accept=".json,application/json" hidden></label></div>`;
     bindAddBtns(box);
     box.querySelectorAll("[data-del]").forEach(x => x.onclick = () => { B.mods.splice(+x.dataset.del, 1); cleanBus(); B.arm = null; save(); refresh(); });
     box.querySelectorAll("[data-un]").forEach(x => x.onclick = () => { setPin(B.mods[+x.dataset.un], x.dataset.l, null); save(); refresh(); });
+    box.querySelectorAll("[data-wok]").forEach(x => x.onclick = () => { const [ty, l] = x.dataset.wok.split("|"); const m = B.mods.find(q => M[q.type].short === ty && !(q.ok && q.ok[l])); if (m) { (m.ok = m.ok || {})[l] = true; save(); refresh(); } });   // Đã kiểm: tắt cảnh báo của chân này
     const au = box.querySelector("[data-auto]"); if (au) au.onclick = () => { B.mods.forEach(autoAssign); save(); refresh(); };
     box.querySelectorAll("[data-tab]").forEach(x => x.onclick = () => { B.tab = x.dataset.tab; side(); });
     const cp = box.querySelector("[data-copy]"); if (cp) cp.onclick = () => navigator.clipboard.writeText(code()).then(() => A.toast("Đã copy"));

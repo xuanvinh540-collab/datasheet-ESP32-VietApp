@@ -319,3 +319,7 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 /* hộp xác nhận tự vẽ */
 .pcblab .pl-cfm-box { text-align: center } .pl-cfm-ic { width: 46px; height: 46px; margin: 0 auto 8px; border-radius: 50%; display: grid; place-items: center; font: 800 24px var(--sans); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent) } .pl-cfm-ic.bad { background: rgba(255,90,90,.18); color: #ff6b6b }
 .pcblab .pl-cfm .pdi-b { justify-content: center } .pcblab .pl-try.danger { background: #d94b4b; border-color: #d94b4b } .pcblab .pl-cfm p { margin: 4px 0 8px; line-height: 1.45 }
+/* đường gióng thông minh (Smart Alignment Guides) */
+.pcblab .sguide { stroke: #38e8ff; stroke-width: .18; stroke-dasharray: .7 .5; opacity: .9; pointer-events: none }
+.pcblab .sguide-pt { fill: none; stroke: #38e8ff; stroke-width: .22; opacity: .95; pointer-events: none }
+.pcblab .sguide-cur { fill: #38e8ff; opacity: .9; pointer-events: none }

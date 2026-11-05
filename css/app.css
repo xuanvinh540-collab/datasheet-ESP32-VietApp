@@ -758,3 +758,5 @@ main:has(> section[data-panel="build"]:not([hidden])) { max-width: none; }
 .btools .bbtn.big { padding: 4px 8px } .btools .bbtn.big span { display: none } .btools .bbtn.big i svg { width: 24px; height: 24px; stroke-width: 2.3 } .btools #bxchk i svg { stroke: #2ecc71; stroke-width: 3 } .btools #bsync i svg { stroke: var(--accent) }
 .cfm .cfm-box { text-align: center; max-width: 380px } .cfm-ic { width: 46px; height: 46px; margin: 0 auto 8px; border-radius: 50%; display: grid; place-items: center; font: 800 24px var(--sans, sans-serif); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent) } .cfm-ic.bad { background: rgba(255,90,90,.18); color: #ff6b6b }
 .cfm .xsync-b { justify-content: center } .cfm .xs-go.danger { background: #d94b4b } .cfm p { margin: 4px 0 6px; line-height: 1.45 }
+
+.bwarn .wok { margin-left: 6px; padding: 1px 8px; font-size: 11px; border: 1px solid var(--accent, #2f7d5b); border-radius: 6px; background: transparent; color: var(--accent, #2f7d5b); cursor: pointer } .bwarn .wok:hover { background: var(--accent, #2f7d5b); color: #fff }

@@ -55,6 +55,12 @@
   };
 
   /* ---------- đọc linh kiện Fritzing: .fzp + SVG PCB ---------- */
+  // hình breadboard của Fritzing có file không có viewBox (chỉ width/height): dựng viewBox = 0 0 rộng cao để định vị chân và co giãn được
+  function ensureVB(root) {
+    if (/^\s*[-\d.]+[\s,]+[-\d.]+[\s,]+[\d.]+[\s,]+[\d.]+\s*$/.test(root.getAttribute("viewBox") || "")) return;
+    const px = v => { const m = String(v || "").match(/^([\d.]+)\s*([a-z]*)$/i); if (!m) return 0; const n = +m[1], f = { "": 1, px: 1, in: 96, mm: 96 / 25.4, cm: 96 / 2.54, pt: 4 / 3, pc: 16 }[m[2].toLowerCase()]; return f ? n * f : 0; };
+    const w = px(root.getAttribute("width")), h = px(root.getAttribute("height")); if (w > 0 && h > 0) root.setAttribute("viewBox", "0 0 " + Math.round(w * 1000) / 1000 + " " + Math.round(h * 1000) / 1000);
+  }
   function sanitize(root) {   // SVG của người khác: bỏ script, foreignObject, sự kiện, liên kết ra ngoài
     root.querySelectorAll("script,foreignObject,iframe,object,embed,audio,video").forEach(e => e.remove());
     root.querySelectorAll("*").forEach(e => { for (const a of [...e.attributes]) { const n = a.name.toLowerCase(), v = a.value.trim().toLowerCase(); if (n.startsWith("on") || ((n === "href" || n === "xlink:href") && !v.startsWith("#") && !v.startsWith("data:image/"))) e.removeAttribute(a.name); } });
@@ -106,13 +112,13 @@
     host.remove();
     // khớp hình breadboard (có màu) với chân PCB: chỉ dùng khi sai lệch mọi chân < 0,6 mm
     let bbFit = null, bbm = null;
-    if (bbT) try {
+        if (bbT) try {
       const bd = new DOMParser().parseFromString(bbT, "image/svg+xml"), br = bd.documentElement;
       if (br.nodeName.toLowerCase() === "svg" && !bd.querySelector("parsererror")) {
-        sanitize(br); const bdpi = /Adobe Illustrator/i.test(bbT) ? 72 : 90, bvb = (br.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
+        sanitize(br); ensureVB(br); const bdpi = /Adobe Illustrator/i.test(bbT) ? 72 : 90, bvb = (br.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
         let BW = mm(br.getAttribute("width"), bdpi), BH = mm(br.getAttribute("height"), bdpi);
         if (!(BW > 0 && BH > 0) && bvb.length === 4) { BW = bvb[2] / bdpi * 25.4; BH = bvb[3] / bdpi * 25.4; }
-        if (BW > 0 && BH > 0) {
+                if (BW > 0 && BH > 0) {
           br.setAttribute("width", BW + "mm"); br.setAttribute("height", BH + "mm");
           const h2 = document.createElement("div"); h2.style.cssText = host.style.cssText; h2.appendChild(document.importNode(br, true)); document.body.appendChild(h2);
           const s2 = h2.firstElementChild, b2 = s2.getBoundingClientRect(), ids = {}; s2.querySelectorAll("[id]").forEach(e => { ids[e.id] = e; });
@@ -137,7 +143,7 @@
         }
       }
     } catch (e) { bbFit = null; }
-    let icon = ""; if (bbT) { try { const bd = new DOMParser().parseFromString(bbT, "image/svg+xml"); if (bd.documentElement.nodeName.toLowerCase() === "svg") { sanitize(bd.documentElement); const s = new XMLSerializer().serializeToString(bd.documentElement); if (s.length < 60000) icon = "data:image/svg+xml;utf8," + encodeURIComponent(s); } } catch (e) { } }
+    let icon = ""; if (bbT) { try { const bd = new DOMParser().parseFromString(bbT, "image/svg+xml"); if (bd.documentElement.nodeName.toLowerCase() === "svg") { sanitize(bd.documentElement); ensureVB(bd.documentElement); const s = new XMLSerializer().serializeToString(bd.documentElement); if (s.length < 60000) icon = "data:image/svg+xml;utf8," + encodeURIComponent(s); } } catch (e) { } }
     if (!icon) icon = imgUrl(p, "breadboard");
     if (pads.length < 2) throw new Error(L("Không tìm thấy vị trí chân trong SVG PCB.", "Pin positions were not found in the PCB SVG."));
     const x0 = pads[0].x, y0 = pads[0].y, r2 = v => Math.round(v * 100) / 100, warn = [];

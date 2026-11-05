@@ -8,7 +8,7 @@
     <section class="pl-stage" id="plStage"><svg id="plSvg" xmlns="http://www.w3.org/2000/svg"></svg><canvas id="plRulerT" aria-hidden="true"></canvas><canvas id="plRulerL" aria-hidden="true"></canvas><div id="plTip"></div><div id="plHint"></div><div id="plToast"></div><div id="plCtx"></div></section>
     <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side"><div id="plPanel"></div></aside><div class="pl-tips" id="plTips"></div>`;
   const $ = s => ROOT.querySelector(s), $$ = s => ROOT.querySelectorAll(s);
-  const BUILD = "2026-11-05 12:09"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
+  const BUILD = "2026-11-05 17:16"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
   // chạy thử trên máy (tools/serve.py): build xong thì trang tự tải lại. Trên web thật không có /__ver nên không làm gì
   if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
     let ver = null;
@@ -1611,6 +1611,7 @@
     const last = r.pts[r.pts.length - 1], pd = padAt({ x: r.cur[0], y: r.cur[1] }), end = pd && Math.hypot(pd.x - r.cur[0], pd.y - r.cur[1]) < .01, pts = [...r.pts, ...(end ? posture(last, r.cur) : [aim(last, r.cur)])], w = PWR.has(r.net) ? W_PWR : W_SIG;
     const tmpT = { net: r.net, pts }, bad = drc(A.P).length !== quickBad(tmpT, w);
     el("path", { d: "M" + pts.map(p => p.join(" ")).join(" L"), "stroke-width": w, class: "cu tmp" + (bad ? " bad" : "") }, LY.tmp);
+    drawGuides();
   }
   function quickBad(tmp, w) { const keep = S.traces; S.traces = [...keep, { ...tmp, id: -1, w }]; const n = drc(A.P).length; S.traces = keep; return n; }
   // đang vẽ chạm vật khác mạng: được nối nếu một trong hai là mạng trống (dây tự do)
@@ -1706,13 +1707,26 @@
     S.jumpers.push({ id: S.uid++, net: t.net, a: a.q, b: b.q });
     cancel(); ui.sel = null; render(); toast(L("Đã cắt đường và bắc dây nhảy (nét trắng). Chỗ trống giờ cho đường khác đi qua.", "Trace cut and bridged with a jumper (white line). The gap is now free for other traces."));
   }
-  // snap ưu tiên điểm neo / đầu mút của line & jumper, tâm pad, rồi thân line / jumper (không bắt vào PCB grid)
-  function jSnap(p, a0, shift, selfJ, selfT) {
+  function drawGuides() {
+    if (!ui.guides || !ui.guides.length || S.snapG === false) return;
+    for (const [rx, ry, sx, sy] of ui.guides) {
+      el("line", { x1: rx, y1: ry, x2: sx, y2: sy, class: "sguide" }, LY.tmp);
+      el("circle", { cx: rx, cy: ry, r: .55, class: "sguide-pt" }, LY.tmp);
+      el("circle", { cx: sx, cy: sy, r: .42, class: "sguide-cur" }, LY.tmp);
+    }
+  }
+  // snap ưu tiên điểm neo / đầu mút của line & jumper, tâm pad, đường gióng ảo (< 0,48 mm), rồi thân line / jumper
+  function jSnap(p, a0, shift, selfJ, selfT, exclIdx) {
+    ui.guides = null;
     const mode0 = S.jAng || "free", mode = shift ? (mode0 === "free" ? "45" : "free") : mode0;
     let x = p.x, y = p.y;
     if (a0 && mode !== "free") {
       const dx = x - a0[0], dy = y - a0[1], L = Math.hypot(dx, dy), step = mode === "15" ? Math.PI / 12 : Math.PI / 4;
       if (L > 1e-3) { const a = Math.round(Math.atan2(dy, dx) / step) * step; x = a0[0] + L * Math.cos(a); y = a0[1] + L * Math.sin(a); }
+    }
+    if (S.snapG === false) {
+      const pd = A.P.find(q => !(selfJ && q.jw === selfJ) && Math.hypot(q.x - x, q.y - y) < (q.r || PAD_R));
+      return pd ? { q: [pd.x, pd.y], net: pd.net, pd, hit: "pad" } : { q: [r3(x), r3(y)], net: null, hit: null };
     }
     let best = null, bd = .85;
     for (const q of A.P) {
@@ -1722,25 +1736,52 @@
     }
     let vd = .8;
     for (const t of S.traces) {
-      if (selfT && t === selfT) continue;
+      if (selfT && t === selfT && exclIdx == null) continue;
       for (let k = 0; k < t.pts.length; k++) {
+        if (selfT && t === selfT && (k === exclIdx || Math.hypot(t.pts[k][0] - selfT.pts[exclIdx][0], t.pts[k][1] - selfT.pts[exclIdx][1]) < .08)) continue;
         const pt = t.pts[k];
         if (selfJ && (Math.hypot(pt[0] - selfJ.a[0], pt[1] - selfJ.a[1]) < .08 || Math.hypot(pt[0] - selfJ.b[0], pt[1] - selfJ.b[1]) < .08)) continue;
         const d = Math.hypot(pt[0] - x, pt[1] - y);
         if (d < vd) { vd = d; best = { q: [pt[0], pt[1]], net: t.net, t, k, hit: "vtx" }; }
       }
     }
-    if (!best) {
+    if (!best && exclIdx == null) {
       const sg = segAt({ x, y }), pr = sg && (!selfT || sg.t !== selfT) && proj(sg.t, { x, y });
       if (pr && pr.d < traceW(sg.t) / 2 + .3) best = { q: pr.q.map(r3), net: sg.t.net, sg, hit: "seg" };
     }
-    if (!best) {
+    if (!best && exclIdx == null) {
       let jd = .45;
       for (const j of S.jumpers) {
         if (selfJ && j === selfJ) continue;
         const dx = j.b[0] - j.a[0], dy = j.b[1] - j.a[1], l2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - j.a[0]) * dx + (y - j.a[1]) * dy) / l2));
         const q = [r3(j.a[0] + u * dx), r3(j.a[1] + u * dy)], d = Math.hypot(x - q[0], y - q[1]);
         if (d < jd) { jd = d; best = { q, net: j.net, jw: j, hit: "jseg" }; }
+      }
+    }
+    if (!best && (!a0 || mode === "free")) {
+      const curNet = (ui.route && ui.route.net) || (ui.jf && ui.jf.net) || (selfT && selfT.net) || (selfJ && selfJ.net) || ui.hlNet;
+      const fromPt = (ui.mode === "route" && ui.route && ui.route.pts[ui.route.pts.length - 1]) || (ui.mode === "jfree" && ui.jf && ui.jf.a) || null;
+      let gx = null, gy = null, sxScore = .42, syScore = .42;
+      const testRef = (rx, ry, sameNet) => {
+        if (fromPt && Math.hypot(rx - fromPt[0], ry - fromPt[1]) < .15) return;
+        const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dist = Math.hypot(rx - x, ry - y);
+        if (dist < .2 || dist > (sameNet ? 55 : 28)) return;
+        const w = dist * .003 - (sameNet ? .04 : 0);
+        if (dx < .42 && dx + w < sxScore) { sxScore = dx + w; gx = [rx, ry]; }
+        if (dy < .42 && dy + w < syScore) { syScore = dy + w; gy = [rx, ry]; }
+      };
+      for (const t of S.traces) for (let k = 0; k < t.pts.length; k++) {
+        if (selfT && t === selfT && (k === exclIdx || (exclIdx == null))) continue;
+        testRef(t.pts[k][0], t.pts[k][1], t.net === curNet);
+      }
+      for (const j of S.jumpers) if (j !== selfJ) { testRef(j.a[0], j.a[1], j.net === curNet); testRef(j.b[0], j.b[1], j.net === curNet); }
+      for (const q of A.P) if (!(selfJ && q.jw === selfJ) && (q.net === curNet || Math.hypot(q.x - x, q.y - y) < 22)) testRef(q.x, q.y, q.net === curNet);
+      if (gx || gy) {
+        const sx = gx ? gx[0] : r3(x), sy = gy ? gy[1] : r3(y);
+        ui.guides = [];
+        if (gx) ui.guides.push([gx[0], gx[1], sx, sy]);
+        if (gy) ui.guides.push([gy[0], gy[1], sx, sy]);
+        return { q: [r3(sx), r3(sy)], net: null, hit: "guide" };
       }
     }
     if (best) {
@@ -1760,7 +1801,7 @@
     }
     return best || { q: [r3(x), r3(y)], net: null, hit: null };
   }
-  function ptSnap(p, selfT) { return jSnap(p, null, true, null, selfT); }
+  function ptSnap(p, selfT, exclIdx) { return jSnap(p, null, false, null, selfT, exclIdx); }
   // lỗ tự do: đang vẽ → J đặt lỗ ở đầu bút; chọn đường → J rồi bấm 1 điểm trên đường. Sau đó kéo dây nhảy tới chỗ khác.
   function placeHole() {
     if (ui.mode === "route") {
@@ -1788,6 +1829,7 @@
     const J = ui.jf; LY.tmp.innerHTML = ""; if (!J) return;
     el("circle", { cx: J.a[0], cy: J.a[1], r: JP_R, class: "jmark" }, LY.tmp); el("circle", { cx: J.cur[0], cy: J.cur[1], r: JP_R, class: "jmark" }, LY.tmp);
     el("line", { x1: J.a[0], y1: J.a[1], x2: J.cur[0], y2: J.cur[1], class: "jcut" }, LY.tmp);
+    drawGuides();
   }
   function pickJfree(p, g, e) {
     const J = ui.jf, P = pads(), s = jSnap(p, J.a, e && e.shiftKey), pd = s.pd;
@@ -2274,11 +2316,11 @@
     if (ui.tool === "ms") { if (ui.meas && !ui.meas.fixed) ui.meas.b = measSnap(p); drawMeas(measSnap(p)); }
     else if ((ui.tool === "jw" || ui.mode === "hole") && ui.mode !== "jfree") {
       LY.tmp.innerHTML = ""; const s = jSnap(p, null, e.shiftKey);
-      el("circle", { cx: s.q[0], cy: s.q[1], r: JP_R, class: "jmark" }, LY.tmp);
+      el("circle", { cx: s.q[0], cy: s.q[1], r: JP_R, class: "jmark" }, LY.tmp); drawGuides();
     }
     else if (ui.tool === "cu" && ui.mode === "idle") {
       LY.tmp.innerHTML = ""; const s = ptSnap(p);
-      el("circle", { cx: s.q[0], cy: s.q[1], r: .45, class: "pen-nib" }, LY.tmp);
+      el("circle", { cx: s.q[0], cy: s.q[1], r: .45, class: "pen-nib" }, LY.tmp); drawGuides();
     }
     if (ui.drag) return ui.drag.move(p, e);
     const pd = padAt(p), tip = $("#plTip");
@@ -2380,9 +2422,10 @@
         for (const je of jEnds) { je.j[je.k] = [nx, ny]; delete je.j.auto; }
         for (const h of hEnds) { h.x = nx; h.y = ny; }
         for (const en of ends) { en.t.pts[en.k] = [nx, ny]; en.t.lock = true; }
-        moved = true; render();
+        moved = true; render(); LY.tmp.innerHTML = ""; drawGuides();
       },
       up: () => {
+        ui.guides = null; LY.tmp.innerHTML = "";
         if (moved) {
           for (const en of ends) en.t.pts = simplify(en.t.pts.filter((q, i) => i === 0 || q[0] !== en.t.pts[i - 1][0] || q[1] !== en.t.pts[i - 1][1]));
           gcHoles(); pushRaw(snapS); render();
@@ -2467,9 +2510,12 @@
   }
   function startVertex(e, i) {
     const t = S.traces.find(x => x.id === ui.sel.id), snapS = JSON.stringify(S); let moved = false;
-    // ưu tiên bám điểm neo / đầu mút của line & jumper, tâm chân (cùng mạng hoặc mạng trống), rồi baru xét giữ góc 45°/90° hoặc tự do
-    const vtxSnap = p => { const s = ptSnap(p, t); return s.hit && (!s.net || s.net === t.net || isFree(t.net) || isFree(s.net)) ? s.q : null; };
-    ui.drag = { move: (p, ev) => { const q = vtxSnap(p) || (ev && ev.shiftKey ? [r3(p.x), r3(p.y)] : snap45(t.pts[i - 1], t.pts[i + 1], [p.x, p.y])); if (q[0] === t.pts[i][0] && q[1] === t.pts[i][1]) return; moved = true; t.pts[i] = q; t.lock = true; render(); }, up: () => { if (moved) { t.pts = simplify(t.pts); pushRaw(snapS); } render(); } };
+    // ưu tiên bám điểm neo / đầu mút của line & jumper, tâm chân, đường gióng ảo (< 0,48 mm), rồi mới xét giữ góc 45°/90° hoặc tự do
+    /* chỉ ép góc 45° khi các đoạn kề điểm này đang là 0/45/90°; dây vẽ tay góc tuỳ ý thì kéo tự do (Alt = luôn tự do) */
+    const on45 = (a, b) => !a || !b || (d => d < 1e-6 || Math.abs(((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI) % 45 + 45) % 45) < .6 || Math.abs((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI) % 45) > 44.4)(Math.hypot(b[0] - a[0], b[1] - a[1])), ang45 = on45(t.pts[i - 1], t.pts[i]) && on45(t.pts[i], t.pts[i + 1]);
+    const vtxSnap = p => { const s = ptSnap(p, t, i); return s.hit && (!s.net || s.net === t.net || isFree(t.net) || isFree(s.net)) ? s.q : null; };
+    const org = [...t.pts[i]];
+    ui.drag = { move: (p, ev) => { /* Shift / Ctrl: bỏ bám điểm neo, vẫn giữ góc 45° của dây nối */ const lock = ev && ev.shiftKey, free = ev && (ev.ctrlKey || ev.metaKey), raw = ev && (ev.altKey || free); if (lock || raw || free) ui.guides = null; const q = lock ? (Math.abs(p.x - org[0]) >= Math.abs(p.y - org[1]) ? [r3(p.x), org[1]] : [org[0], r3(p.y)]) : raw ? [r3(p.x), r3(p.y)] : (!free && vtxSnap(p)) || (ang45 ? snap45(t.pts[i - 1], t.pts[i + 1], [p.x, p.y]) : [r3(p.x), r3(p.y)]); if (q[0] === t.pts[i][0] && q[1] === t.pts[i][1]) return; moved = true; t.pts[i] = q; t.lock = true; render(); LY.tmp.innerHTML = ""; drawGuides(); }, up: () => { ui.guides = null; LY.tmp.innerHTML = ""; if (moved) { t.pts = simplify(t.pts); pushRaw(snapS); } render(); } };
   }
 
   /* ---------- lệnh ---------- */
@@ -2567,6 +2613,7 @@
       if (force !== true) { confirmBox(L(`Xoá hết linh kiện và đường đồng, chỉ để lại ${hostInfo().name}?`, `Remove all parts and traces, keeping only ${hostInfo().name}?`), { danger: true, title: L("Làm mới bo?", "Reset the board?"), ok: L("Xoá hết", "Delete all") }).then(ok => ok && cmd.reset(true)); return; }
       checkpoint(); S = fresh(S.mcu); ui.sel = null; render(); fit(); },
     rats() { S.rats = !S.rats; render(); },
+    snapG() { S.snapG = S.snapG === false; ui.guides = null; LY.tmp.innerHTML = ""; render(); toast(S.snapG ? L("Đã bật Snap đỉnh & đường gióng ảo (F4).", "Vertex & smart guide snap ON (F4).") : L("Đã tắt Snap đỉnh & đường gióng ảo (F4).", "Vertex & smart guide snap OFF (F4).")); },
     // nắn đoạn đang chọn hoặc dây nhảy: h ngang, v dọc, a 45°. Dời đầu tự do của đoạn; đoạn nối 2 chân thì chèn 1 điểm gập
     straight(m) {
       const s = ui.sel;
@@ -2587,13 +2634,52 @@
       }
       const t = s && s.t === "t" && S.traces.find(x => x.id === s.id); if (!t) return;
       checkpoint(); const P = t.pts, last = P.length - 1, k = Math.max(0, Math.min(s.k || 0, last - 1)), a = P[k], b = P[k + 1];
-      const diag = (o, f) => { const dx = f[0] - o[0], dy = f[1] - o[1], d = snap((Math.abs(dx) + Math.abs(dy)) / 2, Q); return [r3(o[0] + (Math.sign(dx) || 1) * d), r3(o[1] + (Math.sign(dy) || 1) * d)]; };
-      if (k + 1 < last || k > 0) {
-        const [fi, oi] = k + 1 < last ? [k + 1, k] : [k, k + 1], o = P[oi], f = P[fi];
-        P[fi] = m === "h" ? [f[0], o[1]] : m === "v" ? [o[0], f[1]] : diag(o, f);
+      const P0 = pads().filter(q => !q.jw && !q.hole), onPad = e => P0.some(q => Math.hypot(q.x - e[0], q.y - e[1]) < .1);
+      const dx = b[0] - a[0], dy = b[1] - a[1], sx = Math.sign(dx) || 1, sy = Math.sign(dy) || 1;
+      const [nx, ny] = m === "h" ? [0, 1] : m === "v" ? [1, 0] : [sy, -sx], err = dx * nx + dy * ny;
+      if (Math.abs(err) < 1e-4) return;
+      // tìm trục của đoạn dây nối tiếp ở đầu mút e (trong cùng đường t hoặc đường cùng mạng chạm vào e)
+      const axisAt = (e, selfNb) => {
+        if (onPad(e)) return null;
+        const links = [];
+        for (const u of S.traces) if (u.net === t.net) {
+          if (u === t) continue;
+          if (Math.hypot(u.pts[0][0] - e[0], u.pts[0][1] - e[1]) < .08 && u.pts[1]) links.push({ u, i: 0, nb: u.pts[1] });
+          if (Math.hypot(u.pts.at(-1)[0] - e[0], u.pts.at(-1)[1] - e[1]) < .08 && u.pts.at(-2)) links.push({ u, i: u.pts.length - 1, nb: u.pts.at(-2) });
+        }
+        const nb = selfNb || (links[0] && links[0].nb);
+        if (!nb) return { free: true, links };
+        const ux = e[0] - nb[0], uy = e[1] - nb[1], ul = Math.hypot(ux, uy), den = ux * nx + uy * ny;
+        if (ul < 1e-3 || Math.abs(den) < .15 * ul) return null;
+        return { ux, uy, den, links };
+      };
+      const axA = axisAt(a, k > 0 ? P[k - 1] : null), axB = axisAt(b, k + 1 < last ? P[k + 2] : null);
+      const moveEnd = (pt, ax, delta) => {
+        pt[0] = r3(pt[0] + delta[0]); pt[1] = r3(pt[1] + delta[1]);
+        for (const lk of (ax && ax.links) || []) { lk.u.pts[lk.i] = [...pt]; lk.u.lock = true; }
+      };
+      const freeMove = (o, f) => {
+        if (m === "h") return [0, o[1] - f[1]];
+        if (m === "v") return [o[0] - f[0], 0];
+        const d = (Math.abs(f[0] - o[0]) + Math.abs(f[1] - o[1])) / 2;
+        return [o[0] + (Math.sign(f[0] - o[0]) || 1) * d - f[0], o[1] + (Math.sign(f[1] - o[1]) || 1) * d - f[1]];
+      };
+      if (axA && !axA.free && axB && !axB.free) {
+        const tA = .5 * err / axA.den, tB = -.5 * err / axB.den;
+        const wA = 1 + 2 * tA < .2 ? 0 : 1 + 2 * tB < .2 ? 1 : .5, wB = 1 - wA;
+        moveEnd(a, axA, [wA * err / axA.den * axA.ux, wA * err / axA.den * axA.uy]);
+        moveEnd(b, axB, [-wB * err / axB.den * axB.ux, -wB * err / axB.den * axB.uy]);
+      } else if (axB && !axB.free) {
+        moveEnd(b, axB, [-err / axB.den * axB.ux, -err / axB.den * axB.uy]);
+      } else if (axA && !axA.free) {
+        moveEnd(a, axA, [err / axA.den * axA.ux, err / axA.den * axA.uy]);
+      } else if (axB && axB.free) {
+        moveEnd(b, axB, freeMove(a, b));
+      } else if (axA && axA.free) {
+        moveEnd(a, axA, freeMove(b, a));
       } else {
-        const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.min(Math.abs(dx), Math.abs(dy));
-        P.splice(1, 0, m === "h" ? [b[0], a[1]] : m === "v" ? [a[0], b[1]] : [r3(a[0] + Math.sign(dx) * d), r3(a[1] + Math.sign(dy) * d)]);
+        const d = Math.min(Math.abs(dx), Math.abs(dy));
+        P.splice(k + 1, 0, m === "h" ? [b[0], a[1]] : m === "v" ? [a[0], b[1]] : [r3(a[0] + sx * d), r3(a[1] + sy * d)]);
       }
       t.pts = simplify(P.filter((q, i) => i === 0 || q[0] !== P[i - 1][0] || q[1] !== P[i - 1][1])); t.lock = true;
       s.k = Math.min(k, t.pts.length - 2); render();
@@ -2671,6 +2757,7 @@
     if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); return cmd.redo(); }
     if ((e.ctrlKey || e.metaKey) && k === "s") { e.preventDefault(); return cmd.saveProject(e.shiftKey); }
     if ((e.ctrlKey || e.metaKey) && k === "o") { e.preventDefault(); return cmd.openProject(); }
+    if (e.key === "F4") { e.preventDefault(); return cmd.snapG(); }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (k === "escape") { const busy = ui.mode !== "idle"; cancel(); if (!busy) setTool("sel"); ui.sel = null; ui.hlNet = null; return render(); }
     if (ui.tool === "saw" && ui.saw) { if (k === "enter") return sawFinish(); if (k === "backspace") { e.preventDefault(); ui.saw.pts.pop(); return drawSaw(null); } }
@@ -3193,6 +3280,7 @@
     if ($("#plVal")) $("#plVal").onchange = e => { checkpoint(); selC.val = e.target.value.trim(); render(); };
     if ($("#plName")) $("#plName").onchange = e => { checkpoint(); const v = e.target.value.trim(); if (v) selC.lbl = v; else delete selC.lbl; render(); };
     $("#plRats").classList.toggle("on", S.rats); $("#plFlip").classList.toggle("on", !!S.flip); $("#plPour").classList.toggle("on", !!S.pour);
+    if ($("#plSnap")) $("#plSnap").classList.toggle("on", S.snapG !== false);
     { const sb = $("#plTsaw"); if (sb) sb.classList.toggle("dis", !sawOK()); }
     syncWidthSlider();
     $("#plUndo").disabled = !undo.length; $("#plRedo").disabled = !redo.length;
@@ -3268,9 +3356,9 @@
   }
   // menu thả của nút Tự đi dây: "Tự đi lại khi sửa linh kiện" mặc định tắt (nhẹ máy, người dùng tự bấm)
   function tools() {
-    const ic = { tsaw: '<rect x="14" y="2.5" width="8" height="5" rx="1" transform="rotate(45 18 5)"/><path d="M14.5 9.5L3.5 20.5M6.5 17.5l-2.5-.5M9.5 14.5l-2.5-.5M12.5 11.5l-2.5-.5"/>', space: '<path d="M4 5v14M20 5v14"/><path d="M8 12h8M8 12l2-2M8 12l2 2M16 12l-2-2M16 12l-2 2"/>', draw: '<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M13 8l3 3"/><path d="M3 22c3-1 5 1 8 0"/>', edit: '<path d="M3 21l1.6-4.6 3 3z"/><path d="M6.5 17.5L14 10"/><path d="M12 8l4-4 4 4-4 4z"/><path d="M19 14l2 2M21 11h1M15 18v2" stroke-width="1.6"/>', wid: '<path d="M4 6h16" stroke-width="1"/><path d="M4 12h16" stroke-width="2.5"/><path d="M4 19h16" stroke-width="4.5"/>', tms: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>', check: '<path d="M4 12l5 5L20 6"/>', tsel: '<path d="M6 3l12 9-5.5 1.2L15 20l-2.5 1-2.6-6.6L6 18z"/>', tcu: '<path d="M3 19l7-11 4 6 7-10" stroke-width="3.2"/>', ttr: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9"/><path d="M14.5 14.5L20 20"/><path d="M8.1 8.1L12 12"/>', ter: '<path d="M9 20h11"/><path d="M4 15l9-9 6 6-8 8H8z"/><path d="M9 10l6 6"/>', ttf: '<path d="M4 17h11V6"/><path d="M15 17h5M15 6V2" stroke-dasharray="2 2" opacity=".55"/><circle cx="15" cy="17" r="2"/>', ttc: '<path d="M4 18h7l7-7V4"/><path d="M11 18h7v-7" stroke-dasharray="2 2" opacity=".55"/><circle cx="11" cy="18" r="1.7"/><circle cx="18" cy="11" r="1.7"/>', wire: '<path d="M4 19c4-1 3-8 8-8s4-7 8-8"/><circle cx="4" cy="19" r="1.6"/><circle cx="20" cy="3" r="1.6"/>', hole: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/>', pour: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12l8-8M4 20L20 4M12 20l8-8"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', jump: '<circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="6" r="2.6"/><path d="M7 16.2L17 7.8"/>', flip: '<path d="M12 3v18"/><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/>', undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>', redo: '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>', del: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', auto: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', clear: '<path d="M4 4l16 16M20 4L4 20"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', rats: '<path d="M4 18L20 6" stroke-dasharray="3 3"/>', zin: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M8 11h6"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', unwire: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1L20 20M8.1 15.9L20 4"/>', re: '<path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/>', arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>' };
+    const ic = { snap: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke-dasharray="2 1.5"/><circle cx="12" cy="12" r="3.2"/>', tsaw: '<rect x="14" y="2.5" width="8" height="5" rx="1" transform="rotate(45 18 5)"/><path d="M14.5 9.5L3.5 20.5M6.5 17.5l-2.5-.5M9.5 14.5l-2.5-.5M12.5 11.5l-2.5-.5"/>', space: '<path d="M4 5v14M20 5v14"/><path d="M8 12h8M8 12l2-2M8 12l2 2M16 12l-2-2M16 12l-2 2"/>', draw: '<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M13 8l3 3"/><path d="M3 22c3-1 5 1 8 0"/>', edit: '<path d="M3 21l1.6-4.6 3 3z"/><path d="M6.5 17.5L14 10"/><path d="M12 8l4-4 4 4-4 4z"/><path d="M19 14l2 2M21 11h1M15 18v2" stroke-width="1.6"/>', wid: '<path d="M4 6h16" stroke-width="1"/><path d="M4 12h16" stroke-width="2.5"/><path d="M4 19h16" stroke-width="4.5"/>', tms: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>', check: '<path d="M4 12l5 5L20 6"/>', tsel: '<path d="M6 3l12 9-5.5 1.2L15 20l-2.5 1-2.6-6.6L6 18z"/>', tcu: '<path d="M3 19l7-11 4 6 7-10" stroke-width="3.2"/>', ttr: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9"/><path d="M14.5 14.5L20 20"/><path d="M8.1 8.1L12 12"/>', ter: '<path d="M9 20h11"/><path d="M4 15l9-9 6 6-8 8H8z"/><path d="M9 10l6 6"/>', ttf: '<path d="M4 17h11V6"/><path d="M15 17h5M15 6V2" stroke-dasharray="2 2" opacity=".55"/><circle cx="15" cy="17" r="2"/>', ttc: '<path d="M4 18h7l7-7V4"/><path d="M11 18h7v-7" stroke-dasharray="2 2" opacity=".55"/><circle cx="11" cy="18" r="1.7"/><circle cx="18" cy="11" r="1.7"/>', wire: '<path d="M4 19c4-1 3-8 8-8s4-7 8-8"/><circle cx="4" cy="19" r="1.6"/><circle cx="20" cy="3" r="1.6"/>', hole: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/>', pour: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12l8-8M4 20L20 4M12 20l8-8"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', jump: '<circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="6" r="2.6"/><path d="M7 16.2L17 7.8"/>', flip: '<path d="M12 3v18"/><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/>', undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>', redo: '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>', del: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', auto: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', clear: '<path d="M4 4l16 16M20 4L4 20"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', rats: '<path d="M4 18L20 6" stroke-dasharray="3 3"/>', zin: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M8 11h6"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', unwire: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1L20 20M8.1 15.9L20 4"/>', re: '<path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/>', arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>' };
     // chữ dưới icon: 1–2 từ; tên đầy đủ + giải thích nằm ở title (rê chuột)
-    const SHORT = { plWidth: L("Độ rộng", "Width"), plTjw: L("Dây nhảy", "Jumper"), plAuto: "AutoRoute", plUnwire: L("Gỡ dây", "Unwire"), plClear: L("Xoá hết", "Clear"), plZin: L("Phóng", "Zoom +"), plZout: L("Thu", "Zoom −"),
+    const SHORT = { plSnap: "Snap", plWidth: L("Độ rộng", "Width"), plTjw: L("Dây nhảy", "Jumper"), plAuto: "AutoRoute", plUnwire: L("Gỡ dây", "Unwire"), plClear: L("Xoá hết", "Clear"), plZin: L("Phóng", "Zoom +"), plZout: L("Thu", "Zoom −"),
       plFit: L("Vừa", "Fit"), plFlip: L("Lật", "Flip"), plUndo: L("Hoàn tác", "Undo"), plRedo: L("Làm lại", "Redo"), plArr: L("Sắp xếp", "Arrange"), plReset: L("Làm mới", "Reset"), plPour: L("Mass", "Pour") };
     const b = (id, i, t, tip, ico) => `<button type="button" class="tb${ico ? " ico" : ""}" id="${id}" title="${!t || !tip || tip.startsWith(t) ? tip || t : t + " – " + tip}"><svg viewBox="0 0 24 24">${ic[i]}</svg><span>${SHORT[id] || t}</span></button>`;
     const sep = '<span class="sep"></span>';
@@ -3280,7 +3368,7 @@
     const layerBtn = `<button type="button" class="tb pl-file pl-layers" id="plLayers" data-popbtn aria-haspopup="menu" title="${L("Layer: ẩn / hiện, khoá, màu, layer hiện hành", "Layers: show / hide, lock, colour, current layer")}"></button>`;
     $("#plBar").innerHTML = modes + fileBtn + layerBtn + sep
       + b("plUndo", "undo", L("Hoàn tác", "Undo"), "Ctrl+Z", 1) + b("plRedo", "redo", L("Làm lại", "Redo"), "Ctrl+Shift+Z", 1) + sep
-      + b("plFlip", "flip", L("Lật mặt", "Flip"), L("Xem mặt trước / mặt sau (V)", "Front / back view (V)")) + b("plRats", "rats", L("Dây bay", "Ratsnest"), L("Bật / tắt dây bay", "Show / hide ratsnest"), 1) + b("plWidth", "wid", L("Độ rộng dây", "Trace width"), L("Độ rộng dây: bấm để bật, chọn mức rồi bấm từng đường để đổi; bấm lại để tắt", "Trace width: click to turn on, pick a width, then click traces to change them; click again to turn off"), 1)
+      + b("plFlip", "flip", L("Lật mặt", "Flip"), L("Xem mặt trước / mặt sau (V)", "Front / back view (V)")) + b("plRats", "rats", L("Dây bay", "Ratsnest"), L("Bật / tắt dây bay", "Show / hide ratsnest"), 1) + b("plSnap", "snap", "Snap", L("Bật / tắt bắt dính điểm neo & đường gióng ảo (F4)", "Toggle vertex & smart alignment guides snap (F4)")) + b("plWidth", "wid", L("Độ rộng dây", "Trace width"), L("Độ rộng dây: bấm để bật, chọn mức rồi bấm từng đường để đổi; bấm lại để tắt", "Trace width: click to turn on, pick a width, then click traces to change them; click again to turn off"), 1)
       + `<label class="alpha" title="${L("Board thật: độ rõ hình board thật", "Real boards: picture opacity")}">◐ <input type="range" id="plAlpha" min="0" max="100" step="5" value="${Math.round(S.alpha * 100)}"></label>` + sep
       + b("plZin", "zin", L("Phóng to", "Zoom in"), "", 1) + b("plZout", "zout", L("Thu nhỏ", "Zoom out"), "", 1) + b("plFit", "fit", L("Vừa khung", "Fit view"), "0 / Home") + sep
       + b("plArr", "arr", L("Sắp xếp", "Arrange"), L("Sắp xếp: tự bố trí linh kiện (bấm lần nữa đổi kiểu: gọn / rộng / dọc)", "Arrange: auto-place parts (click again for another layout: compact / wide / tall)"))
@@ -3298,7 +3386,7 @@
     let lineOpts = () => {}, jwOpts = () => {};
     syncWidthSlider = () => {};
     const on = (id, f) => $(id).onclick = f;
-    on("#plTms", () => setTool(ui.tool === "ms" ? "sel" : "ms")); on("#plCheck", cmd.check); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
+    on("#plTms", () => setTool(ui.tool === "ms" ? "sel" : "ms")); on("#plCheck", cmd.check); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plSnap", cmd.snapG); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
     $$(".pl-tools [data-tool]").forEach(x => x.onclick = () => { const tk = x.dataset.tool; if (tk === "tf") triggerWeldCmd("fill"); else if (tk === "tc") triggerWeldCmd("chamfer"); else if (tk === "cu") { if ($("#plFlyJ")) $("#plFlyJ").classList.remove("on"); if (ui.tool !== "cu") { setTool("cu"); lineOpts(true); } else lineOpts(); } else if (tk === "jw") { if ($("#plFlyP")) $("#plFlyP").classList.remove("on"); if (ui.tool !== "jw") { setTool("jw"); jwOpts(true); } else jwOpts(); } else if (tk === "dr") setTool(ui.tool === "dr" ? "sel" : "dr"); else if (tk === "tr") { if (EDITS.includes(ui.tool)) setTool("sel"); else { const lt = S.editTool || "tr"; if (lt === "tf") triggerWeldCmd("fill"); else if (lt === "tc") triggerWeldCmd("chamfer"); else setTool(lt); } } else setTool(tk); });
     let fly = $("#plFly"); if (!fly) { fly = document.createElement("div"); fly.id = "plFly"; fly.className = "pl-fly"; $("#plStage").appendChild(fly); }
     fly.innerHTML = EDITS.map(k => { const [t, tip] = TOOLS()[k], [name, key] = t.match(/^(.*) \((.)\)$/) || [0, t, ""].slice(0), mm = t.match(/^(.*) \((.)\)$/); const nm = mm ? mm[1] : t.replace(/ \(.\)$/, ""), ky = mm ? mm[2] : "T"; return `<button type="button" data-tool="${k}" title="${tip}"><span>${nm}</span><kbd>${ky}</kbd></button>`; }).join("");

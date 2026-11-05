@@ -509,7 +509,7 @@
   let pwLoad = null;
   async function openPinworld() {
     setTab("pinworld");
-    pwLoad = pwLoad || loadJs("js/pinworld.js?v=180");
+    pwLoad = pwLoad || loadJs("js/pinworld.js?v=181");
     await pwLoad; PINWORLD.open();
   }
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => {
@@ -572,15 +572,17 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=180");
+    if (!window.MODULES) await loadJs("js/modules.js?v=181");
     regMine();
-    if (!window.BUILD) await loadJs("js/build.js?v=180");
+    if (!window.BUILD) await loadJs("js/build.js?v=181");
     setTab("build"); BUILD.open(h);
   }
   // PCB Lab: vẽ bo 1 lớp tại nhà (chỉ ESP32-S3-DevKitC-1), tải js/pcblab.js khi mở lần đầu. fromWiring: lấy mạch của tab Wiring
   let pcbLoad = null;
   // Linh kiện của tôi (Fritzing) có hình breadboard + vị trí chân → thành module dùng được ở Wiring, Breadboard và PCB Maker
-  const MINE_ROLE = { g: "gnd", d: "i2c.sda", c: "i2c.scl", k: "spi.sck", m: "spi.mosi", s: "out", n: "out" };
+  const MINE_ROLE = { g: "gnd", d: "i2c.sda", c: "i2c.scl", k: "spi.sck", m: "spi.mosi", s: "out", n: "any" };
+  // vai trò chân từ dữ liệu Fritzing (độ tin cậy cao) hoặc theo tên chân nguồn; còn lại "any" = để người dùng tự nối
+  const mineRole = z => { if (z && z.conf >= .5) return MINE_ROLE[z.role] || "any"; const n = String(z && z.name || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); return /^(VCC|VDD|3V3|3V)$/.test(n) ? "pwr.3v3" : /^(5V|VIN|VBUS)$/.test(n) ? "pwr.5v" : "any"; };
   // Linh kiện rời có ở PCB Maker (R, C, tụ hoá, MOSFET, transistor, motor): module dạng hộp trong Wiring, chân nối được vào GPIO / nguồn
   // Linh kiện rời có ở PCB Maker (R, C, tụ hoá, MOSFET, transistor, motor): vẽ bằng đúng hình của danh sách PCB Maker, chân nối được vào GPIO / nguồn của board
   // hình: viewBox 40 × 28 (hoặc 26 × 41 cho TO-92); chân: [tên, x, y, hướng ra dây] theo toạ độ viewBox
@@ -604,12 +606,12 @@
     for (const id in parts) {
       const p = parts[id], q = p && p.bbm; if (!p || !Array.isArray(p.pads)) continue;
       if (!q || !p.icon || !/^data:image\/svg\+xml/.test(p.icon) || !Array.isArray(q.pins) || q.pins.length < 2) {   // linh kiện thêm từ bản cũ (chưa có vị trí chân trên hình breadboard): vẫn có trong danh sách, dạng hộp tên chân
-        const seen = new Set(), pins = []; for (const z of p.pads) { if (seen.has(z.name)) continue; seen.add(z.name); pins.push([z.name, z.conf >= .5 ? MINE_ROLE[z.role] || "any" : "any"]); }
+        const seen = new Set(), pins = []; for (const z of p.pads) { if (seen.has(z.name)) continue; seen.add(z.name); pins.push([z.name, mineRole(z)]); }
         if (pins.length >= 2) MODULES["MY:" + id] = { name: p.title, short: p.title.length > 18 ? p.title.slice(0, 17) + "…" : p.title, color: "#9aa0a6", iface: "Fritzing", vcc: "?", icon: p.icon, pins, noauto: true, mine: true, lib: "", note: "Linh kiện Fritzing (CC BY-SA 3.0), chưa kiểm. Thêm lại ở Pinworld để có hình breadboard và vị trí chân." };
         continue;
       }
       const seen = new Set(), pins = [], [vx, vy, vw, vh] = q.vb, gx = q.pins.reduce((t, z) => t + z[1], 0) / q.pins.length, gy = q.pins.reduce((t, z) => t + z[2], 0) / q.pins.length, dd = [[gx - vx, "L"], [vx + vw - gx, "R"], [gy - vy, "T"], [vy + vh - gy, "B"]].sort((m, n) => m[0] - n[0])[0][1];   // hướng ra dây: cạnh gần nhất của cả cụm chân
-      for (const [name, x, y] of q.pins) { if (seen.has(name)) continue; seen.add(name); const pd = (p.pads || []).find(z => z.name === name), role = pd && pd.conf >= .5 ? MINE_ROLE[pd.role] || "any" : "any";
+      for (const [name, x, y] of q.pins) { if (seen.has(name)) continue; seen.add(name); const pd = (p.pads || []).find(z => z.name === name), role = mineRole(pd || { name });
         pins.push([name, role, 0, x, y, dd]); }
       MODULES["MY:" + id] = { name: p.title, short: p.title.length > 18 ? p.title.slice(0, 17) + "…" : p.title, color: "#9aa0a6", iface: "Fritzing", vcc: "?", svg: p.icon, svgData: p.icon, w: q.w, h: q.h, vb: q.vb, pinDir: "T", pins, noauto: true, lib: "", note: "Linh kiện Fritzing (CC BY-SA 3.0): chưa kiểm, hãy đối chiếu chân với datasheet.", mine: true };
     }
@@ -627,7 +629,7 @@
     });
   }
   async function ensurePcb() {   // nhớ promise: mở 2 lần liền không tải / chạy pcblab.js hai lần
-    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=180"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=180"); })();
+    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=181"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=181"); })();
     await pcbLoad;
   }
   async function openPcbLab(fromWiring) {
@@ -644,9 +646,9 @@
   $("#viewPcbLab").onclick = () => openPcbLab(false);
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=180").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
-    if (!window.POSTS) await loadJs("js/posts.js?v=180");
-    if (!window.HOME) await loadJs("js/home.js?v=180");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=181").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=181");
+    if (!window.HOME) await loadJs("js/home.js?v=181");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());
