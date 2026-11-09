@@ -15,7 +15,7 @@ window.MODULES = {
   },
   led: {
     name: "Đèn LED đơn 5mm", short: "Đèn LED", color: "#ff5252", iface: "GPIO/PWM", vcc: "GPIO",
-    svg: "svg/led.svg", w: 14, h: 20, vb: [-5, -3, 26, 37], pinDir: "B",
+    svg: "svg/led.svg", w: 8.5, h: 12.1, vb: [-5, -3, 26, 37], pinDir: "B",
     pins: [
       ["GND", "gnd", 0, 3.58, 30.2, "B"],
       ["A", "out", 0, 12.1, 30.2, "B"]

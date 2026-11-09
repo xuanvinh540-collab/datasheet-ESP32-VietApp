@@ -11,7 +11,7 @@
   // thêm VCC/GND vào đầu danh sách chân của mỗi module (một lần)
   for (const d of Object.values(M)) {
     if (!d.svg && !d.passive && !d.mine && !d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
-    if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { d.svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); if (B.boardId) draw(); }).catch(() => {});
+    if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { if (t.includes("xlink:") && !t.includes("xmlns:xlink")) t = t.replace("<svg", '<svg xmlns:xlink="http://www.w3.org/1999/xlink"'); d.svgData = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(t))); if (B.boardId) draw(); }).catch(() => {});
   }
   const B = { boardId: null, buses: [{}], mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "", brot: 0, needPlace: false, bb: { on: false, n: 1, board: null } };
   Object.defineProperty(B, "bus", { get() { return B.buses[CUR] || (B.buses[CUR] = {}); }, set(v) { B.buses[CUR] = v; } });
@@ -757,18 +757,24 @@
     if (document.querySelector(".xexp")) return;
     let fmt = "png"; try { fmt = localStorage.getItem("build:expfmt") || "png"; } catch (e) { }
     if (!["png", "json", "link"].includes(fmt)) fmt = "png";
+    const curDir = A.getSaveDir ? A.getSaveDir() : "";
     const d = document.createElement("div"); d.className = "xsync xexp"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
     const sub = { png: "Ảnh PNG: sơ đồ đấu dây, sơ đồ nguyên lý và code theo tuỳ chọn dưới đây", json: "File .json của mạch này: mở lại bằng nút \"Mở .json\"", link: "Copy link: người nhận mở link là thấy đúng mạch này" };
     d.innerHTML = `<div class="xsync-box"><h3>Xuất file</h3>
       <label class="xexp-row"><span>Tên file</span><input id="xeName" value="pindex-${esc(board().id)}" spellcheck="false"></label>
+      <div class="xexp-row" id="xeDirRow"><span>Nơi lưu</span><div class="xexp-dir"><input id="xeDir" value="${esc(curDir)}" placeholder="Mặc định: thư mục Downloads (nhập đường dẫn hoặc bấm Chọn…)" spellcheck="false"><button type="button" id="xeDirPick" title="Chọn thư mục lưu file">📁 Chọn…</button><button type="button" id="xeDirClr" title="Đặt lại về thư mục Downloads mặc định"${curDir ? "" : " hidden"}>✕</button></div></div>
       <div class="xexp-row"><span>Định dạng</span><div class="xexp-seg">${[["png", "PNG"], ["json", "JSON"], ["link", "Link"]].map(([k, t]) => `<button type="button" data-fmt="${k}"${fmt === k ? ' class="on"' : ""}>${t}</button>`).join("")}</div></div>
       <p class="xexp-sub" id="xeSub"></p><div id="xeOpts"></div>
       <div class="xsync-b"><button type="button" class="xs-no">Huỷ</button><button type="button" class="xs-go" id="xeGo">⬇ Tải xuống</button></div></div>`;
     const sp = settingsPanel(); sp.hidden = false; sp.querySelector(".bset-t").remove(); sp.querySelector(".bset-f").remove(); d.querySelector("#xeOpts").appendChild(sp);
-    const show = () => { d.querySelector("#xeSub").textContent = sub[fmt]; sp.style.display = fmt === "png" ? "" : "none"; d.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === fmt)); d.querySelector("#xeGo").textContent = fmt === "link" ? "🔗 Copy link" : "⬇ Tải xuống"; };
+    const dirInp = d.querySelector("#xeDir"), dirClr = d.querySelector("#xeDirClr"), dirRow = d.querySelector("#xeDirRow");
+    dirInp.oninput = () => { if (A.setSaveDir) A.setSaveDir(dirInp.value); dirClr.hidden = !dirInp.value.trim(); };
+    d.querySelector("#xeDirPick").onclick = async () => { if (!A.pickSaveDir) return; const p = await A.pickSaveDir(); if (p != null) { dirInp.value = p; dirClr.hidden = !p; } };
+    dirClr.onclick = () => { if (A.clearSaveDir) A.clearSaveDir(); dirInp.value = ""; dirClr.hidden = true; };
+    const show = () => { d.querySelector("#xeSub").textContent = sub[fmt]; sp.style.display = fmt === "png" ? "" : "none"; dirRow.style.display = fmt === "link" ? "none" : ""; d.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === fmt)); d.querySelector("#xeGo").textContent = fmt === "link" ? "🔗 Copy link" : "⬇ Tải xuống"; };
     d.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => { fmt = b.dataset.fmt; try { localStorage.setItem("build:expfmt", fmt); } catch (e) { } show(); });
     const close = () => d.remove(); d.querySelector(".xs-no").onclick = close; d.onclick = e => { if (e.target === d) close(); };
-    d.querySelector("#xeGo").onclick = () => { const nm = d.querySelector("#xeName").value; close(); exportAs(fmt, nm); };
+    d.querySelector("#xeGo").onclick = () => { if (A.setSaveDir) A.setSaveDir(dirInp.value); const nm = d.querySelector("#xeName").value; close(); exportAs(fmt, nm); };
     show(); document.body.appendChild(d); d.querySelector("#xeName").select();
   }
 
@@ -929,7 +935,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=181"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=183"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -1075,29 +1081,54 @@
   }
   function save() { try { localStorage.setItem("build:" + board().id, JSON.stringify(dump())); } catch (e) { } }
   function restore() { CUR = 0; B.boardId = board().id; B.buses = [{}]; B.mods = []; B.arm = null; B.cam = null; B.brot = 0; B.bb = { on: false, n: 1, board: null, extra: [], cur: 0 }; try { const o = JSON.parse(localStorage.getItem("build:" + B.boardId) || "null"); if (o) load(o); } catch (e) { } }
-  const dl = (name, href) => { const a = document.createElement("a"); a.href = href; a.download = name; a.click(); };
-  // ảnh ngoài (ảnh board thật) không tải được trong SVG xuất ảnh: nhúng thành data URL trước khi chụp
+  const dl = (name, data) => {
+    const blob = data instanceof Blob, url = blob ? URL.createObjectURL(data) : data;
+    const a = document.createElement("a"); a.href = url; a.download = name; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    if (blob || /^blob:/.test(url)) setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+  const loadImg = u => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = u; });
+  // ảnh ngoài (ảnh board thật, SVG con) nhúng thành data URL base64 trước khi chụp để trình duyệt giải mã SVG lồng nhau không lỗi
   const IMG_CACHE = {};
+  const svgToB64 = raw => {
+    if (raw.includes("xlink:") && !raw.includes("xmlns:xlink")) raw = raw.replace("<svg", '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(raw)));
+  };
   async function inlineImages(root) {
     for (const im of root.querySelectorAll("image")) {
-      const h = im.getAttribute("href"); if (!h || h.startsWith("data:")) continue;
-      try { IMG_CACHE[h] = IMG_CACHE[h] || await fetch(h).then(r => r.blob()).then(bl => new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); })); im.setAttribute("href", IMG_CACHE[h]); } catch (e) { }
+      const h = im.getAttribute("href") || im.getAttribute("xlink:href"); if (!h) continue;
+      if (h.startsWith("data:")) {
+        if (/^data:image\/svg\+xml;(utf8|charset=utf-8),/i.test(h)) {
+          try { im.setAttribute("href", svgToB64(decodeURIComponent(h.slice(h.indexOf(",") + 1)))); } catch (e) { }
+        }
+        continue;
+      }
+      try {
+        if (!IMG_CACHE[h]) {
+          if (/\.svg(\?|$)/i.test(h)) IMG_CACHE[h] = svgToB64(await fetch(h).then(r => r.text()));
+          else IMG_CACHE[h] = await fetch(h).then(r => r.blob()).then(bl => new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }));
+        }
+        im.setAttribute("href", IMG_CACHE[h]);
+      } catch (e) { }
     }
   }
   async function exportAs(kind, name) {
     const b = board(), fname = (name || "").trim().replace(/[\\/:*?"<>|]+/g, "-") || `pindex-${b.id}`;
-    if (kind === "json") return dl(`${fname}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
+    if (kind === "json") { const bl = new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" }), r = A.saveFile ? await A.saveFile(`${fname}.json`, bl) : (dl(`${fname}.json`, bl), { ok: true }); if (!r || !r.aborted) A.toast(r && r.dir ? `Đã lưu ${fname}.json vào ${r.dir}` : `Đã tải ${fname}.json`); return; }
     if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Wiring"); } catch (e) { A.toast(u); } return; }
     toggleSet(false);
     let img = null, logo = null;
     if (EXP.wire) {
-      const keep = { ...B.cam }; B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
-      await inlineImages(svg());
-      let u = A.svgDataUrl(svg());
-      u ="data:image/svg+xml;charset=utf-8," + encodeURIComponent(decodeURIComponent(u.split(",").slice(1).join(",")).replace(/(<svg[^>]*?)\sstyle="background:[^"]*"/, "$1"));   // bỏ nền tối để vùng đấu dây cùng màu nền ảnh
-      img = new Image(); img.src = u; await img.decode(); B.cam = keep; draw();
+      const keep = B.cam ? { ...B.cam } : null;
+      try {
+        B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
+        await inlineImages(svg());
+        const raw = decodeURIComponent(A.svgDataUrl(svg()).split(",").slice(1).join(",")).replace(/(<svg[^>]*?)\sstyle="background:[^"]*"/, "$1");   // bỏ nền tối để vùng đấu dây cùng màu nền ảnh
+        const u = URL.createObjectURL(new Blob([raw], { type: "image/svg+xml;charset=utf-8" }));
+        try { img = await loadImg(u); } finally { setTimeout(() => URL.revokeObjectURL(u), 2000); }
+      } catch (e) { console.error(e); } finally { B.cam = keep; draw(); }
     }
-    if (EXP.logo) { logo = new Image(); logo.src = "icon.svg"; try { await logo.decode(); } catch (e) { logo = null; } }
+    if (EXP.logo) { try { logo = await loadImg("icon.svg"); } catch (e) { logo = null; } }
     // nền chung cho cả ảnh lẫn vùng đấu dây: Nguyên bản = màu canvas app, Trắng, hoặc trong suốt
     const orig = EXP.bg === "orig", bg = orig ? getComputedStyle(svg()).backgroundColor : EXP.bg === "white" ? "#fff" : null;
     const ink = orig ? getComputedStyle(document.body).color : "#1d232a", muted = orig ? "#8a93a0" : "#5b6570";
@@ -1167,7 +1198,10 @@
       const tw = g.measureText("pindexio.com").width, ly = H - 20 - z / 2;
       g.fillStyle = ink; g.fillText("pindexio.com", W - P, ly); g.drawImage(logo, W - P - tw - 12 - z, ly - z / 2, z, z);
     }
-    dl(`${fname}.png`, c.toDataURL("image/png"));
+    c.toBlob(async bl => {
+      const data = bl || c.toDataURL("image/png"), r = A.saveFile ? await A.saveFile(`${fname}.png`, data) : (dl(`${fname}.png`, data), { ok: true });
+      if (!r || !r.aborted) A.toast(r && r.dir ? `Đã lưu ${fname}.png vào ${r.dir}` : `Đã tải ${fname}.png`);
+    }, "image/png");
   }
   function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Wiring không hợp lệ."); } }
 

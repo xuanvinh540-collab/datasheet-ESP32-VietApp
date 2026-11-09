@@ -5,7 +5,7 @@ window.AFFILIATE = {
     "label": "Việt Nam",
     "shop": "Shopee",
     "links": {
-      "esp32-c3-devkitm-1": "https://s.shopee.vn/80DkL6o3WA",
+      "esp32-c3-devkitm-1": "https://s.shopee.vn/qkc3uYOs0",
       "esp32-c3-supermini": "https://s.shopee.vn/80DkL6o3WA",
       "esp32-s3-devkitc-1": "https://s.shopee.vn/3LRumGd5SP",
       "lilygo-t-display-s3": "https://s.shopee.vn/4qGkDVqu49",

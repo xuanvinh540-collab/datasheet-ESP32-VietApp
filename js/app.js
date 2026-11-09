@@ -111,7 +111,9 @@
   }
   // URL dạng <gốc app>/[en/]<board>/#<chân> – mỗi board là một trang thật (xem tools/build-seo.js)
   const appRoot = new URL(".", document.baseURI).href;
-  if (!document.querySelector("base")) { const bs = document.createElement("base"); bs.href = appRoot; document.head.prepend(bs); }
+  const baseEl = document.querySelector("base");
+  if (!baseEl) { const bs = document.createElement("base"); bs.href = appRoot; document.head.prepend(bs); }
+  else if (baseEl.getAttribute("href") !== appRoot) baseEl.href = appRoot;
   function syncHash() {
     if (location.protocol === "file:") {
       const h = "#" + state.b.id + (state.sel ? "/" + encodeURIComponent(state.sel.name) : "");
@@ -509,7 +511,7 @@
   let pwLoad = null;
   async function openPinworld() {
     setTab("pinworld");
-    pwLoad = pwLoad || loadJs("js/pinworld.js?v=181");
+    pwLoad = pwLoad || loadJs("js/pinworld.js?v=183");
     await pwLoad; PINWORLD.open();
   }
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => {
@@ -542,8 +544,10 @@
   });
   function svgDataUrl(svgEl) {
     const src = svgEl || $("#svg"), cl = src.cloneNode(true), a = src.querySelectorAll("*"), b = cl.querySelectorAll("*");
-    a.forEach((n, i) => { const cs = getComputedStyle(n); b[i].setAttribute("style", ["fill", "stroke", "stroke-width", "font-family", "font-size", "font-weight", "opacity"].map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
-    const vb = src.viewBox.baseVal; cl.setAttribute("width", vb.width * 40); cl.setAttribute("height", vb.height * 40);
+    a.forEach((n, i) => { if (n.closest("defs")) return; const cs = getComputedStyle(n); b[i].setAttribute("style", ["fill", "stroke", "stroke-width", "font-family", "font-size", "font-weight", "opacity"].map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
+    const vb = src.viewBox.baseVal, sc = Math.min(40, 3200 / Math.max(vb.width || 1, vb.height || 1));
+    cl.setAttribute("xmlns", "http://www.w3.org/2000/svg"); cl.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    cl.setAttribute("width", Math.max(1, Math.round((vb.width || 100) * sc))); cl.setAttribute("height", Math.max(1, Math.round((vb.height || 100) * sc)));
     cl.setAttribute("style", "background:" + getComputedStyle(document.body).backgroundColor);
     return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(cl));
   }
@@ -572,9 +576,9 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=181");
+    if (!window.MODULES) await loadJs("js/modules.js?v=183");
     regMine();
-    if (!window.BUILD) await loadJs("js/build.js?v=181");
+    if (!window.BUILD) await loadJs("js/build.js?v=183");
     setTab("build"); BUILD.open(h);
   }
   // PCB Lab: vẽ bo 1 lớp tại nhà (chỉ ESP32-S3-DevKitC-1), tải js/pcblab.js khi mở lần đầu. fromWiring: lấy mạch của tab Wiring
@@ -590,8 +594,8 @@
   const PCB_ONLY = {
     R: ["Điện trở (R)", "Điện trở", [0, 0, 40, 28], 14, 9.8, [["1", 2, 14, "L"], ["2", 38, 14, "R"]]], C: ["Tụ gốm (C)", "Tụ gốm", [0, 0, 40, 28], 14, 9.8, [["1", 14, 26, "B"], ["2", 26, 26, "B"]]],
     ecap5: ["Tụ hoá 35V · Ø5", "Tụ hoá Ø5", [0, 0, 40, 28], 14, 9.8, [["+", 16, 26, "B"], ["-", 24, 26, "B"]]], ecap6: ["Tụ hoá 35V · Ø6,3", "Tụ hoá Ø6,3", [0, 0, 40, 28], 14, 9.8, [["+", 16, 26, "B"], ["-", 24, 26, "B"]]], ecap8: ["Tụ hoá 35V · Ø8", "Tụ hoá Ø8", [0, 0, 40, 28], 14, 9.8, [["+", 16, 26, "B"], ["-", 24, 26, "B"]]],
-    to92: ["Transistor TO-92", "TO-92", [3, 0, 26, 41], 9.1, 14.3, [["E", 7, 40.5, "B"], ["B", 16, 40.5, "B"], ["C", 25, 40.5, "B"]]],
-    irfz44n: ["MOSFET IRFZ44N", "IRFZ44N", [0, 0, 40, 28], 14, 9.8, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]], irf540n: ["MOSFET IRF540N", "IRF540N", [0, 0, 40, 28], 14, 9.8, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]], irf520: ["MOSFET IRF520", "IRF520", [0, 0, 40, 28], 14, 9.8, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]],
+    to92: ["Transistor TO-92", "TO-92", [3, 0, 26, 41], 7.5, 11.8, [["E", 7, 40.5, "B"], ["B", 16, 40.5, "B"], ["C", 25, 40.5, "B"]]],
+    irfz44n: ["MOSFET IRFZ44N", "IRFZ44N", [0, 0, 40, 28], 20, 14, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]], irf540n: ["MOSFET IRF540N", "IRF540N", [0, 0, 40, 28], 20, 14, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]], irf520: ["MOSFET IRF520", "IRF520", [0, 0, 40, 28], 20, 14, [["G", 15, 27, "B"], ["D", 20, 27, "B"], ["S", 25, 27, "B"]]],
     motor: ["Motor DC", "Motor DC", [0, 0, 40, 28], 14, 9.8, [["M+", 8, 9, "L"], ["M-", 8, 19, "L"]]] };
   function regPcbOnly() {
     if (!window.MODULES) return;
@@ -629,7 +633,7 @@
     });
   }
   async function ensurePcb() {   // nhớ promise: mở 2 lần liền không tải / chạy pcblab.js hai lần
-    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=181"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=181"); })();
+    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=183"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=183"); })();
     await pcbLoad;
   }
   async function openPcbLab(fromWiring) {
@@ -646,9 +650,9 @@
   $("#viewPcbLab").onclick = () => openPcbLab(false);
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=181").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
-    if (!window.POSTS) await loadJs("js/posts.js?v=181");
-    if (!window.HOME) await loadJs("js/home.js?v=181");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=183").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=183");
+    if (!window.HOME) await loadJs("js/home.js?v=183");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());
@@ -658,7 +662,91 @@
     try { localStorage.setItem("region", r.dataset.r); } catch (err) { }
     renderBuy();
   });
-  window.APP = { confirmBox, regMine, loadPcb: ensurePcb, state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl };
+  // Thanh địa chỉ nơi lưu file khi Export (hỗ trợ nhập đường dẫn trực tiếp, chọn thư mục qua server local hoặc File System Access API)
+  const SAVE_DIR_KEY = "pindexio:savedir";
+  let dirHandle = null;
+  const idbDir = (mode, val) => new Promise(ok => {
+    try {
+      const rq = indexedDB.open("pindexio-fs", 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore("handles");
+      rq.onsuccess = () => {
+        const db = rq.result, tx = db.transaction("handles", mode), st = tx.objectStore("handles");
+        const op = mode === "readwrite" ? (val ? st.put(val, "savedir") : st.delete("savedir")) : st.get("savedir");
+        op.onsuccess = () => ok(op.result || null); op.onerror = () => ok(null);
+      };
+      rq.onerror = () => ok(null);
+    } catch (e) { ok(null); }
+  });
+  idbDir("readonly").then(h => { if (h && !dirHandle) dirHandle = h; });
+  function getSaveDir() {
+    try { const s = localStorage.getItem(SAVE_DIR_KEY); if (s != null) return s; } catch (e) { }
+    return dirHandle ? dirHandle.name : "";
+  }
+  function setSaveDir(v) {
+    const s = (v || "").trim();
+    try { if (s) localStorage.setItem(SAVE_DIR_KEY, s); else localStorage.removeItem(SAVE_DIR_KEY); } catch (e) { }
+    if (dirHandle && s !== dirHandle.name) { dirHandle = null; idbDir("readwrite", null); }
+  }
+  function clearSaveDir() {
+    dirHandle = null; idbDir("readwrite", null);
+    try { localStorage.removeItem(SAVE_DIR_KEY); } catch (e) { }
+  }
+  async function pickSaveDir() {
+    try {
+      const r = await fetch("/__pick_dir", { headers: { "X-Init-Dir": encodeURIComponent(getSaveDir() || "") } });
+      if (r.ok && (r.headers.get("content-type") || "").includes("application/json")) {
+        const j = await r.json();
+        if (j.cancelled) return null;
+        if (j.ok && j.path) { dirHandle = null; idbDir("readwrite", null); setSaveDir(j.path); return j.path; }
+      }
+    } catch (e) { }
+    if (window.showDirectoryPicker) {
+      try {
+        const h = await window.showDirectoryPicker({ mode: "readwrite" });
+        dirHandle = h; idbDir("readwrite", h);
+        try { localStorage.setItem(SAVE_DIR_KEY, h.name); } catch (e) { }
+        return h.name;
+      } catch (e) { if (e && e.name === "AbortError") return null; }
+    }
+    return null;
+  }
+  async function saveFile(name, data) {
+    const blob = data instanceof Blob ? data : await fetch(data).then(r => r.blob());
+    const dir = (getSaveDir() || "").trim();
+    if (!dirHandle && dir) { const h = await idbDir("readonly"); if (h && h.name === dir) dirHandle = h; }
+    if (dirHandle && (!dir || dir === dirHandle.name)) {
+      try {
+        const p = (await dirHandle.queryPermission({ mode: "readwrite" })) === "granted" || (await dirHandle.requestPermission({ mode: "readwrite" })) === "granted";
+        if (p) {
+          const fh = await dirHandle.getFileHandle(name, { create: true }), wr = await fh.createWritable();
+          await wr.write(blob); await wr.close();
+          return { ok: true, dir: dirHandle.name };
+        }
+      } catch (e) { console.warn(e); }
+    }
+    if (dir) {
+      try {
+        const r = await fetch("/__save_local", { method: "POST", headers: { "X-Save-Dir": encodeURIComponent(dir), "X-Save-Name": encodeURIComponent(name) }, body: blob });
+        if (r.ok && (r.headers.get("content-type") || "").includes("application/json")) {
+          const j = await r.json();
+          if (j && j.ok) return { ok: true, dir: j.dir || dir, path: j.path };
+        }
+      } catch (e) { }
+      if (window.showSaveFilePicker) {
+        try {
+          const fh = await window.showSaveFilePicker({ suggestedName: name }), wr = await fh.createWritable();
+          await wr.write(blob); await wr.close();
+          return { ok: true, dir };
+        } catch (e) { if (e && e.name === "AbortError") return { ok: false, aborted: true }; }
+      }
+    }
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = name; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return { ok: true, dir: "" };
+  }
+  window.APP = { confirmBox, regMine, loadPcb: ensurePcb, state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl, getSaveDir, setSaveDir, clearSaveDir, pickSaveDir, saveFile };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });

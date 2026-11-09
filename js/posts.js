@@ -25,5 +25,13 @@ window.POSTS = [
     "title": "Ghép linh kiện và nối dây với Wiring",
     "summary": "Thêm màn hình, cảm biến lên board, để app tự chọn chân an toàn rồi lấy các dòng #define.",
     "body": "## Bắt đầu\n\n1. Mở board bạn dùng, bấm nút **⚡ Wiring** cạnh nút PCB.\n2. Ở cột bên phải, mở danh sách **Linh kiện** và bấm để thêm (ví dụ OLED 0.96\" và HC-SR04). Linh kiện mới được xếp quanh board, ngay trong khung nhìn.\n3. Bấm **✨ Tự nối chân**: app chọn chân phù hợp, tránh chân strapping, USB, UART0 và JTAG.\n\n## Chỉnh dây bằng tay\n\n- Kéo từ chấm tròn trên chân linh kiện tới một pad trên board. Pad xanh là an toàn, cam là có lưu ý.\n- Nắm đầu dây phía board để chuyển sang pad khác; nắm đầu phía linh kiện để chuyển dây sang chân khác.\n- **Nhấp phải** vào linh kiện hoặc dây để xoá, tự nối lại, hay **xoay 90°**. Nhấp phải vào nền trống để xoay cả board.\n\n## Lấy mã\n\nMở tab **Code** trong cột bên phải và bấm **Copy #define**. App chỉ sinh các dòng khai báo chân và khởi tạo bus, ví dụ:\n\n```\n#define I2C_SDA   8\n#define I2C_SCL   9\n// setup(): Wire.begin(I2C_SDA, I2C_SCL);\n```\n\nĐọc kỹ phần cảnh báo trước khi nối thật, nhất là các linh kiện ra mức 5 V như HC-SR04: board 3.3 V cần cầu chia áp."
+  },
+  {
+    "id": "tu-thoat-nhieu-decoupling-capacitors-cho-esp32",
+    "type": "news",
+    "date": "2026-11-06",
+    "title": "Tụ thoát nhiễu (Decoupling Capacitors) cho ESP32",
+    "summary": "việc bố trí tụ thoát nhiễu (decoupling capacitor)  là cực kỳ quan trọng để đảm bảo chip hoạt động ổn định, không bị reset ngẫu nhiên và giao tiếp dữ liệu chính xác",
+    "body": "Khi thiết kế mạch điện sử dụng ESP32, việc bố trí tụ thoát nhiễu (decoupling capacitor)  là cực kỳ quan trọng để đảm bảo chip hoạt động ổn định, không bị reset ngẫu nhiên và giao tiếp dữ liệu chính xác.\nDưới đây là hướng dẫn chi tiết và các giá trị tiêu chuẩn cho ESP32.\n\n![capacitor](/img/uploads/post-1793949641411.png)\n\nESP32 là chip WiFi/Bluetooth, khi truyền nhận dữ liệu dòng điện sẽ tăng đột biến (có thể lên tới 500mA trong vài mili giây). Nếu không có tụ lọc đủ tốt, điện áp nguồn cấp sẽ bị sụt mạnh, gây lỗi Brownout Reset.\nBố trí tụ tiêu chuẩn:\n• Tụ lớn (Tụ đệm - Bulk Capacitor): Dùng 1 tụ 10µF đến 22µF (Tantalum hoặc Ceramic). Tụ này đặt gần đường nguồn vào để bù dòng cho các pha tiêu thụ năng lượng cao (như khi bật WiFi).\n• Tụ nhỏ (Tụ lọc nhiễu cao tần): Dùng 1 tụ 0.1µF (100nF) Ceramic. Tụ này phải đặt càng gần chân VDD của ESP32 càng tốt (khoảng cách dưới 2mm là lý tưởng).\n\n\n\n"
   }
 ];

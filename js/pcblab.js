@@ -8,7 +8,7 @@
     <section class="pl-stage" id="plStage"><svg id="plSvg" xmlns="http://www.w3.org/2000/svg"></svg><canvas id="plRulerT" aria-hidden="true"></canvas><canvas id="plRulerL" aria-hidden="true"></canvas><div id="plTip"></div><div id="plHint"></div><div id="plToast"></div><div id="plCtx"></div></section>
     <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side"><div id="plPanel"></div></aside><div class="pl-tips" id="plTips"></div>`;
   const $ = s => ROOT.querySelector(s), $$ = s => ROOT.querySelectorAll(s);
-  const BUILD = "2026-11-05 17:16"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
+  const BUILD = "2026-11-09 00:35"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
   // chạy thử trên máy (tools/serve.py): build xong thì trang tự tải lại. Trên web thật không có /__ver nên không làm gì
   if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
     let ver = null;
@@ -924,8 +924,53 @@
     for (const v of A.drc) { el("circle", { cx: v.x, cy: v.y, r: 1.4, class: "drcmark" }, LY.drc); if (v.s) el("path", { d: `M${v.s.a.join(" ")} L${v.s.b.join(" ")}`, "stroke-width": v.s.w + .4, class: "drcseg" }, LY.drc); }
     // điểm gập của đường đang chọn
     if (ui.sel && ui.sel.t === "t") { const t = S.traces.find(x => x.id === ui.sel.id); if (t) t.pts.forEach((p, i) => { if (i > 0 && i < t.pts.length - 1) el("rect", { x: p[0] - .55, y: p[1] - .55, width: 1.1, height: 1.1, class: "vtx", "data-v": i }, LY.sel); else el("circle", { cx: p[0], cy: p[1], r: .65, class: "vtx vend", "data-v": i }, LY.sel); }); }   // 2 đầu dây: nút tròn, kéo được
-    if (ui.tool === "ms" && ui.meas) drawMeas();   // giữ số đo sau khi vẽ lại
+    if (ui.tool === "ms" && ((ui.measList && ui.measList.length) || ui.meas)) drawMeas();   // giữ số đo sau khi vẽ lại
+    renderJumperPop();
     panel(); save();
+  }
+  function renderJumperPop() {
+    const pop = $("#plJumperPop");
+    if (!ui.sel || ui.sel.t !== "j" || ui.mode !== "idle") {
+      if (pop) pop.remove();
+      return;
+    }
+    const jw = S.jumpers.find(x => x.id === ui.sel.id);
+    if (!jw) {
+      if (pop) pop.remove();
+      return;
+    }
+    const midX = (jw.a[0] + jw.b[0]) / 2, midY = (jw.a[1] + jw.b[1]) / 2;
+    const pos = mmToStage(midX, midY);
+    if (!pos) {
+      if (pop) pop.remove();
+      return;
+    }
+    let elPop = pop;
+    if (!elPop) {
+      elPop = document.createElement("div");
+      elPop.id = "plJumperPop";
+      $("#plStage").appendChild(elPop);
+    }
+    const curLen = Math.hypot(jw.b[0] - jw.a[0], jw.b[1] - jw.a[1]);
+    const lenVal = (Math.round(curLen * 10) / 10).toFixed(1);
+    elPop.innerHTML = `<span class="jp-lbl">J${jNo(jw)}:</span>
+      <div class="jp-box">
+        <button type="button" class="jp-btn" id="jpDecBtn" title="-0.5 mm">▼</button>
+        <input type="number" id="jpLenInp" min="1" max="150" step="0.5" value="${lenVal}">
+        <button type="button" class="jp-btn" id="jpIncBtn" title="+0.5 mm">▲</button>
+      </div>
+      <span class="jp-unit">mm</span>`;
+    elPop.style.left = pos.x + "px";
+    elPop.style.top = pos.y + "px";
+
+    const inp = elPop.querySelector("#jpLenInp");
+    const inc = elPop.querySelector("#jpIncBtn");
+    const dec = elPop.querySelector("#jpDecBtn");
+
+    elPop.onpointerdown = e => e.stopPropagation();
+    inp.onchange = () => cmd.setJumperLength(jw, +inp.value);
+    inc.onclick = () => cmd.setJumperLength(jw, Math.round((curLen + 0.5) * 10) / 10);
+    dec.onclick = () => cmd.setJumperLength(jw, Math.max(1, Math.round((curLen - 0.5) * 10) / 10));
   }
 
   // hình board thật (đơn giản) vẽ dưới nét in lụa, độ mờ chỉnh bằng thanh kéo
@@ -1143,6 +1188,17 @@
   function artRegen(it) {   // chữ: dựng lại từ khung gốc (x, y, h) rồi đặt vào vị trí hiện tại (pv) với góc xoay it.ang
     const t = it.txt; if (!t) return; it.paths = mapPaths(textPaths(t.s, t.x, t.y, t.h, t.mir, t), (x, y) => { const q = rotXY(x, y, t.p0x, t.p0y, it.ang || 0); return [q[0] - t.p0x + t.pvx, q[1] - t.p0y + t.pvy]; });
   }
+  function artFlip(it) {
+    const b = artBox(it);
+    it.paths = mapPaths(it.paths, (x, y) => [2 * b.cx - x, y]);
+    if (it.txt) {
+      const t = it.txt;
+      t.mir = !t.mir;
+      t.x = 2 * b.cx - t.x;
+      t.p0x = 2 * b.cx - t.p0x;
+      t.pvx = 2 * b.cx - t.pvx;
+    }
+  }
   function artRotate(it, a) {
     const b = artBox(it); it.paths = mapPaths(it.paths, (x, y) => rotXY(x, y, b.cx, b.cy, a));
     if (it.txt) { const t = it.txt, q = rotXY(t.pvx, t.pvy, b.cx, b.cy, a); t.pvx = q[0]; t.pvy = q[1]; } it.ang = (it.ang || 0) + a;
@@ -1222,30 +1278,42 @@
   function drawFly() {   // Pen: hàng 1 = chọn · dời · xoay · sửa · xoá; hình đang chọn có thanh thuộc tính (chữ, font, chiều cao, khoảng cách, độ rộng, nét)
     let f = $("#plFlyD"); if (!f) { f = document.createElement("div"); f.id = "plFlyD"; f.className = "pl-fly"; $("#plStage").appendChild(f); }
     const D = drCfg(), it = selArt(), isTxt = !!it && !!it.txt, editing = !!it && (MODES.includes(D.kind) || isTxt), dim = it ? Math.round(artBox(it).d) : 0, tx = isTxt ? it.txt : null;
-    const sl = (id, lab, min, max, step, val, unit) => `<div class="flw"><small>${lab} <b id="${id}v">${val}${unit}</b></small><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
+    const num = (id, lab, min, max, step, val, unit) => `<div class="flw fl-num"><small>${lab}${unit ? ` <span class="num-u">${unit.trim()}</span>` : ""}</small><div class="num-box"><button type="button" class="num-btn num-dn" data-step="-1" data-for="${id}" title="${L("Giảm", "Decrease")}">▾</button><input id="${id}" type="number" min="${min}" max="${max}" step="${step}" value="${val}"><button type="button" class="num-btn num-up" data-step="1" data-for="${id}" title="${L("Tăng", "Increase")}">▴</button></div></div>`;
     f.innerHTML = `<div class="flw"><small>${L("Layer hiện hành", "Current layer")}</small><select id="drLayer">${drawableLayers().map(l => `<option value="${l.id}"${(it ? it.layer : S.cur) === l.id ? " selected" : ""}>${attr(l.name)}${l.kind === "cu" ? " · " + L("đồng khắc", "etched") : l.side === "bottom" ? " · " + L("mặt dưới", "bottom") : ""}</option>`).join("")}</select></div>
-      <div class="drk">${DRK().map(([k, g, t]) => `<button type="button" data-dk="${k}" title="${t}" class="${D.kind === k ? "on" : ""}">${g}</button>`).join("")}</div>
-      ${isTxt || D.kind === "text" ? `<div class="flw"><small>${L("Chữ (A–Z, 0–9)", "Text (A–Z, 0–9)")}</small><input id="drText" value="${attr(isTxt ? tx.s : D.text)}" maxlength="40" spellcheck="false"></div>` : ""}
+      <div class="dr-text-row"><button type="button" data-dk="text" class="dr-text-btn${D.kind === "text" || isTxt ? " on" : ""}" title="${L("Chữ (gõ chữ rồi bấm lên bo)", "Text (type, then click the board)")}"><span class="dr-a-ico">A</span><span>${L("Chữ (Text)", "Text")}</span></button></div>
+      <div class="drk">${DRK().filter(([k]) => k !== "text").map(([k, g, t]) => `<button type="button" data-dk="${k}" title="${t}" class="${D.kind === k ? "on" : ""}">${g}</button>`).join("")}</div>
+      ${isTxt || D.kind === "text" ? `<div class="flw"><small>${L("Nội dung chữ", "Text")}</small><input id="drText" value="${attr(isTxt ? tx.s : D.text)}" maxlength="40" spellcheck="false" placeholder="A–Z, 0–9"></div>` : ""}
       ${isTxt ? `<div class="flw"><small>${L("Font", "Font")}</small><select id="drFont"><option value="0"${!tx.it ? " selected" : ""}>${L("Nét đơn · thẳng", "Single-stroke · upright")}</option><option value="1"${tx.it ? " selected" : ""}>${L("Nét đơn · nghiêng", "Single-stroke · italic")}</option></select></div>
-        ${sl("drTh", L("Chiều cao chữ", "Text height"), 2, 60, 1, Math.round(tx.h), " mm")}${sl("drSp", L("Khoảng cách chữ", "Letter spacing"), -1, 4, .1, +(tx.sp || 0).toFixed(1), "")}${sl("drWd", L("Độ rộng chữ", "Text width"), .5, 2, .05, +(tx.w || 1).toFixed(2), "×")}`
-        : it ? sl("drSize", L("Cỡ hình đang chọn", "Selected size"), 2, 120, 1, dim, " mm") : sl("drSize", L("Cỡ", "Size"), 2, 40, 1, D.size, " mm")}
-      ${sl("drW", L("Nét", "Stroke"), .2, 3, .1, it ? it.w : D.w, " mm")}
+        ${num("drTh", L("Cao chữ", "Height"), 2, 60, 1, Math.round(tx.h), "mm")}${num("drSp", L("Cách chữ", "Spacing"), -1, 4, .1, +(tx.sp || 0).toFixed(1), "")}${num("drWd", L("Rộng chữ", "Width"), .5, 2, .05, +(tx.w || 1).toFixed(2), "×")}`
+        : it ? num("drSize", L("Cỡ hình", "Size"), 2, 120, 1, dim, "mm") : num("drSize", L("Cỡ", "Size"), 2, 40, 1, D.size, "mm")}
+      ${num("drW", L("Nét", "Stroke"), .2, 3, .1, +(it ? it.w : D.w).toFixed(1), "mm")}
       <label class="bchk"><input type="checkbox" id="drFill"${(it ? it.fill : D.fill) ? " checked" : ""}> ${L("Tô đặc", "Filled")}</label>
       <small class="flh">${L("Vẽ liên tục, Esc để thoát. Hình vừa vẽ có khung nét báo: kéo cạnh = dời · góc = co giãn · nút tròn = xoay (15°, Shift = tự do). R xoay 90°, Delete xoá.", "Draws continuously, Esc to leave. The new drawing has a frame: drag the edge = move · corners scale · the round handle rotates (15°, Shift = free). R rotates 90°, Delete removes.")}</small>`;
     { const body = document.createElement("div"); body.className = "fb"; while (f.firstChild) body.appendChild(f.firstChild);   // thu gọn được: chỉ còn thanh tiêu đề
       const head = document.createElement("div"); head.className = "fh"; head.innerHTML = `<b>Pen</b><button type="button" data-fc title="${L("Thu gọn / mở rộng", "Collapse / expand")}">${S.penCol ? "▸" : "▾"}</button>`; f.appendChild(head); f.appendChild(body); f.classList.toggle("col", !!S.penCol);
       head.querySelector("[data-fc]").onclick = () => { S.penCol = !S.penCol; save(); f.classList.toggle("col", !!S.penCol); head.querySelector("[data-fc]").textContent = S.penCol ? "▸" : "▾"; }; }
     f.querySelectorAll("[data-dk]").forEach(b => b.onclick = () => { D.kind = b.dataset.dk; if (!MODES.includes(D.kind)) ui.sel = null; save(); render(); drawFly(); f.classList.add("on"); });
+    f.querySelectorAll(".num-btn").forEach(btn => btn.onclick = () => {
+      const inp = f.querySelector("#" + btn.dataset.for); if (!inp) return;
+      const step = +inp.step || 1, dir = +btn.dataset.step;
+      const min = inp.min !== "" ? +inp.min : -Infinity, max = inp.max !== "" ? +inp.max : Infinity;
+      const decimals = (String(inp.step).split(".")[1] || "").length;
+      let next = +((+inp.value || 0) + dir * step).toFixed(decimals);
+      next = Math.max(min, Math.min(max, next));
+      inp.value = next;
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+      inp.dispatchEvent(new Event("change", { bubbles: true }));
+    });
     const upd = fn => { fn(D); if (it) fn(it); save(); render(); };
     f.querySelector("#drLayer").onchange = e => { S.cur = e.target.value; if (it) it.layer = e.target.value; save(); render(); drawFly(); f.classList.add("on"); };
-    let ck = false; const once = () => { if (!ck) { ck = true; checkpoint(); } }, live = () => { drawArt(); drawArtSel(); save(); }, val = (id, v, u) => { f.querySelector("#" + id + "v").textContent = v + u; };
+    let ck = false; const once = () => { if (!ck) { ck = true; checkpoint(); } }, live = () => { drawArt(); drawArtSel(); save(); };
     const T = f.querySelector("#drText"); if (T) T.oninput = e => { if (isTxt) { once(); tx.s = e.target.value || " "; artRegenKeep(it); live(); } else { D.text = e.target.value; save(); } };
     const F = f.querySelector("#drFont"); if (F) F.onchange = e => { once(); tx.it = +e.target.value; artRegenKeep(it); live(); render(); };
-    const h = f.querySelector("#drTh"); if (h) h.oninput = e => { once(); const v = +e.target.value; val("drTh", v, " mm"); D.tsize = v; artScale(it, v / tx.h); live(); }; if (h) h.onchange = () => { render(); artClash(it); };
-    const sp = f.querySelector("#drSp"); if (sp) sp.oninput = e => { once(); tx.sp = +e.target.value; val("drSp", tx.sp, ""); artRegenKeep(it); live(); };
-    const wd = f.querySelector("#drWd"); if (wd) wd.oninput = e => { once(); tx.w = +e.target.value; val("drWd", tx.w, "×"); artRegenKeep(it); live(); };
-        const sz = f.querySelector("#drSize"); if (sz) { let last = dim; sz.oninput = e => { const v = +e.target.value; val("drSize", v, " mm"); if (it) { const b = artBox(it).d; if (b > 0) { once(); artScale(it, v / b); last = v; live(); } } D.size = v; save(); }; sz.onchange = () => { if (it) { render(); artClash(it); } }; }
-    f.querySelector("#drW").oninput = e => val("drW", e.target.value, " mm"); f.querySelector("#drW").onchange = e => upd(o => { o.w = +e.target.value; });
+    const h = f.querySelector("#drTh"); if (h) { h.oninput = e => { const v = Math.max(+h.min || 1, +e.target.value || 1); D.tsize = v; if (it && tx && tx.h && v !== tx.h) { once(); artScale(it, v / tx.h); live(); } }; h.onchange = () => { if (it) { render(); artClash(it); } }; }
+    const sp = f.querySelector("#drSp"); if (sp) sp.oninput = e => { if (it && tx) { once(); tx.sp = +e.target.value || 0; artRegenKeep(it); live(); } };
+    const wd = f.querySelector("#drWd"); if (wd) wd.oninput = e => { if (it && tx) { const v = Math.max(0.1, +e.target.value || 1); once(); tx.w = v; artRegenKeep(it); live(); } };
+    const sz = f.querySelector("#drSize"); if (sz) { sz.oninput = e => { const v = Math.max(+sz.min || 1, +e.target.value || 1); D.size = v; if (it) { const b = artBox(it).d; if (b > 0 && Math.abs(v - b) > 0.05) { once(); artScale(it, v / b); live(); } } save(); }; sz.onchange = () => { if (it) { render(); artClash(it); } }; }
+    const wInp = f.querySelector("#drW"); if (wInp) { const applyW = e => { const v = Math.max(0.1, +e.target.value || 0.1); upd(o => { o.w = v; }); }; wInp.oninput = applyW; wInp.onchange = applyW; }
     f.querySelector("#drFill").onchange = e => upd(o => { o.fill = e.target.checked; });
     { const st = $("#plStage"), db = $("#plTdr"); f.classList.add("on"); if (st && db) { const top = db.getBoundingClientRect().top - st.getBoundingClientRect().top; f.style.top = Math.max(6, Math.min(top, st.clientHeight - f.offsetHeight - 6)) + "px"; } }   // luôn nằm gọn trong khung vẽ
   }
@@ -1391,7 +1459,72 @@
     }
     return o.join("") + "</g></svg>";
   }
-  const download = (blob, name) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
+  const SAVE_DIR_KEY = "pindexio:savedir";
+  let curDirHandle = null;
+  const getSaveDir = () => { if (window.APP && APP.getSaveDir) return APP.getSaveDir(); try { return localStorage.getItem(SAVE_DIR_KEY) || ""; } catch (e) { return ""; } };
+  const setSaveDir = v => { if (window.APP && APP.setSaveDir) return APP.setSaveDir(v); try { const s = (v || "").trim(); if (s) localStorage.setItem(SAVE_DIR_KEY, s); else localStorage.removeItem(SAVE_DIR_KEY); } catch (e) { } };
+  const clearSaveDir = () => { curDirHandle = null; if (window.APP && APP.clearSaveDir) return APP.clearSaveDir(); try { localStorage.removeItem(SAVE_DIR_KEY); } catch (e) { } };
+  const pickSaveDir = async () => {
+    if (window.APP && APP.pickSaveDir) return APP.pickSaveDir();
+    if (window.showDirectoryPicker) {
+      try {
+        const h = await window.showDirectoryPicker({ mode: "readwrite" });
+        curDirHandle = h;
+        setSaveDir(h.name);
+        return h.name;
+      } catch (e) {
+        if (e && e.name === "AbortError") return null;
+      }
+    } else {
+      toast(L("Trình duyệt không hỗ trợ mở cửa sổ chọn thư mục (cần Chrome/Edge). Bạn có thể gõ hoặc dán đường dẫn thư mục vào ô.", "Browser does not support folder picker (requires Chrome/Edge). You can type or paste folder path into the input."));
+    }
+    return null;
+  };
+  const download = async (blob, name, forceBrowser) => {
+    if (window.APP && APP.saveFile) return APP.saveFile(name, blob, forceBrowser);
+    if (!forceBrowser && curDirHandle) {
+      try {
+        const lastDot = name.lastIndexOf(".");
+        const baseName = lastDot > 0 ? name.slice(0, lastDot) : name;
+        const extName = lastDot > 0 ? name.slice(lastDot) : "";
+        let targetName = name, counter = 1;
+        while (true) {
+          try {
+            await curDirHandle.getFileHandle(targetName);
+            targetName = `${baseName} (${counter})${extName}`;
+            counter++;
+          } catch (e) { break; }
+        }
+        const fh = await curDirHandle.getFileHandle(targetName, { create: true });
+        const wr = await fh.createWritable();
+        await wr.write(blob);
+        await wr.close();
+        return { ok: true, dir: curDirHandle.name, name: targetName };
+      } catch (e) {
+        console.warn("curDirHandle error:", e);
+        curDirHandle = null;
+      }
+    }
+    const dir = forceBrowser ? "" : (getSaveDir() || "").trim();
+    if (!forceBrowser && dir && (!curDirHandle || dir !== curDirHandle.name)) {
+      try {
+        const r = await fetch("/__save_local", {
+          method: "POST",
+          headers: { "X-Save-Dir": encodeURIComponent(dir), "X-Save-Name": encodeURIComponent(name) },
+          body: blob
+        });
+        if (r.ok && (r.headers.get("content-type") || "").includes("application/json")) {
+          const j = await r.json();
+          if (j && j.ok) return { ok: true, dir: j.dir || dir, path: j.path, name: j.name || name };
+        }
+      } catch (e) { }
+    }
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = name; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return { ok: true, dir: "" };
+  };
   // PNG có ghi DPI (chunk pHYs) để phần mềm in đúng kích thước thật
   function pngDPI(buf, dpi) {
     const crcT = [...Array(256)].map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
@@ -1482,35 +1615,53 @@
     for (const l of S.layers) if (l.kind === "paint" && o.on[l.id] === undefined) o.on[l.id] = 1;
     const d = document.createElement("div"); d.className = "pl-beta pl-exp"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
     const draw = () => {
-      const gbr = o.fmt === "gbr", first = LAYERS().find(l => o.on[l[0]]);
+      const gbr = o.fmt === "gbr", first = LAYERS().find(l => o.on[l[0]]), curDir = getSaveDir().replace(/"/g, "&quot;");
       d.innerHTML = `<div class="pl-exp-box"><h3>${L("Xuất file", "Export")}</h3>
         <label class="pl-exp-row"><span>${L("Tên file", "File name")}</span><input id="plExpName" value="${o.name.replace(/"/g, "")}" spellcheck="false"></label>
+        <div class="pl-exp-row"><span>${L("Nơi lưu", "Save to")}</span><div class="pl-exp-dir"><input id="plExpDir" value="${curDir}" placeholder="${L("Mặc định: thư mục Downloads (nhập đường dẫn hoặc bấm Chọn…)", "Default: Downloads folder (type path or click Browse…)")}" spellcheck="false"><button type="button" id="plExpDirPick" title="${L("Chọn thư mục lưu file", "Choose save folder")}">📁 ${L("Chọn…", "Browse…")}</button><button type="button" id="plExpDirClr" title="${L("Đặt lại về thư mục Downloads mặc định", "Reset to default Downloads folder")}"${curDir ? "" : " hidden"}>✕</button></div></div>
         <div class="pl-exp-row"><span>${L("Định dạng", "Format")}</span><div class="pl-seg">${[["svg", "SVG"], ["png", "PNG"], ["gbr", "Gerber"]].map(([k, t]) => `<button type="button" data-fmt="${k}"${o.fmt === k ? ' class="on"' : ""}>${t}</button>`).join("")}</div></div>
         <p class="pl-exp-sub">${{ svg: L("Vector, in tỉ lệ 100%", "Vector, print at 100%"), png: L("Ảnh 600 DPI, in tỉ lệ 100%", "600 DPI image, print at 100%"), gbr: L("Gửi xưởng làm bo / phay CNC · 1 file .zip", "For PCB fabs / CNC milling · one .zip") }[o.fmt]}</p>
         ${gbr ? `<ul class="pl-exp-files">${gerber().map(([n]) => `<li>${n}</li>`).join("")}</ul>${S.pour ? `<p class="pl-exp-warn">${L("Phủ mass GND chưa có trong Gerber.", "GND pour is not included in Gerber.")}</p>` : ""}`
           : `<div class="pl-exp-layers">${LAYERS().map(([k, t, sub]) => `<label class="pl-exp-l${o.on[k] ? " on" : ""}"><input type="checkbox" data-on="${k}"${o.on[k] ? " checked" : ""}><span><b>${t}</b><small>${sub}</small></span>${k === "silk" ? "" : `<button type="button" class="pl-mir${o.mir[k] ? " on" : ""}" data-mir="${k}" title="${L("Lật gương", "Mirror")}">⇋</button>`}</label>`).join("")}</div>
              <div class="pl-exp-prev">${first ? exportSVG(first[0], !!o.mir[first[0]]) : `<span>${L("Chọn ít nhất 1 lớp", "Pick at least one layer")}</span>`}</div>`}
         ${A.rats.length || A.drc.length ? `<p class="pl-exp-warn">${L(`Bo còn ${A.rats.length} chỗ chưa nối, ${A.drc.length} lỗi – file chỉ nên dùng để xem thử.`, `${A.rats.length} open connections, ${A.drc.length} errors – use the file as a preview only.`)}</p>` : ""}
-        <div class="pl-exp-foot"><button type="button" class="pl-exp-cancel">${L("Huỷ", "Cancel")}</button><button type="button" class="pl-try" id="plExpGo"${!gbr && !first ? " disabled" : ""}>⬇ ${L("Tải xuống", "Download")}</button></div></div>`;
+        <div class="pl-exp-foot"><button type="button" class="pl-exp-cancel">${L("Huỷ", "Cancel")}</button><button type="button" class="pl-try" id="plExpGo"${!gbr && !first ? " disabled" : ""}>${curDir ? `💾 ${L("Lưu file", "Save file")}` : `⬇ ${L("Tải xuống", "Download")}`}</button></div></div>`;
       d.querySelector("#plExpName").oninput = e => o.name = e.target.value;
+      const dirInp = d.querySelector("#plExpDir"), dirClr = d.querySelector("#plExpDirClr");
+      const updateBtn = () => {
+        const hasDir = !!dirInp.value.trim();
+        const goBtn = d.querySelector("#plExpGo");
+        if (goBtn) {
+          goBtn.textContent = hasDir ? `💾 ${L("Lưu file", "Save file")}` : `⬇ ${L("Tải xuống", "Download")}`;
+          goBtn.title = hasDir ? (L("Lưu vào: ", "Save to: ") + dirInp.value.trim()) : (L("Tải về thư mục Downloads của trình duyệt", "Download to browser Downloads folder"));
+        }
+      };
+      dirInp.oninput = () => { setSaveDir(dirInp.value); dirClr.hidden = !dirInp.value.trim(); updateBtn(); };
+      d.querySelector("#plExpDirPick").onclick = async () => { const p = await pickSaveDir(); if (p != null) { dirInp.value = p; dirClr.hidden = !p; updateBtn(); } };
+      dirClr.onclick = () => { clearSaveDir(); dirInp.value = ""; dirClr.hidden = true; updateBtn(); };
       d.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => { o.fmt = b.dataset.fmt; draw(); });
       d.querySelectorAll("[data-on]").forEach(b => b.onchange = () => { o.on[b.dataset.on] = b.checked ? 1 : 0; draw(); });
       d.querySelectorAll("[data-mir]").forEach(b => b.onclick = e => { e.preventDefault(); o.mir[b.dataset.mir] = o.mir[b.dataset.mir] ? 0 : 1; draw(); });
       d.querySelector(".pl-exp-cancel").onclick = () => d.remove();
-      d.querySelector("#plExpGo").onclick = go;
+      d.querySelector("#plExpGo").onclick = () => go(false);
+      const box = d.querySelector(".pl-exp-box"); if (box) box.onclick = e => e.stopPropagation();
     };
-    async function go() {
+    async function go(forceBrowser) {
+      const dirEl = d.querySelector("#plExpDir"); if (dirEl) setSaveDir(dirEl.value);
       const base = (o.name || "pindexio-pcb").trim().replace(/[\\/:*?"<>|]+/g, "-");
       try { localStorage.setItem("pcbmaker-exp", JSON.stringify(o)); } catch (e) { }
       d.remove();
-      if (o.fmt === "gbr") { download(await zip(gerber()), base + "-gerber.zip"); return toast(L(`Đã tải ${base}-gerber.zip (đồng mặt dưới, phủ hàn, in lụa, viền bo, khoan).`, `Downloaded ${base}-gerber.zip (bottom copper, mask, silkscreen, outline, drill).`)); }
+      if (o.fmt === "gbr") { const r = await download(await zip(gerber()), base + "-gerber.zip", forceBrowser); if (r && r.aborted) return; const finalName = (r && r.name) || (base + "-gerber.zip"); return toast(r && r.dir ? L(`Đã lưu ${finalName} vào thư mục: ${r.dir}.`, `Saved ${finalName} to ${r.dir}.`) : L(`Đã tải ${finalName} về trình duyệt.`, `Downloaded ${finalName} (bottom copper, mask, silkscreen, outline, drill).`)); }
       const files = [];
       for (const [k, , , slug] of LAYERS()) if (o.on[k]) files.push([`${base}-${slug}${o.mir[k] ? "-lat-guong" : ""}.${o.fmt}`, await layerBlob(k, !!o.mir[k], o.fmt)]);
-      if (files.length === 1) download(files[0][1], files[0][0]); else download(await zip(files), `${base}-${o.fmt}.zip`);
-      toast(L(`Đã tải ${files.length > 1 ? base + "-" + o.fmt + ".zip" : files[0][0]} – in tỉ lệ 100% (không co giãn).`, `Downloaded ${files.length > 1 ? base + "-" + o.fmt + ".zip" : files[0][0]} – print at 100% scale (no fit-to-page).`));
+      const outName = files.length > 1 ? `${base}-${o.fmt}.zip` : files[0][0];
+      const r = files.length === 1 ? await download(files[0][1], files[0][0], forceBrowser) : await download(await zip(files), outName, forceBrowser);
+      if (r && r.aborted) return;
+      const finalName = (r && r.name) || outName;
+      toast(r && r.dir ? L(`Đã lưu ${finalName} vào thư mục: ${r.dir} – in tỉ lệ 100%.`, `Saved ${finalName} to ${r.dir} – print at 100% scale.`) : L(`Đã tải ${finalName} về trình duyệt – in tỉ lệ 100%.`, `Downloaded ${finalName} – print at 100% scale (no fit-to-page).`));
     }
-    d.onclick = e => { if (e.target === d) d.remove(); };
-    draw(); ROOT.appendChild(d); d.querySelector("#plExpName").focus();
+    let downTarget = null; d.onpointerdown = e => { downTarget = e.target; }; d.onclick = e => { if (downTarget === d && e.target === d) d.remove(); downTarget = null; };
+    draw(); ROOT.appendChild(d); const nameInp = d.querySelector("#plExpName"); if (nameInp) nameInp.focus();
   }
 
   /* ---------- camera ---------- */
@@ -1520,6 +1671,7 @@
     const ar = r.width / r.height, c = cam;
     let w = c.w, h = c.h; if (w / h < ar) w = h * ar; else h = w / ar;
     svg.setAttribute("viewBox", `${c.x - (w - c.w) / 2} ${c.y - (h - c.h) / 2} ${w} ${h}`); ui.k = w / r.width; drawRulers();
+    if (typeof renderJumperPop === "function") renderJumperPop();
   }
   /* hai thước mm: cạnh trên (X) và cạnh trái (Y), gốc 0 ở góc trên-trái của bo; đi theo zoom / kéo; vạch xanh = vị trí chuột */
   function drawRulers() {
@@ -1545,6 +1697,13 @@
   // toV: toạ độ khung nhìn (camera); toMM: toạ độ trên bo (đã tính lật mặt)
   const toPt = (e, node) => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(node.getScreenCTM().inverse()); };
   const toV = e => toPt(e, svg), toMM = e => toPt(e, LY.root);
+  const mmToStage = (x, y) => {
+    if (!svg || !svg.createSVGPoint || !LY.root) return null;
+    const pt = svg.createSVGPoint(); pt.x = x; pt.y = y;
+    const ctm = LY.root.getScreenCTM(); if (!ctm) return null;
+    const sc = pt.matrixTransform(ctm), sr = $("#plStage").getBoundingClientRect();
+    return { x: sc.x - sr.left, y: sc.y - sr.top };
+  };
 
   /* ---------- thao tác ---------- */
   const ui = { sel: null, mode: "idle", hlNet: null, k: .1 };
@@ -1714,6 +1873,109 @@
       el("circle", { cx: rx, cy: ry, r: .55, class: "sguide-pt" }, LY.tmp);
       el("circle", { cx: sx, cy: sy, r: .42, class: "sguide-cur" }, LY.tmp);
     }
+  }
+  const PASSIVE_FPS = new Set(["R", "C", "ecap5", "ecap6", "ecap8"]);
+  function findCompSplice(fp, cx, cy, rotAng) {
+    const f = FP[fp];
+    if (!f || !f.pads || f.pads.length !== 2) return null;
+    const [r0x, r0y] = rot(f.pads[0].x, f.pads[0].y, rotAng);
+    const [r1x, r1y] = rot(f.pads[1].x, f.pads[1].y, rotAng);
+    const p0 = { x: r3(cx + r0x), y: r3(cy + r0y) };
+    const p1 = { x: r3(cx + r1x), y: r3(cy + r1y) };
+    const pmid = { x: r3((p0.x + p1.x) / 2), y: r3((p0.y + p1.y) / 2) };
+    for (const t of S.traces) {
+      const pa = proj(t, p0), pb = proj(t, p1), pm = proj(t, pmid);
+      const w2 = traceW(t) / 2 + 0.45;
+      if (pa && pb && pm && pa.d < w2 && pb.d < w2 && pm.d < w2 + 0.35 && Math.abs(pb.s - pa.s) > 0.5) {
+        return { t, pa, pb, p0, p1, f };
+      }
+    }
+    return null;
+  }
+  function startPlaceComp(fp) {
+    cancel();
+    setTool("sel");
+    ui.mode = "place";
+    const vx = cam.x + cam.w / 2, cx0 = S.flip ? S.board.w - vx : vx, cy0 = cam.y + cam.h / 2;
+    ui.place = { fp, rot: 0, cur: [snap(cx0, G), snap(cy0, G)] };
+    svg.classList.add("routing");
+    $("#plHint").textContent = L("Bấm để đặt linh kiện (R xoay 90°, đặt lên đường đồng để cắt & nối tiếp, Esc huỷ)", "Click to place component (R rotates 90°, place over a trace to splice in-line, Esc cancels)");
+    drawPlaceGhost();
+  }
+  function drawPlaceGhost() {
+    LY.tmp.innerHTML = "";
+    if (ui.mode !== "place" || !ui.place) return;
+    const { fp, rot: rotAng, cur } = ui.place;
+    const f = FP[fp]; if (!f) return;
+    const [cx, cy] = cur;
+    const sp = findCompSplice(fp, cx, cy, rotAng);
+    if (sp) {
+      const s0 = Math.min(sp.pa.s, sp.pb.s), s1 = Math.max(sp.pa.s, sp.pb.s);
+      const cutSpan = cutPart(sp.t, s0, s1);
+      if (cutSpan.length >= 2) {
+        el("path", { d: "M" + cutSpan.map(q => q.join(" ")).join(" L"), "stroke-width": traceW(sp.t) + 0.6, class: "trimcut" }, LY.tmp);
+      }
+      el("circle", { cx: sp.pa.q[0], cy: sp.pa.q[1], r: 1.1, class: "jmark" }, LY.tmp);
+      el("circle", { cx: sp.pb.q[0], cy: sp.pb.q[1], r: 1.1, class: "jmark" }, LY.tmp);
+    }
+    const g = el("g", { transform: `translate(${cx} ${cy}) rotate(${rotAng})`, opacity: "0.85" }, LY.tmp);
+    const b = f.body;
+    if (f.round) el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: b.h / 2, class: "body", stroke: sp ? "#38bdf8" : "#fff", "stroke-width": "0.3", fill: "rgba(30,41,59,0.7)" }, g);
+    else el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 0.6, class: "body", stroke: sp ? "#38bdf8" : "#fff", "stroke-width": "0.3", fill: "rgba(30,41,59,0.7)" }, g);
+    if (f.val) el("text", { x: b.x + b.w / 2, y: b.y + b.h / 2, "font-size": "1.3", "font-weight": "700", "text-anchor": "middle", "dominant-baseline": "central", fill: "#fff" }, g, f.val);
+    for (const p of f.pads) {
+      el("circle", { cx: p.x, cy: p.y, r: PAD_R, fill: sp ? "#38bdf8" : "#f59e0b", opacity: "0.75" }, g);
+      el("circle", { cx: p.x, cy: p.y, r: DRILL_R, fill: "#111" }, g);
+    }
+  }
+  function placeCompOnTrace(sp, c) {
+    const { t, pa, pb, f } = sp;
+    const s0 = Math.min(pa.s, pb.s), s1 = Math.max(pa.s, pb.s);
+    const total = proj(t, { x: t.pts[t.pts.length - 1][0], y: t.pts[t.pts.length - 1][1] }).s;
+    S.traces = S.traces.filter(x => x !== t);
+    const pLeft = cutPart(t, 0, s0);
+    const pRight = cutPart(t, s1, total);
+    const firstPad = pa.s <= pb.s ? f.pads[0] : f.pads[1];
+    const secondPad = pa.s <= pb.s ? f.pads[1] : f.pads[0];
+    const snapEnd = (pc, idx, pt) => { if (pc.length >= 2 && Math.hypot(pc[idx][0] - pt[0], pc[idx][1] - pt[1]) < 0.6) pc[idx] = [...pt]; };
+    if (pLeft.length >= 2 && cutPart.len(pLeft) > 0.3) {
+      snapEnd(pLeft, pLeft.length - 1, pa.s <= pb.s ? [sp.p0.x, sp.p0.y] : [sp.p1.x, sp.p1.y]);
+      S.traces.push({ ...t, id: S.uid++, pts: simplify(pLeft), lock: true });
+    }
+    if (pRight.length >= 2 && cutPart.len(pRight) > 0.3) {
+      snapEnd(pRight, 0, pa.s <= pb.s ? [sp.p1.x, sp.p1.y] : [sp.p0.x, sp.p0.y]);
+      S.traces.push({ ...t, id: S.uid++, pts: simplify(pRight), lock: true });
+    }
+    c.nets = c.nets || {};
+    c.nets[firstPad.name] = t.net;
+    c.nets[secondPad.name] = t.net;
+    gcHoles();
+  }
+  function pickPlace(p) {
+    if (ui.mode !== "place" || !ui.place) return;
+    const { fp, rot: rotAng } = ui.place;
+    const f = FP[fp], b = f.body, B = S.board;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const cx = snap(clamp(p.x, 2 - b.x, B.w - 2 - b.x - b.w), G);
+    const cy = snap(clamp(p.y, 2 - b.y, B.h - 2 - b.y - b.h), G);
+    const pre = (f.mine ? "X" : PRE[fp] || "M");
+    let n = 1; while (S.comps.some(c => c.id === pre + n)) n++;
+    const id = pre + n;
+    checkpoint();
+    const c = { id, fp, x: cx, y: cy, rot: rotAng };
+    if (f.val) c.val = f.val;
+    c.nets = autoNets(fp);
+    const sp = findCompSplice(fp, cx, cy, rotAng);
+    if (sp) {
+      placeCompOnTrace(sp, c);
+    }
+    S.comps.push(c);
+    cancel();
+    ui.sel = { t: "c", id };
+    render();
+    afterParts([id]);
+    toast(L(`Đã đặt ${id}` + (sp ? " (nối tiếp vào đường đồng)" : ""), `Placed ${id}` + (sp ? " (spliced into trace)" : "")));
+    if (f.ecap || f.to220) { const elN = $("#plName"); if (elN) { elN.focus(); elN.select(); } }
   }
   // snap ưu tiên điểm neo / đầu mút của line & jumper, tâm pad, đường gióng ảo (< 0,48 mm), rồi thân line / jumper
   function jSnap(p, a0, shift, selfJ, selfT, exclIdx) {
@@ -1887,6 +2149,11 @@
   const EDITS = ["tr", "tf", "tc", "ex"];
   function editSync(t) {   // nút "Sửa dây" sáng + menu xổ trái hiện khi đang dùng Trim / Fill / Chamfer / Extend
     const on = EDITS.includes(t), fl = $("#plFly"), bt = $("#plTtr"); if (on) S.editTool = t;
+    if (typeof closeAllPopouts === "function") {
+      if (on) closeAllPopouts("plFly");
+      else if (t === "dr") closeAllPopouts("plFlyD");
+      else if (t !== "cu" && t !== "jw") closeAllPopouts();
+    }
     if (fl) { fl.classList.toggle("on", on); fl.querySelectorAll("[data-tool]").forEach(x => x.classList.toggle("on", x.dataset.tool === t)); }
     if (t === "dr") { drawFly(); const fd = $("#plFlyD"), st = $("#plStage"), db = $("#plTdr"); fd.classList.add("on"); if (db) { const top = db.getBoundingClientRect().top - st.getBoundingClientRect().top; fd.style.top = Math.max(6, Math.min(top, st.clientHeight - fd.offsetHeight - 6)) + "px"; } } else if ($("#plFlyD")) $("#plFlyD").classList.remove("on");
     if (bt) { bt.classList.toggle("on", on); if (on && fl) { const st = $("#plStage"); fl.style.top = Math.max(6, bt.getBoundingClientRect().top - st.getBoundingClientRect().top) + "px"; } }
@@ -2135,30 +2402,92 @@
     }
     return out.filter((q, i) => !i || q[0] !== out[i - 1][0] || q[1] !== out[i - 1][1]);
   };
-  // Thước: bấm điểm 1 → rê → bấm điểm 2 để giữ số đo (bấm tiếp là đo lại). Điểm bám tâm chân / lỗ, tâm đường đồng, nếu không thì lưới 0,635
+  // Thước: bấm điểm 1 → rê → bấm điểm 2 để giữ số đo (có thể đo nhiều đường liên tục). Điểm bám tâm chân / lỗ, tâm đường đồng, nếu không thì lưới 0,635
+  // Giữ Shift hoặc góc lệch trục ≤ 2°: tự động nắn thẳng hàng theo trục ngang / dọc
+  function measAlign(a, b, shift) {
+    if (!a || !b) return b;
+    const dx = b[0] - a[0], dy = b[1] - a[1], dist = Math.hypot(dx, dy);
+    if (dist < 1e-4) return [b[0], b[1]];
+    if (shift) {
+      if (Math.abs(dx) >= Math.abs(dy)) return [b[0], a[1]];
+      return [a[0], b[1]];
+    }
+    const degX = Math.atan2(Math.abs(dy), Math.abs(dx)) * 180 / Math.PI;
+    if (degX <= 2) return [b[0], a[1]];
+    const degY = Math.atan2(Math.abs(dx), Math.abs(dy)) * 180 / Math.PI;
+    if (degY <= 2) return [a[0], b[1]];
+    return [b[0], b[1]];
+  }
   function measSnap(p) {
     const pd = padAt(p); if (pd) return [pd.x, pd.y];
     const sg = segAt(p); if (sg) return proj(sg.t, p).q;
     return [snap(p.x, Q), snap(p.y, Q)];
   }
-  function measPick(p) {
-    const q = measSnap(p);
-    if (!ui.meas || ui.meas.fixed) ui.meas = { a: q, b: q };
-    else { ui.meas.b = q; ui.meas.fixed = true; }
+  function measPick(p, ev) {
+    const raw = measSnap(p);
+    if (!ui.meas || ui.meas.fixed) {
+      ui.meas = { a: raw, b: raw };
+    } else {
+      const q = measAlign(ui.meas.a, raw, !!(ev && ev.shiftKey));
+      ui.meas.b = q; ui.meas.fixed = true;
+      if (!ui.measList) ui.measList = [];
+      ui.measList.push({ a: ui.meas.a, b: q });
+    }
     drawMeas();
   }
   function drawMeas(hover) {
     LY.tmp.innerHTML = "";
     const k = cam ? cam.w / 120 : 1;   // cỡ chữ / nét theo mức phóng
     if (hover) el("circle", { cx: hover[0], cy: hover[1], r: .55 * k, class: "measpt" }, LY.tmp);
-    const m = ui.meas; if (!m) return;
-    const [a, b] = [m.a, m.b], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy);
-    el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], "stroke-width": .25 * k, class: "measln" }, LY.tmp);
-    for (const e of [a, b]) el("circle", { cx: e[0], cy: e[1], r: .45 * k, class: "measpt" }, LY.tmp);
-    if (d > .01) {
-      const tx = (a[0] + b[0]) / 2 + 1.2 * k, t = el("text", { x: tx, y: (a[1] + b[1]) / 2 - 1.2 * k, "font-size": 2.2 * k, class: "meastx", transform: S.flip ? `translate(${2 * tx} 0) scale(-1 1)` : "" }, LY.tmp, `${d.toFixed(2)} mm`);
-      el("tspan", { x: tx, dy: 2.4 * k, "font-size": 1.6 * k }, t, `Δx ${Math.abs(dx).toFixed(2)} · Δy ${Math.abs(dy).toFixed(2)}`);
+    const list = [...(ui.measList || [])];
+    if (ui.meas && !ui.meas.fixed) list.push(ui.meas);
+    for (const m of list) {
+      const [a, b] = [m.a, m.b], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy);
+      el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], "stroke-width": .25 * k, class: "measln" }, LY.tmp);
+      for (const e of [a, b]) el("circle", { cx: e[0], cy: e[1], r: .45 * k, class: "measpt" }, LY.tmp);
+      if (d > .01) {
+        const tx = (a[0] + b[0]) / 2 + 1.2 * k, t = el("text", { x: tx, y: (a[1] + b[1]) / 2 - 1.2 * k, "font-size": 2.2 * k, class: "meastx", transform: S.flip ? `translate(${2 * tx} 0) scale(-1 1)` : "" }, LY.tmp, `${d.toFixed(2)} mm`);
+        el("tspan", { x: tx, dy: 2.4 * k, "font-size": 1.6 * k }, t, `Δx ${Math.abs(dx).toFixed(2)} · Δy ${Math.abs(dy).toFixed(2)}`);
+      }
     }
+  }
+  // tìm đoạn giữa 2 điểm neo / khúc gẫy / điểm giao nhau / chân gần nhất trên đường t quanh vị trí pr (dùng cho Auto Trim 1 chạm)
+  function autoTrimSpan(t, pr) {
+    const stops = [0]; let acc = 0;
+    const addStop = s => { if (s >= -1e-4 && s <= total + 1e-4) stops.push(Math.max(0, Math.min(total, s))); };
+    for (let k = 0; k < t.pts.length - 1; k++) { acc += Math.hypot(t.pts[k + 1][0] - t.pts[k][0], t.pts[k + 1][1] - t.pts[k][1]); stops.push(acc); }
+    const total = acc; if (total < .1) return null;
+    acc = 0;
+    for (let k = 0; k < t.pts.length - 1; k++) {
+      const a = t.pts[k], b = t.pts[k + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
+      if (l > 1e-6) {
+        const ux = dx / l, uy = dy / l;
+        for (const u of S.traces) for (let m = 0; m < u.pts.length - 1; m++) {
+          if (u === t && Math.abs(m - k) <= 1) continue;
+          const c = u.pts[m], d = u.pts[m + 1], vx = d[0] - c[0], vy = d[1] - c[1], den = dx * vy - dy * vx;
+          if (Math.abs(den) > 1e-7) {
+            const t1 = ((c[0] - a[0]) * vy - (c[1] - a[1]) * vx) / den, t2 = ((c[0] - a[0]) * dy - (c[1] - a[1]) * dx) / den;
+            if (t1 >= -.02 && t1 <= 1.02 && t2 >= -.02 && t2 <= 1.02) addStop(acc + Math.max(0, Math.min(1, t1)) * l);
+          }
+          for (const e of [c, d]) if (segDist(e[0], e[1], a[0], a[1], b[0], b[1]) < traceW(t) / 2 + .12) {
+            const projS = (e[0] - a[0]) * ux + (e[1] - a[1]) * uy;
+            if (projS >= -.05 && projS <= l + .05) addStop(acc + Math.max(0, Math.min(l, projS)));
+          }
+        }
+        for (const pd of A.P) if (segDist(pd.x, pd.y, a[0], a[1], b[0], b[1]) < (pd.r || PAD_R) + .12) {
+          const projS = (pd.x - a[0]) * ux + (pd.y - a[1]) * uy;
+          if (projS >= -.05 && projS <= l + .05) addStop(acc + Math.max(0, Math.min(l, projS)));
+        }
+      }
+      acc += l;
+    }
+    stops.sort((x, y) => x - y);
+    const uniq = [stops[0]];
+    for (let i = 1; i < stops.length; i++) if (stops[i] - uniq[uniq.length - 1] > .18) uniq.push(stops[i]);
+    if (uniq[uniq.length - 1] < total - .05) uniq.push(total); else uniq[uniq.length - 1] = total;
+    let s0 = 0, s1 = total;
+    for (let i = 0; i < uniq.length - 1; i++) if (pr.s >= uniq[i] - 1e-4 && pr.s <= uniq[i + 1] + 1e-4) { s0 = uniq[i]; s1 = uniq[i + 1]; break; }
+    return { s0, s1, total };
   }
   function trimPick(p) {
     const sg = segAt(p);
@@ -2168,6 +2497,15 @@
       return toast(L("Bấm lên đường đồng (hoặc dây nhảy để xoá).", "Click a copper trace (or a jumper to remove it)."));
     }
     const pr = proj(sg.t, p);
+    if (S.autoTrim) {
+      const sp = autoTrimSpan(sg.t, pr); if (!sp) return;
+      const t = sg.t, { s0, s1, total } = sp; ui.trim = null;
+      checkpoint();
+      S.traces = S.traces.filter(x => x !== t);
+      for (const pc of [cutPart(t, 0, s0), cutPart(t, s1, total)]) if (pc.length >= 2 && cutPart.len(pc) > .25) S.traces.push({ ...t, id: S.uid++, pts: simplify(pc), lock: true });
+      gcHoles(); ui.sel = null; LY.tmp.innerHTML = ""; render(); drawTrim(p);
+      return;
+    }
     if (!ui.trim || ui.trim.id !== sg.t.id) {
       if (ui.trim) toast(L("Điểm 2 nằm trên đường khác – chọn lại điểm 1 trên đường này.", "Point 2 is on another trace – point 1 reset on this trace."));
       ui.trim = { id: sg.t.id, s: pr.s, q: pr.q }; ui.sel = { t: "t", id: sg.t.id }; ui.hlNet = null; render(); drawTrim(p);
@@ -2188,6 +2526,11 @@
     LY.tmp.innerHTML = "";
     const sg = segAt(p), pr = sg && proj(sg.t, p);
     if (pr) el("circle", { cx: pr.q[0], cy: pr.q[1], r: .5, class: "pen-nib" }, LY.tmp);
+    if (S.autoTrim && sg && pr) {
+      const sp = autoTrimSpan(sg.t, pr);
+      if (sp) { const pc = cutPart(sg.t, sp.s0, sp.s1); if (pc.length >= 2) el("path", { d: "M" + pc.map(q => q.join(" ")).join(" L"), "stroke-width": traceW(sg.t) + .3, class: "trimcut" }, LY.tmp); }
+      return;
+    }
     if (!ui.trim) return;
     el("circle", { cx: ui.trim.q[0], cy: ui.trim.q[1], r: .5, class: "pen-nib" }, LY.tmp);
     const t = S.traces.find(x => x.id === ui.trim.id);
@@ -2246,7 +2589,7 @@
     toast(L(`Đã đổi ${js.length} dây nhảy thành đường đồng. Chỗ báo đỏ là đường đang chạm vật khác: kéo nắn lại hoặc gôm rồi vẽ lại.`, `Converted ${js.length} jumper(s) to copper. Red marks touch something else: drag to reshape, or erase and redraw.`));
   }
   const hideCtx = () => $("#plCtx").classList.remove("on");
-  function cancel() { ui.saw = null; ui.trim = null; ui.meas = null; ui.mode = "idle"; ui.route = null; ui.jump = null; ui.hole = null; ui.jf = null; ui.weld1 = null; ui.drag = null; LY.tmp.innerHTML = ""; svg.classList.remove("routing"); $("#plHint").textContent = ""; }
+  function cancel() { ui.place = null; ui.saw = null; ui.trim = null; ui.meas = null; ui.measList = null; ui.mode = "idle"; ui.route = null; ui.jump = null; ui.hole = null; ui.jf = null; ui.weld1 = null; ui.drag = null; LY.tmp.innerHTML = ""; svg.classList.remove("routing"); $("#plHint").textContent = ""; }
 
   let prevDown = { t: 0, x: 0, y: 0 };
   svg.addEventListener("pointerdown", e => {
@@ -2266,6 +2609,7 @@
       if ((s.hit === "vtx" || s.hit === "seg" || s.hit === "jseg") && (s.net === ui.route.net || joinNet(s.net))) return finishRoute(s.q, true);
       ui.free = FREEM() ? !e.shiftKey : e.shiftKey; const last = ui.route.pts[ui.route.pts.length - 1], q = aim(last, s.q); if (q[0] !== last[0] || q[1] !== last[1]) { ui.route.pts.push(q); ui.route.dir = null; } drawRoute(); return;
     }
+    if (ui.mode === "place") return pickPlace(p);
     if (ui.mode === "jump") return pickJump(p);
     if (ui.mode === "hole") return pickHole(p, e);
     if (ui.mode === "jfree") return pickJfree(p, g, e);
@@ -2274,7 +2618,7 @@
     if (ui.tool === "ex") return pickExtend(p);
     if (ui.tool === "saw") return sawDown(e, p);
     if (ui.tool === "dr") return drawDown(e, p);
-    if (ui.tool === "ms") return measPick(p);
+    if (ui.tool === "ms") return measPick(p, e);
     if (ui.tool === "jw") return pickHole(p, e);
     if (ui.tool === "cu") {
       const s = ptSnap(p), pd = s.pd;
@@ -2307,13 +2651,26 @@
   svg.addEventListener("pointermove", e => {
     { const sr = $("#plStage").getBoundingClientRect(); ui.mx = e.clientX - sr.left; ui.my = e.clientY - sr.top; drawRulers(); }
     const p = toMM(e);
+    if (ui.mode === "place") {
+      const b = FP[ui.place.fp] ? FP[ui.place.fp].body : { x: 0, y: 0, w: 0, h: 0 }, B = S.board;
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      ui.place.cur = [snap(clamp(p.x, 2 - b.x, B.w - 2 - b.x - b.w), G), snap(clamp(p.y, 2 - b.y, B.h - 2 - b.y - b.h), G)];
+      drawPlaceGhost();
+      return;
+    }
     if (ui.mode === "route") { ui.free = FREEM() ? !e.shiftKey : e.shiftKey; const s = ptSnap(p); ui.route.cur = s.q; drawRoute(); return; }
     if (ui.mode === "jump") return drawJump(p);
     if (ui.mode === "jfree") { ui.jf.cur = jSnap(p, ui.jf.a, e.shiftKey).q; return drawJfree(); }
     if (ui.tool === "tf" || ui.tool === "tc") { drawWeldPreview(p, ui.tool === "tf" ? "fill" : "chamfer"); return; }
     if (ui.tool === "saw") drawSaw(p, e);
     if (ui.tool === "tr") drawTrim(p);
-    if (ui.tool === "ms") { if (ui.meas && !ui.meas.fixed) ui.meas.b = measSnap(p); drawMeas(measSnap(p)); }
+    if (ui.tool === "ms") {
+      const raw = measSnap(p);
+      if (ui.meas && !ui.meas.fixed) {
+        ui.meas.b = measAlign(ui.meas.a, raw, e.shiftKey);
+      }
+      drawMeas(raw);
+    }
     else if ((ui.tool === "jw" || ui.mode === "hole") && ui.mode !== "jfree") {
       LY.tmp.innerHTML = ""; const s = jSnap(p, null, e.shiftKey);
       el("circle", { cx: s.q[0], cy: s.q[1], r: JP_R, class: "jmark" }, LY.tmp); drawGuides();
@@ -2356,6 +2713,17 @@
       ui.sel = { t: "j", id: jw.id, end }; ui.hlNet = jw.net; render();
       return ctxMenu(e, [[L("Nắn ngang", "Make horizontal"), "H", () => cmd.straight("h")], [L("Nắn dọc", "Make vertical"), "V", () => cmd.straight("v")], [L("Nắn 45°", "Make 45°"), "A", () => cmd.straight("a")],
         [L("Đổi thành đường đồng", "Convert to copper"), "", () => toCopper([jw])], [L("Đổi mọi dây nhảy của mạng này", "Convert all jumpers of this net"), "", () => toCopper(S.jumpers.filter(j => j.net === jw.net))], [L("Xoá dây nhảy", "Delete jumper"), "Del", cmd.del]]);
+    }
+    const ai = artAt(p) || selArt();
+    if (ai) {
+      ui.sel = { t: "a", id: ai.id };
+      if (ui.tool === "dr") { drawFly(); $("#plFlyD").classList.add("on"); }
+      render();
+      return ctxMenu(e, [
+        [L("⇋ Lật mặt (Flip)", "⇋ Flip (Mirror)"), "F", () => { checkpoint(); artFlip(ai); render(); toast(L("Đã lật mặt đối tượng vẽ (hỗ trợ in nhiệt).", "Flipped paint object (for heat transfer).")); }],
+        [L("⟳ Xoay 90°", "⟳ Rotate 90°"), "R", () => { checkpoint(); artRotate(ai, Math.PI / 2); render(); }],
+        [L("Xoá hình vẽ", "Delete paint object"), "Del", () => cmd.del()]
+      ]);
     }
     const sg = segAt(p); if (!sg) return hideCtx();
     ui.sel = { t: "t", id: sg.t.id, k: sg.k }; ui.hlNet = sg.t.net; render();
@@ -2561,6 +2929,7 @@
     },
     add(fp) {
       if (fp === "S3" && (!hostInfo().s3 || S.comps.some(c => c.fp === "S3"))) return toast(L("Bo chỉ dùng 1 board ESP32-S3.", "The PCB uses a single ESP32-S3 board."));
+      if (PASSIVE_FPS.has(fp)) return startPlaceComp(fp);
       const pre = (FP[fp].mine ? "X" : PRE[fp] || "M"); let n = 1; while (S.comps.some(c => c.id === pre + n)) n++;
       const id = pre + n, f = FP[fp], b = f.body, B = S.board, vx = cam.x + cam.w / 2, cx = S.flip ? B.w - vx : vx, cy = cam.y + cam.h / 2;
       const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -2614,6 +2983,95 @@
       checkpoint(); S = fresh(S.mcu); ui.sel = null; render(); fit(); },
     rats() { S.rats = !S.rats; render(); },
     snapG() { S.snapG = S.snapG === false; ui.guides = null; LY.tmp.innerHTML = ""; render(); toast(S.snapG ? L("Đã bật Snap đỉnh & đường gióng ảo (F4).", "Vertex & smart guide snap ON (F4).") : L("Đã tắt Snap đỉnh & đường gióng ảo (F4).", "Vertex & smart guide snap OFF (F4).")); },
+    // điều chỉnh độ dài dây nhảy: giữ nguyên hướng / góc, ưu tiên đổi chiều dài cạnh line đồng nối vào thay vì đổi góc
+    setJumperLength(jw, targetLen) {
+      if (!jw) return;
+      const target = Math.max(1, Math.min(150, Math.round(targetLen * 10) / 10));
+      const dx0 = jw.b[0] - jw.a[0], dy0 = jw.b[1] - jw.a[1], curL = Math.hypot(dx0, dy0);
+      if (curL < 1e-4) return;
+      if (Math.abs(curL - target) < 0.05) return;
+
+      const P0 = pads().filter(q => !q.jw && !q.hole);
+      const onPad = e => P0.some(q => Math.hypot(q.x - e[0], q.y - e[1]) < 0.1);
+      const padA = onPad(jw.a), padB = onPad(jw.b);
+      if (padA && padB) return toast(L("Dây nhảy nối cố định 2 chân linh kiện, không đổi độ dài được.", "Jumper connects two fixed component pads and cannot change length."));
+
+      checkpoint();
+      const mvA = padB && !padA ? true : padA && !padB ? false : (ui.sel && ui.sel.t === "j" && ui.sel.end === 0);
+      const ux = dx0 / curL, uy = dy0 / curL;
+      const oldPt = mvA ? [...jw.a] : [...jw.b];
+      const fixedPt = mvA ? jw.b : jw.a;
+      const newPt = mvA ? [r3(fixedPt[0] - target * ux), r3(fixedPt[1] - target * uy)] : [r3(fixedPt[0] + target * ux), r3(fixedPt[1] + target * uy)];
+
+      const D_ANG = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+      const dirMatch = (dx, dy) => {
+        const l = Math.hypot(dx, dy);
+        if (l < 1e-4) return null;
+        let best = null, bd = 0.05;
+        for (const [cx, cy] of D_ANG) {
+          const cl = Math.hypot(cx, cy);
+          const d = Math.hypot(dx / l - cx / cl, dy / l - cy / cl);
+          if (d < bd) { bd = d; best = [cx / cl, cy / cl]; }
+        }
+        return best;
+      };
+
+      const adjustTraceEnd = t => {
+        const isStart = Math.hypot(t.pts[0][0] - oldPt[0], t.pts[0][1] - oldPt[1]) < 0.08;
+        const isEnd = Math.hypot(t.pts.at(-1)[0] - oldPt[0], t.pts.at(-1)[1] - oldPt[1]) < 0.08;
+        if (!isStart && !isEnd) return false;
+        const idx = isStart ? 0 : t.pts.length - 1;
+        const nIdx = isStart ? 1 : t.pts.length - 2;
+        const E = t.pts[idx], N = t.pts[nIdx];
+        const dx = E[0] - N[0], dy = E[1] - N[1], L0 = Math.hypot(dx, dy);
+        if (L0 < 1e-4) { t.pts[idx] = [r3(newPt[0]), r3(newPt[1])]; t.lock = true; return true; }
+        const dDir = dirMatch(dx, dy), ux = dx / L0, uy = dy / L0;
+        const dispX = newPt[0] - E[0], dispY = newPt[1] - E[1];
+        const cross = Math.abs(dispX * (-uy) + dispY * ux);
+        if (cross < 0.05) {
+          t.pts[idx] = [r3(newPt[0]), r3(newPt[1])];
+          t.lock = true; return true;
+        }
+        const nnIdx = isStart ? 2 : t.pts.length - 3;
+        if (nnIdx >= 0 && nnIdx < t.pts.length) {
+          const NN = t.pts[nnIdx], dN = dirMatch(N[0] - NN[0], N[1] - NN[1]);
+          if (dN) {
+            const v1x = dN[0], v1y = dN[1], v2x = dDir ? dDir[0] : ux, v2y = dDir ? dDir[1] : uy;
+            const den = v1x * (-v2y) - v1y * (-v2x);
+            if (Math.abs(den) > 0.05) {
+              const wx = newPt[0] - NN[0], wy = newPt[1] - NN[1];
+              const t1 = (wx * (-v2y) - wy * (-v2x)) / den;
+              t.pts[nIdx] = [r3(NN[0] + t1 * v1x), r3(NN[1] + t1 * v1y)];
+              t.pts[idx] = [r3(newPt[0]), r3(newPt[1])];
+              t.pts = simplify(t.pts.filter((q, i) => i === 0 || q[0] !== t.pts[i - 1][0] || q[1] !== t.pts[i - 1][1]));
+              t.lock = true; return true;
+            }
+          }
+        }
+        if (dDir) {
+          let corner = null;
+          if (Math.abs(dDir[1]) < 1e-4) corner = [r3(N[0]), r3(newPt[1])];
+          else if (Math.abs(dDir[0]) < 1e-4) corner = [r3(newPt[0]), r3(N[1])];
+          else {
+            const along = (N[0] - newPt[0]) * dDir[0] + (N[1] - newPt[1]) * dDir[1];
+            corner = [r3(newPt[0] + along * dDir[0]), r3(newPt[1] + along * dDir[1])];
+          }
+          if (isStart) t.pts.splice(1, 0, corner); else t.pts.splice(idx, 0, corner);
+          t.pts[isStart ? 0 : t.pts.length - 1] = [r3(newPt[0]), r3(newPt[1])];
+          t.pts = simplify(t.pts.filter((q, i) => i === 0 || q[0] !== t.pts[i - 1][0] || q[1] !== t.pts[i - 1][1]));
+          t.lock = true; return true;
+        }
+        t.pts[idx] = [r3(newPt[0]), r3(newPt[1])];
+        t.lock = true; return true;
+      };
+
+      for (const t of S.traces) adjustTraceEnd(t);
+      for (const h of S.holes || []) if (Math.hypot(h.x - oldPt[0], h.y - oldPt[1]) < 0.08) { h.x = newPt[0]; h.y = newPt[1]; }
+      if (mvA) jw.a = newPt; else jw.b = newPt;
+      delete jw.auto;
+      gcHoles();
+      render();
+    },
     // nắn đoạn đang chọn hoặc dây nhảy: h ngang, v dọc, a 45°. Dời đầu tự do của đoạn; đoạn nối 2 chân thì chèn 1 điểm gập
     straight(m) {
       const s = ui.sel;
@@ -2761,6 +3219,18 @@
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (k === "escape") { const busy = ui.mode !== "idle"; cancel(); if (!busy) setTool("sel"); ui.sel = null; ui.hlNet = null; return render(); }
     if (ui.tool === "saw" && ui.saw) { if (k === "enter") return sawFinish(); if (k === "backspace") { e.preventDefault(); ui.saw.pts.pop(); return drawSaw(null); } }
+    if (ui.mode === "place") {
+      if (k === "r") {
+        ui.place.rot = (ui.place.rot + 90) % 360;
+        drawPlaceGhost();
+        return;
+      }
+      if (k === "escape") {
+        cancel();
+        render();
+        return;
+      }
+    }
     if (ui.mode === "route") {
       if (k === "/") { S.posture = S.posture ? 0 : 1; drawRoute(); }
       if (k === "backspace") { e.preventDefault(); if (ui.route.pts.length > 1) ui.route.pts.pop(); ui.route.dir = null; drawRoute(); }
@@ -2988,12 +3458,30 @@
     };
   }
   let syncWidthSlider = () => {};
+  function closeAllPopouts(exceptId) {
+    ROOT.querySelectorAll(".pl-pop").forEach(m => {
+      if (!exceptId || m.id !== exceptId) m.remove();
+    });
+    ROOT.querySelectorAll("#plAuto, #plWidth").forEach(b => {
+      if (!exceptId || b.id !== exceptId) b.classList.remove("on");
+    });
+    const flyIds = ["plFly", "plFlyP", "plFlyJ", "plFlyD", "plFlyW"];
+    flyIds.forEach(id => {
+      if (id !== exceptId) {
+        const f = $("#" + id);
+        if (f) f.classList.remove("on");
+      }
+    });
+    if (exceptId !== "plFlyW") {
+      ui.wpaint = null;
+      const b = $("#plWidth");
+      if (b) b.classList.remove("on");
+    }
+  }
   function closeWidthMenu() { const fw = $("#plFlyW"); if (fw && fw.classList.contains("on")) { fw.classList.remove("on"); ui.wpaint = null; const b = $("#plWidth"); if (b) b.classList.remove("on"); fw.querySelectorAll("[data-w]").forEach(x => x.classList.remove("on")); } }
   function closePanels(e) {   // bấm vùng trống trong khung vẽ: đóng các bảng xổ xuống (giá trị đã chỉnh vẫn giữ)
-    for (const id of ["plRoutePop", "plPourPop"]) { const m = ROOT.querySelector("#" + id); if (m) m.remove(); }
-    for (const id of ["plFlyP", "plFlyJ"]) { const f = $("#" + id); if (f) f.classList.remove("on"); }
+    closeAllPopouts();
     if (e && !pickObj(toMM(e))) closeWidthMenu();   // menu độ rộng chỉ đóng khi bấm vùng trống; bấm lên dây / linh kiện thì giữ để chọn tiếp
-    for (const id of ["plAuto"]) { const b = $("#" + id); if (b) b.classList.remove("on"); }
   }
   function routePanel(btn) {   // AutoRoute: đi dây ngay · kiểu đi dây · Auto now · độ rộng dây + Áp dụng tất cả
     const sch = S.routeScheme == null ? -1 : S.routeScheme, m = pop("plRoutePop", `<button type="button" class="rp-go" id="rpGo">▶ ${L("Đi dây ngay", "Route now")}</button>
@@ -3028,6 +3516,7 @@
   }
   function pop(id, html, anchor, w, keep) {
     let m = ROOT.querySelector("#" + id); if (m) { m.remove(); return null; }   // bấm lần nữa thì đóng
+    closeAllPopouts(id);
     m = document.createElement("div"); m.id = id; m.className = "pl-pop"; m.innerHTML = html; ROOT.appendChild(m);
     const r = anchor.getBoundingClientRect(); m.style.top = r.bottom + 6 + "px"; m.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + "px"; m.style.width = w + "px";
     if (!keep) onOutside(m, () => m.remove()); return m;
@@ -3246,13 +3735,14 @@
     const nets = {}; for (const p of A.P) if (p.net && !isFree(p.net)) nets[p.net] = 1;
     const open = new Set(A.rats.map(r => r.net)), bad = A.drc.length;
     const sel = ui.sel && ui.sel.t === "t" ? S.traces.find(t => t.id === ui.sel.id) : null, selC = ui.sel && ui.sel.t === "c" ? S.comps.find(c => c.id === ui.sel.id) : null;
+    const selJ = ui.sel && ui.sel.t === "j" ? S.jumpers.find(j => j.id === ui.sel.id) : null;
     const allOk = !open.size && S.comps.length > 1, done = allOk && !bad, nj = S.jumpers.length;
     const help = HELP_HTML = L(`<li>Chọn bút như bút chì: <b>Line</b> (L) vẽ đường đồng, <b>Bút dây nhảy</b> (J) bấm 2 điểm, <b>Trim</b> (T) bấm 2 điểm trên đường để bỏ đoạn giữa rồi vẽ lại, <b>Chọn</b> (Esc) để kéo linh kiện.</li><li>Kéo <b>thân đường</b> để dời song song, kéo <b>ô vuông</b> để dời góc.</li><li>Chọn đoạn dây: <b>H</b> nắn ngang · <b>V</b> nắn dọc · <b>A</b> nắn 45°. <b>Đúp</b> lên dây thêm điểm neo, đúp lên ô vuông để xoá.</li><li>Kéo <b>linh kiện</b> để dời, <b>R</b> xoay.</li><li><b>Dây nhảy</b> (J): bấm điểm đầu rồi điểm cuối (chân, lỗ, đường hoặc chỗ trống). Đang vẽ đường nhấn <b>J</b> để đặt lỗ ở đầu bút rồi bắc dây nhảy. Nét <b>trắng</b> = dây nhảy / ký hiệu linh kiện.</li><li>Đường vẽ / sửa tay tự <b>khoá</b> 🔒: Tự đi dây giữ nguyên.</li><li><b>F</b> Fill / <b>C</b> Chamfer: nối 2 dây thành góc (có / không vát). <b>M</b> Thước đo khoảng cách. <b>Check</b> so mạch với tab Wiring.</li><li><b>Dây nhảy</b>: bấm chân → rê ra chỗ trống → <b>J</b> → bấm lỗ thứ 2 → vẽ tiếp tới chân cần nối. Hàn dây trần (chân điện trở thừa, 0,5 mm) giữa 2 lỗ ở mặt linh kiện, nằm sát bo.</li><li><b>Sửa dây</b> (T F C X): Trim bấm 2 điểm bỏ đoạn giữa · Fill / Chamfer hàn 2 dây (không / có vát 45°) · Extend kéo dài đầu dây tới đường / chân cùng mạng. Bấm nút lần nữa để tắt.</li><li>Nhấn giữ <b>Line</b>: độ rộng và góc vẽ. Nhấn giữ <b>Tự đi dây</b>: độ thoáng đường đồng. Nhấn giữ <b>Mass</b>: khe cách mass. Nút <b>Độ rộng</b>: bật rồi bấm từng đường để đổi.</li><li>Chân <b>tự nối</b> (tô cam) là app đoán theo tên chân (từ 50%): đối chiếu datasheet rồi bấm ✓ xác nhận hoặc ✕ bỏ nối. Linh kiện Fritzing chưa kiểm cần đo lại bằng Thước.</li><li><b>Layer</b> (nút cạnh File, như AutoCAD): basePCB · copper · jumper · paint_1, paint_2… Mỗi layer có tên, màu, nút ẩn / hiện, khoá, và ● đặt làm layer hiện hành (Draw vẽ vào đó). Thêm layer sơn mới, đổi sơn mặt trên / dưới. Layer ẩn hoặc khoá thì không sửa được.</li><li><b>Pen</b> (D): hàng đầu là ⬚ chọn · ✥ dời · ⟳ xoay · ✎ sửa (chữ, cỡ, nét, tô, layer) · 🗑 xoá hình đã vẽ; R xoay 90°. Vẽ tay, chữ, hình, icon vào layer hiện hành (<b>sơn</b> in lụa hoặc <b>copper</b> khắc, tránh chạm chân / đường khác). Chữ A–Z, 0–9 (bỏ dấu). Kéo để vẽ hình; ✥ để chọn và dời; Delete xoá.</li><li><b>Chọn nhiều</b>: Shift hoặc Ctrl + bấm để thêm / bớt, kéo trên nền để chọn bằng khung; Delete xoá tất cả, nút Độ rộng đổi độ rộng các đường đã chọn, Shift+L khoá. Giữ <b>Space</b> + kéo (hoặc chuột giữa) để dời khung nhìn.</li><li><b>Cưa</b> (W): cắt / mở rộng / khoét bo bằng đường thẳng (snap 15°), dùng được khi đã đi dây từ 60%; mass tự cập nhật.</li><li>Menu <b>File</b>: Lưu (Ctrl+S) · Lưu thành (Ctrl+Shift+S) · Mở (Ctrl+O) · Mở gần đây (5 dự án).</li><li><b>/</b> đổi tư thế 45° · <b>Esc</b> huỷ · <b>Ctrl+Z</b> hoàn tác.</li>`,
       `<li>Pick a pen like a pencil: <b>Line</b> (L) draws traces, <b>Jumper pen</b> (J) clicks 2 points, <b>Trim</b> (T) clicks 2 points on a trace to cut out the part between so you can redraw, <b>Select</b> (Esc) moves parts.</li><li>Drag a <b>trace body</b> to move it in parallel, drag a <b>square</b> to move a corner.</li><li>Select a segment: <b>H</b> horizontal · <b>V</b> vertical · <b>A</b> 45°. <b>Double-click</b> a trace to add a vertex, a square to delete it.</li><li>Drag a <b>part</b> to move it, <b>R</b> rotates.</li><li><b>Jumper</b> (J): click the start, then the end (pin, hole, trace or free spot). While drawing press <b>J</b> to drop a hole at the pen and bridge with a jumper. <b>White</b> lines = jumpers / part outlines.</li><li>Hand-drawn / edited traces are <b>locked</b> 🔒: Autoroute keeps them.</li><li><b>F</b> Fill / <b>C</b> Chamfer: join 2 traces into a corner (sharp / bevelled). <b>M</b> Ruler measures distances. <b>Check</b> compares the circuit with the Wiring tab.</li><li><b>Jumpers</b>: click a pin → move to a free spot → <b>J</b> → click the 2nd hole → keep drawing to the target pin. Solder bare wire (spare resistor legs, 0.5 mm) between the holes on the component side, flat to the board.</li><li><b>Edit</b> (T F C X): Trim clicks 2 points to cut between · Fill / Chamfer weld 2 traces (sharp / 45° bevel) · Extend runs a trace end to the nearest same-net trace or pin. Click the button again to turn it off.</li><li>Hold <b>Line</b>: width and angle. Hold <b>Autoroute</b>: trace spacing. Hold <b>Pour</b>: pour clearance. <b>Width</b> button: turn on, then click traces to change them.</li><li><b>Auto-wired</b> pins (orange) are guesses from pin names (50%+): compare with the datasheet, then ✓ confirm or ✕ unwire. Unchecked Fritzing parts need re-measuring with the Ruler.</li><li><b>Layers</b> (button next to File, like AutoCAD): basePCB · copper · jumper · paint_1, paint_2… Each layer has a name, colour, show / hide, lock and ● set current (Draw goes there). Add paint layers, switch paint top / bottom. Hidden or locked layers cannot be edited.</li><li><b>Pen</b> (D): the first row is ⬚ select · ✥ move · ⟳ rotate · ✎ edit (text, size, stroke, fill, layer) · 🗑 delete drawings; R rotates 90°. Freehand, text, shapes, icons into the current layer (<b>paint</b> silkscreen or <b>copper</b> etched, keep clear of other pins / traces). Text A–Z, 0–9. Drag to draw a shape; ✥ selects and moves; Delete removes.</li><li><b>Multi-select</b>: Shift or Ctrl + click to add / remove, drag on the background for a selection box; Delete removes all, the Width button changes the selected traces, Shift+L locks. Hold <b>Space</b> + drag (or middle mouse) to pan.</li><li><b>Saw</b> (W): cut / extend / punch the board with straight lines (15° snap), available once 60% of the connections are routed; the pour updates by itself.</li><li><b>File</b> menu: Save (Ctrl+S) · Save as (Ctrl+Shift+S) · Open (Ctrl+O) · Open recent (5 projects).</li><li><b>/</b> flips the 45° posture · <b>Esc</b> cancels · <b>Ctrl+Z</b> undo.</li>`);
     $("#plPanel").innerHTML = `<ol class="steps"><li class="${S.comps.length > 1 ? "ok" : "now"}">${L("Thêm & đặt linh kiện", "Add & place parts")}</li><li class="${allOk ? "ok" : "now"}">${L("Nối hết dây", "Route everything")}<small>${allOk ? L("xong", "done") : L("bấm Tự đi dây (A)", "press Autoroute (A)")}${nj ? L(` · ${nj} dây nhảy`, ` · ${nj} jumpers`) : ""}</small></li><li class="${done ? "ok" : bad ? "now" : ""}">${L("Không lỗi → Xuất file in", "No errors → Export")}<small>${bad ? L(`${bad} lỗi cần sửa`, `${bad} errors to fix`) : done ? L("sẵn sàng in", "ready to print") : "…"}</small></li></ol>
       ${pendBox()}
       <div class="stat"><div><b>${Object.keys(nets).length - open.size}</b>/${Object.keys(nets).length}<span>${L("mạng đã nối", "nets routed")}</span></div><div class="${bad ? "red" : ""}"><b>${bad}</b><span>${L("lỗi khoảng cách", "clearance errors")}</span></div><div><b>${S.traces.length}</b><span>${L("đường đồng", "traces")}</span></div></div>
-      ${ui.sel && ui.sel.t === "m" && ui.ms ? `<div class="box"><h4>${L("Đang chọn nhiều đối tượng", "Multiple objects selected")}</h4><p>${[[ui.ms.t.length, L("đường đồng", "traces")], [ui.ms.c.length, L("linh kiện", "parts")], [ui.ms.j.length, L("dây nhảy", "jumpers")], [ui.ms.a.length, L("hình vẽ", "drawings")]].filter(x => x[0]).map(x => `<b>${x[0]}</b> ${x[1]}`).join(" · ")}</p><p class="mut">${L("Delete: xoá tất cả · nút Độ rộng: đổi độ rộng các đường · Shift+L: khoá / mở khoá · Shift / Ctrl + bấm: thêm bớt · bấm vùng trống: bỏ chọn", "Delete: remove all · Width button: change trace widths · Shift+L: lock / unlock · Shift / Ctrl + click: add / remove · click empty: clear")}</p></div>` : sel ? traceBoxHTML(sel) : selC ? compBoxHTML(selC) : ""}
+      ${ui.sel && ui.sel.t === "m" && ui.ms ? `<div class="box"><h4>${L("Đang chọn nhiều đối tượng", "Multiple objects selected")}</h4><p>${[[ui.ms.t.length, L("đường đồng", "traces")], [ui.ms.c.length, L("linh kiện", "parts")], [ui.ms.j.length, L("dây nhảy", "jumpers")], [ui.ms.a.length, L("hình vẽ", "drawings")]].filter(x => x[0]).map(x => `<b>${x[0]}</b> ${x[1]}`).join(" · ")}</p><p class="mut">${L("Delete: xoá tất cả · nút Độ rộng: đổi độ rộng các đường · Shift+L: khoá / mở khoá · Shift / Ctrl + bấm: thêm bớt · bấm vùng trống: bỏ chọn", "Delete: remove all · Width button: change trace widths · Shift+L: lock / unlock · Shift / Ctrl + click: add / remove · click empty: clear")}</p></div>` : sel ? traceBoxHTML(sel) : selC ? compBoxHTML(selC) : selJ ? jumperBoxHTML(selJ) : ""}
       ${A.rats.length && S.comps.length > 1 ? `<div class="box warn"><p>${L(`Còn <b>${A.rats.length}</b> chỗ chưa nối (nét gạch). Cách nối bằng dây nhảy: xem nút ?`, `<b>${A.rats.length}</b> connections still open (dashed). How to add jumpers: see the ? button.`)}</p>${S.routed && S.comps.length > 2 ? `<button type="button" class="pl-try" id="plTryLay" title="${L("Dời linh kiện và đi dây lại (Ctrl+Z để quay lại)", "Moves parts and re-routes (Ctrl+Z to undo)")}">🔁 ${L("Thử sắp xếp lại", "Try re-arranging")}</button>` : ""}</div>` : ""}
       ${S.jumpers.length ? `<div class="box"><h4>${L("Dây nhảy", "Jumpers")} (${S.jumpers.length})</h4><p class="mut">${L("Cần khoảng", "Wire needed ≈")} ${Math.round(S.jumpers.reduce((s, j) => s + Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) + 10, 0) / 10)} cm</p><div class="pinlist">${S.jumpers.map(j => { const len = Math.round(Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1]) + 10); return `<div><b>J${jNo(j)}</b> ${j.net} · ~${len} mm${j.pin ? L(" · hàn thẳng vào chân", " · soldered onto the pins") : ""}${len > 100 ? L(" ⚠ dài, tín hiệu nhanh có thể nhiễu", " ⚠ long, fast signals may pick up noise") : ""}</div>`; }).join("")}</div></div>` : ""}
       ${ui.check ? checkBox() : ""}
@@ -3279,6 +3769,12 @@
     if ($("#plVerMine")) $("#plVerMine").onclick = () => toggleVerified(selC.fp);
     if ($("#plVal")) $("#plVal").onchange = e => { checkpoint(); selC.val = e.target.value.trim(); render(); };
     if ($("#plName")) $("#plName").onchange = e => { checkpoint(); const v = e.target.value.trim(); if (v) selC.lbl = v; else delete selC.lbl; render(); };
+    if (selJ) {
+      const jInp = $("#plJLen"), jInc = $("#plJInc"), jDec = $("#plJDec");
+      if (jInp) jInp.onchange = () => cmd.setJumperLength(selJ, +jInp.value);
+      if (jInc) jInc.onclick = () => cmd.setJumperLength(selJ, Math.round((Math.hypot(selJ.b[0] - selJ.a[0], selJ.b[1] - selJ.a[1]) + 0.5) * 10) / 10);
+      if (jDec) jDec.onclick = () => cmd.setJumperLength(selJ, Math.max(1, Math.round((Math.hypot(selJ.b[0] - selJ.a[0], selJ.b[1] - selJ.a[1]) - 0.5) * 10) / 10));
+    }
     $("#plRats").classList.toggle("on", S.rats); $("#plFlip").classList.toggle("on", !!S.flip); $("#plPour").classList.toggle("on", !!S.pour);
     if ($("#plSnap")) $("#plSnap").classList.toggle("on", S.snapG !== false);
     { const sb = $("#plTsaw"); if (sb) sb.classList.toggle("dis", !sawOK()); }
@@ -3312,6 +3808,29 @@
       ${row(L("Độ rộng", "Width"), ws.map(mm1).join(" – "))}
       ${row(L("Trạng thái", "State"), ts.every(t => t.lock) ? L("🔒 đã khoá (tự vẽ / đã sửa)", "🔒 locked (hand-drawn / edited)") : ts.some(t => t.lock) ? L("một phần đã khoá", "partly locked") : L("tự động", "auto"))}
       </table></div>`;
+  }
+  function jumperBoxHTML(j) {
+    const P = pads(), l0 = Math.hypot(j.b[0] - j.a[0], j.b[1] - j.a[1]), lenVal = (Math.round(l0 * 10) / 10).toFixed(1);
+    const endName = pt => {
+      const p = P.find(q => !q.jw && Math.hypot(q.x - pt[0], q.y - pt[1]) < 0.15);
+      if (p) return padLab(p);
+      const t = S.traces.find(u => u.pts.some(q => Math.hypot(q[0] - pt[0], q[1] - pt[1]) < 0.15));
+      if (t) return `${L("Đường", "Trace")} ${t.net}`;
+      return `${L("Lỗ tự do", "Free hole")} (${Math.round(pt[0])}, ${Math.round(pt[1])})`;
+    };
+    const row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+    return `<div class="box"><h4>J${jNo(j)} · ${L("Dây nhảy", "Jumper")}</h4><table class="tinfo">
+      ${row(L("Mạng", "Net"), `<b>${isFree(j.net) ? L("(chưa gán mạng)", "(no net)") : attr(j.net)}</b>`)}
+      ${row(L("Nối", "Connects"), `<b>${endName(j.a)}</b> ↔ <b>${endName(j.b)}</b>`)}
+      ${row(L("Độ dài", "Length"), `<div style="display:inline-flex;align-items:center;gap:4px">
+        <button type="button" class="num-btn" id="plJDec" style="width:22px;height:22px;padding:0;background:var(--surface2,#232a35);border:1px solid var(--line,#384050);border-radius:4px;cursor:pointer;color:inherit;font-weight:700" title="-0.5 mm">▼</button>
+        <input id="plJLen" type="number" min="1" max="150" step="0.5" value="${lenVal}" style="width:60px;height:22px;text-align:center;font-weight:700;font-family:var(--mono);border:1px solid var(--line,#384050);border-radius:4px;background:var(--surface2,#232a35);color:inherit">
+        <button type="button" class="num-btn" id="plJInc" style="width:22px;height:22px;padding:0;background:var(--surface2,#232a35);border:1px solid var(--line,#384050);border-radius:4px;cursor:pointer;color:inherit;font-weight:700" title="+0.5 mm">▲</button>
+        <span>mm</span>
+      </div>`)}
+      ${row(L("Góc", "Angle"), `${Math.round(Math.atan2(j.b[1] - j.a[1], j.b[0] - j.a[0]) * 180 / Math.PI)}°`)}
+      ${row(L("Kiểu", "Type"), j.auto ? L("Tự động (AutoRoute)", "Auto (AutoRoute)") : L("Vẽ / sửa tay", "Manual / edited"))}
+    </table></div>`;
   }
   // chân của linh kiện đang chọn: đã nối với chân nào · chưa nối · nối sai / nghi ngờ (theo Kiểm PCB)
   function pinStatusHTML(c) {
@@ -3386,10 +3905,18 @@
     let lineOpts = () => {}, jwOpts = () => {};
     syncWidthSlider = () => {};
     const on = (id, f) => $(id).onclick = f;
-    on("#plTms", () => setTool(ui.tool === "ms" ? "sel" : "ms")); on("#plCheck", cmd.check); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plSnap", cmd.snapG); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
+    on("#plTms", () => {
+      if (ui.tool === "ms") {
+        ui.meas = null; ui.measList = null;
+        if (LY.tmp) LY.tmp.innerHTML = "";
+        setTool("sel");
+      } else setTool("ms");
+    }); on("#plCheck", cmd.check); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plClear", cmd.clear); on("#plFit", fit); on("#plRats", cmd.rats); on("#plSnap", cmd.snapG); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
     $$(".pl-tools [data-tool]").forEach(x => x.onclick = () => { const tk = x.dataset.tool; if (tk === "tf") triggerWeldCmd("fill"); else if (tk === "tc") triggerWeldCmd("chamfer"); else if (tk === "cu") { if ($("#plFlyJ")) $("#plFlyJ").classList.remove("on"); if (ui.tool !== "cu") { setTool("cu"); lineOpts(true); } else lineOpts(); } else if (tk === "jw") { if ($("#plFlyP")) $("#plFlyP").classList.remove("on"); if (ui.tool !== "jw") { setTool("jw"); jwOpts(true); } else jwOpts(); } else if (tk === "dr") setTool(ui.tool === "dr" ? "sel" : "dr"); else if (tk === "tr") { if (EDITS.includes(ui.tool)) setTool("sel"); else { const lt = S.editTool || "tr"; if (lt === "tf") triggerWeldCmd("fill"); else if (lt === "tc") triggerWeldCmd("chamfer"); else setTool(lt); } } else setTool(tk); });
     let fly = $("#plFly"); if (!fly) { fly = document.createElement("div"); fly.id = "plFly"; fly.className = "pl-fly"; $("#plStage").appendChild(fly); }
-    fly.innerHTML = EDITS.map(k => { const [t, tip] = TOOLS()[k], [name, key] = t.match(/^(.*) \((.)\)$/) || [0, t, ""].slice(0), mm = t.match(/^(.*) \((.)\)$/); const nm = mm ? mm[1] : t.replace(/ \(.\)$/, ""), ky = mm ? mm[2] : "T"; return `<button type="button" data-tool="${k}" title="${tip}"><span>${nm}</span><kbd>${ky}</kbd></button>`; }).join("");
+    fly.innerHTML = EDITS.map(k => { const [t, tip] = TOOLS()[k], [name, key] = t.match(/^(.*) \((.)\)$/) || [0, t, ""].slice(0), mm = t.match(/^(.*) \((.)\)$/); const nm = mm ? mm[1] : t.replace(/ \(.\)$/, ""), ky = mm ? mm[2] : "T"; const btn = `<button type="button" data-tool="${k}" title="${tip}"><span>${nm}</span><kbd>${ky}</kbd></button>`; return k === "tr" ? `<div class="tr-row">${btn}<label class="tr-auto" title="${L("Auto Trim: bấm 1 chạm tự động cắt đoạn line giữa 2 điểm neo / khúc gẫy / giao điểm có sẵn", "Auto Trim: 1-click cuts the trace segment between the 2 nearest vertices / bends / intersections")}"><input type="checkbox" id="plAutoTrim"${S.autoTrim ? " checked" : ""}><span>Auto</span></label></div>` : btn; }).join("");
+    const atChk = fly.querySelector("#plAutoTrim");
+    if (atChk) atChk.onchange = () => { S.autoTrim = atChk.checked; ui.trim = null; LY.tmp.innerHTML = ""; save(); if (ui.tool !== "tr") setTool("tr"); toast(S.autoTrim ? L("Đã bật Auto Trim: bấm 1 chạm để cắt đoạn dây giữa 2 điểm neo / khúc gẫy / điểm giao nhau.", "Auto Trim ON: 1-click cuts trace segment between 2 nearest vertices / intersections.") : L("Đã tắt Auto Trim: bấm 2 điểm trên dây để cắt đoạn ở giữa.", "Auto Trim OFF: click 2 points on a trace to cut between them.")); };
     fly.querySelectorAll("[data-tool]").forEach(x => x.onclick = () => { const k = x.dataset.tool; if (ui.tool === k) return setTool("sel"); if (k === "tf") triggerWeldCmd("fill"); else if (k === "tc") triggerWeldCmd("chamfer"); else setTool(k); });
     // Pen: nhấn giữ 0,5 giây mở menu độ rộng + góc vẽ
     let fp = $("#plFlyP"); if (!fp) { fp = document.createElement("div"); fp.id = "plFlyP"; fp.className = "pl-fly"; $("#plStage").appendChild(fp); }
@@ -3403,7 +3930,7 @@
       pb.addEventListener("pointerup", () => clearTimeout(tm)); pb.addEventListener("pointerleave", () => clearTimeout(tm));
       pb.title += " · " + L("Nhấn giữ: độ rộng và góc vẽ", "Hold: width and angle");
     } }
-    lineOpts = force => { const st = $("#plStage"), top = $("#plTcu").getBoundingClientRect().top - st.getBoundingClientRect().top; fp.classList.toggle("on", force === true ? true : !fp.classList.contains("on")); fp.style.top = Math.max(6, Math.min(top, st.clientHeight - fp.offsetHeight - 6)) + "px"; };
+    lineOpts = force => { const st = $("#plStage"), top = $("#plTcu").getBoundingClientRect().top - st.getBoundingClientRect().top; const willOpen = force === true ? true : !fp.classList.contains("on"); if (willOpen) closeAllPopouts("plFlyP"); fp.classList.toggle("on", willOpen); fp.style.top = Math.max(6, Math.min(top, st.clientHeight - fp.offsetHeight - 6)) + "px"; };
     // Jumper: popout 3 nấc ràng buộc góc (mặc định Tự do · Bước 15° · 45° / 90°)
     let fj = $("#plFlyJ"); if (!fj) { fj = document.createElement("div"); fj.id = "plFlyJ"; fj.className = "pl-fly"; $("#plStage").appendChild(fj); }
     const JANG = [["free", L("Tự do", "Free")], ["15", L("Bước 15°", "15° steps")], ["45", L("45° / 90°", "45° / 90°")]];
@@ -3414,7 +3941,7 @@
       jb.addEventListener("pointerup", () => clearTimeout(tm)); jb.addEventListener("pointerleave", () => clearTimeout(tm));
       jb.title += " · " + L("Bấm / nhấn giữ: chọn góc ràng buộc", "Click / hold: angle constraint");
     } }
-    jwOpts = force => { const st = $("#plStage"), top = $("#plTjw").getBoundingClientRect().top - st.getBoundingClientRect().top; fj.classList.toggle("on", force === true ? true : !fj.classList.contains("on")); fj.style.top = Math.max(6, Math.min(top, st.clientHeight - fj.offsetHeight - 6)) + "px"; };
+    jwOpts = force => { const st = $("#plStage"), top = $("#plTjw").getBoundingClientRect().top - st.getBoundingClientRect().top; const willOpen = force === true ? true : !fj.classList.contains("on"); if (willOpen) closeAllPopouts("plFlyJ"); fj.classList.toggle("on", willOpen); fj.style.top = Math.max(6, Math.min(top, st.clientHeight - fj.offsetHeight - 6)) + "px"; };
     { const ab = $("#plPour"); let tm, long = false; if (ab) {
       ab.addEventListener("pointerdown", () => { long = false; tm = setTimeout(() => { long = true; pourFly(ab); }, 500); });
       ab.addEventListener("pointerup", () => clearTimeout(tm)); ab.addEventListener("pointerleave", () => clearTimeout(tm));
@@ -3441,7 +3968,7 @@
     fr.onchange = () => { fwCk = false; };
     syncWidthSlider = () => { if (!fw.classList.contains("on")) return; const s0 = ui.sel; const t = s0 && s0.t === "t" ? S.traces.find(x => x.id === s0.id) : s0 && s0.t === "m" && ui.ms && ui.ms.t.length ? S.traces.find(x => x.id === ui.ms.t[0]) : null; if (t) { fr.value = Math.max(.4, Math.min(2.5, traceW(t))); fw.querySelector("#fwv").textContent = fmtW(traceW(t)); } };
     $("#plWidth").onclick = e => { e.stopPropagation(); const pb = e.currentTarget, st = $("#plStage"); { const br = pb.getBoundingClientRect(), sr = st.getBoundingClientRect(); fw.style.right = "auto"; fw.style.top = Math.max(6, br.bottom - sr.top + 6) + "px"; fw.style.left = Math.max(6, Math.min(br.left - sr.left, sr.width - 220)) + "px"; }
-      if (fw.classList.contains("on")) { fw.classList.remove("on"); ui.wpaint = null; } else { fw.classList.add("on"); ui.wpaint = +fr.value; syncWidthSlider(); } wSync(); };
+      if (fw.classList.contains("on")) { fw.classList.remove("on"); ui.wpaint = null; } else { closeAllPopouts("plFlyW"); fw.classList.add("on"); ui.wpaint = +fr.value; syncWidthSlider(); } wSync(); };
     wSync(); if (ui.wpaint) fw.classList.add("on");
 
   }
