@@ -4,14 +4,14 @@
 (function () {
   const A = window.APP, M = window.MODULES, esc = A.esc, el = A.el, $ = s => document.querySelector(s);
   const SHARED = ["spi.sck", "spi.mosi", "spi.miso", "i2c.sda", "i2c.scl"];
-  const POWER = ["pwr.3v3", "pwr.5v", "gnd"];                       // nhiều module dùng chung một pad nguồn
-  const COLOR = { "pwr.3v3": "#e2442f", "pwr.5v": "#ff7a45", gnd: "#9aa0a6", "i2c.sda": "#29adff", "i2c.scl": "#f5d63d", "spi.sck": "#ff8a00", "spi.mosi": "#b26bff",
+  const POWER = ["pwr.3v3", "pwr.5v", "pwr.any", "gnd"];                       // nhiều module dùng chung một pad nguồn
+  const COLOR = { "pwr.3v3": "#e2442f", "pwr.5v": "#ff7a45", "pwr.any": "#ff9800", gnd: "#9aa0a6", "i2c.sda": "#29adff", "i2c.scl": "#f5d63d", "spi.sck": "#ff8a00", "spi.mosi": "#b26bff",
     "spi.miso": "#2fd6c3", "spi.cs": "#ff4fa3", "i2s.bclk": "#ff8a00", "i2s.ws": "#f5d63d", "i2s.dout": "#2fd36b", "i2s.din": "#2fd36b", out: "#7fd1c4", in: "#c3e88d", any: "#c8a165", pwm: "#e879f9", mot: "#c8a165", adc: "#a78bfa" };
   const LEGEND = [["pwr.3v3", "VCC 3V3"], ["pwr.5v", "VCC 5V"], ["gnd", "GND"], ["i2c.sda", "SDA"], ["i2c.scl", "SCL"], ["spi.sck", "SCK / BCLK"], ["spi.mosi", "MOSI"], ["spi.miso", "MISO"], ["spi.cs", "CS"], ["i2s.dout", "I2S data"], ["out", "Tín hiệu ra"], ["in", "Tín hiệu vào"], ["pwm", "PWM"]];
   // thêm VCC/GND vào đầu danh sách chân của mỗi module (một lần)
   for (const d of Object.values(M)) {
     if (!d.svg && !d.passive && !d.mine && !d.pins.some(x => x[1] === "gnd")) d.pins.unshift(["VCC", d.vcc === "5V" ? "pwr.5v" : "pwr.3v3"], ["GND", "gnd"]);
-    if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { d.svgData = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t); if (B.boardId) draw(); }).catch(() => {});
+    if (d.svg && !d.svgData) fetch(d.svg).then(r => r.text()).then(t => { if (t.includes("xlink:") && !t.includes("xmlns:xlink")) t = t.replace("<svg", '<svg xmlns:xlink="http://www.w3.org/1999/xlink"'); d.svgData = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(t))); if (B.boardId) draw(); }).catch(() => {});
   }
   const B = { boardId: null, buses: [{}], mods: [], tab: "mods", cam: null, arm: null, spread: 1.1, style: 0, arrMode: 0, arrLast: null, selM: null, selW: null, dropOpen: true, q: "", brot: 0, needPlace: false, bb: { on: false, n: 1, board: null } };
   Object.defineProperty(B, "bus", { get() { return B.buses[CUR] || (B.buses[CUR] = {}); }, set(v) { B.buses[CUR] = v; } });
@@ -69,6 +69,7 @@
     if (role === "gnd") return p.cat === "gnd" && p.name !== "AGND" ? 100 : -1e9;
     if (role === "pwr.3v3") return p.cat === "power" && /^(3V3|3\.3V)$/.test(p.name) ? 100 : -1e9;
     if (role === "pwr.5v") return p.cat === "power" && /^(5V|VBUS)$/.test(p.name) ? 100 : -1e9;
+    if (role === "pwr.any") return -1e9; // Chuyển sang checkCompat để đánh giá theo từng mức áp & phát cảnh báo
     if (!usable(p)) return -1e9;
     const fn = p.fn.join(" "), re = (RE[b.family] || {})[role];
     if (b.family !== "ESP32" && re && !re.test(fn)) return -1e9;          // RP2/AVR: bus phần cứng bắt buộc đúng chân
@@ -124,7 +125,9 @@
         if (!SHARED.includes(role) && !POWER.includes(role)) (busy[n] = busy[n] || []).push(d.short + " " + label);
         if (d.mine && !(m.ok && m.ok[label])) out.push(["check", `${d.short} ${label} → ${p.name}: nối theo dữ liệu Fritzing, cần kiểm tra với datasheet.`, d.short + "|" + label]);
         const s = score(p, role, b);
-        if (s <= -1e8) out.push(["ban", `${d.short} ${label} → ${p.name}: chân này không làm được ${label}.`]);
+        const cp = checkCompat(p, role, b, m, label);
+        if (cp && cp.sev === "warn") out.push(["warn", `${d.short} ${label} → ${p.name}: ${cp.msg}`]);
+        else if (s <= -1e8) out.push(["ban", `${d.short} ${label} → ${p.name}: chân này không làm được ${label}.`]);
         else if (s < 60 && p.warn) out.push(["warn", `${d.short} ${label} → ${p.name}: ${p.warn}`]);
         if (v5 && b.logic !== "5 V") out.push(["warn", `${d.short} ${label} ra mức 5 V: thêm cầu chia áp 1 kΩ + 2 kΩ trước ${p.name}.`]);
       }
@@ -450,7 +453,7 @@
     const none = !add.length && !del.length && !chg.length, ul = (a, cls) => a.length ? `<ul class="${cls}">${a.slice(0, 14).map(x => `<li>${esc(x)}</li>`).join("")}${a.length > 14 ? `<li>… và ${a.length - 14} mục nữa</li>` : ""}</ul>` : "";
     const d = document.createElement("div"); d.className = "xsync"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
     d.innerHTML = `<div class="xsync-box"><h3>Đồng bộ tab Wiring theo PCB Maker</h3>${none ? "<p>Wiring đã khớp với PCB: không có gì để đổi ✓</p>" : `<p><b>Tab Wiring sẽ bị thay đổi theo PCB.</b> Bản cũ được lưu lại để hoàn tác.</p>${add.length ? `<h4>Thêm vào Wiring (${add.length})</h4>${ul(add, "xs-add")}` : ""}${del.length ? `<h4>Bỏ khỏi Wiring (${del.length}): không có trên PCB</h4>${ul(del, "xs-del")}` : ""}${chg.length ? `<h4>Đổi chân nối (${chg.length})</h4>${ul(chg, "xs-chg")}` : ""}`}${pl.skipped.length ? `<h4>Không chuyển được (Wiring không biểu diễn)</h4>${ul(pl.skipped, "xs-skip")}` : ""}<div class="xsync-b">${none ? "" : '<button type="button" class="xs-go">Cập nhật Wiring theo PCB</button>'}<button type="button" class="xs-no">${none ? "Đóng" : "Huỷ"}</button></div></div>`;
-    document.body.appendChild(d); const close = () => d.remove(); d.querySelector(".xs-no").onclick = close; d.onclick = e => { if (e.target === d) close(); };
+    document.body.appendChild(d); const close = () => d.remove(); d.querySelector(".xs-no").onclick = close; let downTarget = null; d.onpointerdown = e => { downTarget = e.target; }; d.onclick = e => { if (downTarget === d && e.target === d) close(); downTarget = null; }; d.querySelector(".xsync-box").onclick = e => e.stopPropagation();
     const go = d.querySelector(".xs-go"); if (!go) return;
     go.onclick = () => {
       close(); const bak = JSON.stringify(dump()); try { localStorage.setItem("build:" + board().id + ":bak", bak); } catch (e) { }
@@ -497,7 +500,9 @@
         const { pts, w: wObj } = info;
         const isSel = B.selW && B.selW.m === mi && B.selW.label === label, tag = { "data-wm": mi, "data-wl": label };
         const pd = B.style === 2 ? blenderPath(wObj).d : pathOf(pts);
-        const pe = el("path", { d: pd, stroke: c, class: "bwire" + (isSel ? " sel" : ""), ...tag }, wires);
+        const cp = checkCompat(p, role, board(), m, label);
+        const isWarn = !!cp;
+        const pe = el("path", { d: pd, stroke: isWarn ? "#ffa300" : c, class: "bwire" + (isSel ? " sel" : "") + (isWarn ? " warn" : ""), ...tag }, wires);
         wireLabels(pe, label, c, tag, wires);
         const hit = el("path", { d: pd, class: "whit", ...tag }, wires);
         hit.addEventListener("pointerdown", e => {
@@ -505,7 +510,7 @@
           selectWire(mi, label);
           if (B.style === 2) e.stopPropagation(); else dragSeg(e, mi, label, pts);
         });
-        const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: c, "fill-opacity": .35, stroke: c, "stroke-width": .5, class: "wend", "data-wm": mi, "data-wl": label }, wires);
+        const end = el("circle", { cx: p.x, cy: p.y, r: 1.25, fill: isWarn ? "#ffa300" : c, "fill-opacity": .35, stroke: isWarn ? "#ffa300" : c, "stroke-width": .5, class: "wend" + (isWarn ? " warn" : ""), "data-wm": mi, "data-wl": label }, wires);
         end.addEventListener("pointerdown", e => startWire(e, mi, label, true)); });
       const g = el("g", { class: "bnode", "data-m": mi }, nodes);
       xrMark(m, mi, d, w, h, nodes);
@@ -578,12 +583,45 @@
         transform: vert ? `rotate(-90 ${p.x} ${p.y}) translate(0 -.55)` : "translate(0 -.55)" }, parent, label);
     }
   }
+  // Kiểm tra độ tương thích: null = OK, { sev: "warn"|"ban", msg: "..." }
+  function checkCompat(p, role, b, m, label) {
+    if (!p) return null;
+    const is3v = p.cat === "power" && /^(3V3|3\.3V)$/.test(p.name);
+    const is5v = p.cat === "power" && /^(5V|VBUS)$/.test(p.name);
+    const modVcc = (m && M[m.type] && M[m.type].vcc) || "";
+    const isVinLabel = /^VIN$/i.test(label);
+
+    // Chân VIN (hoặc role pwr.any)
+    if (role === "pwr.any" || isVinLabel) {
+      if (is3v) return { sev: "warn", msg: `Cấp nguồn ${p.name} vào chân ${label}: Một số module có IC ổn áp LDO sẽ bị sụt áp nhẹ (~3.0V). Đa số cảm biến vẫn chạy được, nhưng nếu có chân 3Vo/3.3V riêng thì nên cắm vào đó.` };
+      if (is5v) return null; // 5V vào VIN là chuẩn khuyến nghị
+    }
+
+    // Module yêu cầu 5V (như còi 5V, servo, hoặc chân 5V) nhưng cấp 3.3V
+    if (role === "pwr.5v" && is3v) {
+      return { sev: "warn", msg: `Chân ${label} khuyến nghị 5V nhưng đang nối với ${p.name}: Module có thể chạy yếu hoặc không đủ áp khởi động.` };
+    }
+
+    // Module chỉ định 3.3V nhưng nối 5V
+    if ((role === "pwr.3v3" || (modVcc === "3V3" && /^VCC$/i.test(label))) && is5v) {
+      return { sev: "warn", msg: `Cấp nguồn 5V vào chân ${label} (module 3.3V): Nhiều module LCD TFT/cảm biến có sẵn LDO hạ áp nên nhận được 5V. Hãy kiểm tra xem mặt sau module có IC LDO (thường 5 chân) không trước khi nối!` };
+    }
+
+    const s = score(p, role, b);
+    if (s > -1e8) return null; // Score chuẩn OK
+
+    // Mặc định không tương thích phần cứng
+    return { sev: "ban", msg: `${p.name} không hỗ trợ chức năng ${label}.` };
+  }
+
   function showGlow(m, label) {
     const g = $("#glow"); g.innerHTML = ""; const role = roleOf(m, label), b = board(), taken = used(), cur = getPin(m, label);
     for (const p of pads()) {
-      const s = score(p, role, b); if (s <= -1e8) continue;
+      const s = score(p, role, b);
+      const cp = s <= -1e8 ? checkCompat(p, role, b, m, label) : null;
+      if (s <= -1e8 && (!cp || cp.sev === "ban")) continue;
       const busy = taken.has(p.name) && p.name !== cur && !SHARED.includes(role);
-      el("circle", { cx: p.x, cy: p.y, r: 1.9, class: "glow " + (busy ? "busy" : s >= 90 ? "ok" : "warn") }, g);
+      el("circle", { cx: p.x, cy: p.y, r: 1.9, class: "glow " + (busy ? "busy" : (s >= 90 && !cp) ? "ok" : "warn") }, g);
     }
   }
   function nearestPad(pt) { let best = null, bd = 2.6; for (const p of pads()) { const d = Math.hypot(p.x - pt.x, p.y - pt.y); if (d < bd) { bd = d; best = p; } } return best; }
@@ -598,16 +636,26 @@
     return best;
   }
   // chuyển dây sang chân linh kiện khác, giữ nguyên chân board
-  function moveWire(from, to, padName) {
-    const src = B.mods[from.m], dst = B.mods[to.m];
-    if (score(pinByName(padName), roleOf(dst, to.label), board()) <= -1e8) { A.toast(padName + " không dùng được cho " + to.label + "."); return false; }
+  async function moveWire(from, to, padName) {
+    const src = B.mods[from.m], dst = B.mods[to.m], p = pinByName(padName);
+    const cp = checkCompat(p, roleOf(dst, to.label), board(), dst, to.label);
+    if (cp) {
+      if (cp.sev === "ban") { A.toast(cp.msg); return false; }
+      const ok = await A.confirmBox(cp.msg + "\n\nBạn có muốn tiếp tục nối dây không?", { title: "Cảnh báo tương thích nguồn/chân", ok: "Vẫn tiếp tục nối", cancel: "Huỷ" });
+      if (!ok) return false;
+    }
     setPin(src, from.label, null); if (src.route) delete src.route[from.label];
     setPin(dst, to.label, padName); if (dst.route) delete dst.route[to.label];
     save(); A.toast("Đã chuyển dây sang " + M[dst.type].short + " · " + to.label); return true;
   }
-  function connect(m, label, p) {
-    if (score(p, roleOf(m, label), board()) <= -1e8) { A.toast(`${p.name} không dùng được cho ${label}.`); return false; }
-    setPin(m, label, p.name); if (m.route) delete m.route[label]; save(); return true;
+  async function connect(m, label, p) {
+    const cp = checkCompat(p, roleOf(m, label), board(), m, label);
+    if (cp) {
+      if (cp.sev === "ban") { A.toast(cp.msg); return false; }
+      const ok = await A.confirmBox(cp.msg + "\n\nBạn có muốn tiếp tục nối dây không?", { title: "Cảnh báo tương thích nguồn/chân", ok: "Vẫn tiếp tục nối", cancel: "Huỷ" });
+      if (!ok) return false;
+    }
+    setPin(m, label, p.name); if (m.route) delete m.route[label]; save(); refresh(); return true;
   }
   function startWire(e, mi, label, fromEnd) {
     e.stopPropagation(); e.preventDefault();
@@ -668,7 +716,15 @@
     e.stopPropagation(); e.preventDefault();
     const m = B.mods[mi], s = svg(), p0 = toSvg(e), o = { ...m.pos };
     B.selM = mi; B.selW = null; draw();                       // chọn linh kiện (Delete để xoá)
-    const mv = ev => { const pt = toSvg(ev); m.pos = { x: o.x + pt.x - p0.x, y: o.y + pt.y - p0.y }; m.manual = true; B.arrLast = null; draw(); };
+    const mv = ev => {
+      const pt = toSvg(ev);
+      let dx = pt.x - p0.x, dy = pt.y - p0.y;
+      if (ev.shiftKey) {
+        if (Math.abs(dx) >= Math.abs(dy)) dy = 0; else dx = 0;
+      }
+      m.pos = { x: o.x + dx, y: o.y + dy };
+      m.manual = true; B.arrLast = null; draw();
+    };
     const up = () => { s.removeEventListener("pointermove", mv); s.removeEventListener("pointerup", up); save(); };
     s.addEventListener("pointermove", mv); s.addEventListener("pointerup", up);
   }
@@ -727,11 +783,11 @@
   const EXP = (() => { try { const o = { ...EXP_DEF, ...JSON.parse(localStorage.getItem("build:exp2") || "{}") }; if (!["orig", "white", "none"].includes(o.bg)) o.bg = "white"; if (!RATIOS[o.ratio]) o.ratio = "auto"; return o; } catch (e) { return { ...EXP_DEF }; } })();
   const saveExp = () => { try { localStorage.setItem("build:exp2", JSON.stringify(EXP)); } catch (e) { } };
   function toggleSet(on) {
-    const p = $("#bset"), bt = $("#bsetBtn"); if (!p) return;
+    const p = $("#bset"), bt = $("#bsetBtn"); if (!p || !bt) return;
     on = on == null ? p.hidden : on; p.hidden = !on; if (bt) bt.setAttribute("aria-expanded", on);
   }
   function settingsPanel() {
-    const p = document.createElement("div"); p.id = "bset"; p.className = "bset"; p.hidden = true; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "Cài đặt xuất ảnh");
+    const p = document.createElement("div"); p.id = "bset"; p.className = "bset"; p.hidden = false; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "Cài đặt xuất ảnh");
     const opt = (k, v, inner) => `<button type="button" data-v="${v}" aria-pressed="${String(EXP[k]) === String(v)}">${inner}</button>`;
     const ico = r => { const [w, h, t] = RATIOS[r]; return `<i class="rico${h ? "" : " auto"}"${h ? ` style="width:${Math.round(18 * Math.min(1, w / h))}px;height:${Math.round(18 * Math.min(1, h / w))}px"` : ""}></i>${t}`; };
     const chk = (k, t) => `<label class="bchk"><input type="checkbox" data-c="${k}"${EXP[k] ? " checked" : ""}> ${t}</label>`;
@@ -753,22 +809,47 @@
     return p;
   }
 
-  function exportDialog() {
+  function exportDialog(initFmt) {
     if (document.querySelector(".xexp")) return;
-    let fmt = "png"; try { fmt = localStorage.getItem("build:expfmt") || "png"; } catch (e) { }
+    let fmt = initFmt || "png";
+    if (!initFmt) { try { fmt = localStorage.getItem("build:expfmt") || "png"; } catch (e) { } }
     if (!["png", "json", "link"].includes(fmt)) fmt = "png";
+    const curDir = A.getSaveDir ? A.getSaveDir() : "";
     const d = document.createElement("div"); d.className = "xsync xexp"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
     const sub = { png: "Ảnh PNG: sơ đồ đấu dây, sơ đồ nguyên lý và code theo tuỳ chọn dưới đây", json: "File .json của mạch này: mở lại bằng nút \"Mở .json\"", link: "Copy link: người nhận mở link là thấy đúng mạch này" };
     d.innerHTML = `<div class="xsync-box"><h3>Xuất file</h3>
       <label class="xexp-row"><span>Tên file</span><input id="xeName" value="pindex-${esc(board().id)}" spellcheck="false"></label>
+      <div class="xexp-row" id="xeDirRow"><span>Nơi lưu</span><div class="xexp-dir"><input id="xeDir" value="${esc(curDir)}" placeholder="Mặc định: thư mục Downloads (nhập đường dẫn hoặc bấm Chọn…)" spellcheck="false"><button type="button" id="xeDirPick" title="Chọn thư mục lưu file">📁 Chọn…</button><button type="button" id="xeDirClr" title="Đặt lại về thư mục Downloads mặc định"${curDir ? "" : " hidden"}>✕</button></div></div>
       <div class="xexp-row"><span>Định dạng</span><div class="xexp-seg">${[["png", "PNG"], ["json", "JSON"], ["link", "Link"]].map(([k, t]) => `<button type="button" data-fmt="${k}"${fmt === k ? ' class="on"' : ""}>${t}</button>`).join("")}</div></div>
       <p class="xexp-sub" id="xeSub"></p><div id="xeOpts"></div>
       <div class="xsync-b"><button type="button" class="xs-no">Huỷ</button><button type="button" class="xs-go" id="xeGo">⬇ Tải xuống</button></div></div>`;
     const sp = settingsPanel(); sp.hidden = false; sp.querySelector(".bset-t").remove(); sp.querySelector(".bset-f").remove(); d.querySelector("#xeOpts").appendChild(sp);
-    const show = () => { d.querySelector("#xeSub").textContent = sub[fmt]; sp.style.display = fmt === "png" ? "" : "none"; d.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === fmt)); d.querySelector("#xeGo").textContent = fmt === "link" ? "🔗 Copy link" : "⬇ Tải xuống"; };
+    const dirInp = d.querySelector("#xeDir"), dirClr = d.querySelector("#xeDirClr"), dirRow = d.querySelector("#xeDirRow");
+    const xeGo = d.querySelector("#xeGo");
+    const updateDir = () => { if (A.setSaveDir) A.setSaveDir(dirInp.value); dirClr.hidden = !dirInp.value.trim(); show(); };
+    dirInp.oninput = updateDir;
+    d.querySelector("#xeDirPick").onclick = async () => { if (!A.pickSaveDir) return; const p = await A.pickSaveDir(); if (p != null) { dirInp.value = p; updateDir(); } };
+    dirClr.onclick = () => { if (A.clearSaveDir) A.clearSaveDir(); dirInp.value = ""; updateDir(); };
+    const show = () => {
+      const hasDir = !!dirInp.value.trim();
+      d.querySelector("#xeSub").textContent = sub[fmt];
+      sp.style.display = fmt === "png" ? "" : "none";
+      dirRow.style.display = fmt === "link" ? "none" : "";
+      d.querySelectorAll("[data-fmt]").forEach(b => b.classList.toggle("on", b.dataset.fmt === fmt));
+      if (fmt === "link") {
+        xeGo.textContent = "🔗 Copy link";
+        xeGo.title = "Sao chép liên kết vào clipboard";
+      } else if (hasDir) {
+        xeGo.textContent = "💾 Lưu file";
+        xeGo.title = `Lưu vào thư mục: ${dirInp.value.trim()}`;
+      } else {
+        xeGo.textContent = "⬇ Tải xuống";
+        xeGo.title = "Tải file về thư mục Downloads của trình duyệt";
+      }
+    };
     d.querySelectorAll("[data-fmt]").forEach(b => b.onclick = () => { fmt = b.dataset.fmt; try { localStorage.setItem("build:expfmt", fmt); } catch (e) { } show(); });
-    const close = () => d.remove(); d.querySelector(".xs-no").onclick = close; d.onclick = e => { if (e.target === d) close(); };
-    d.querySelector("#xeGo").onclick = () => { const nm = d.querySelector("#xeName").value; close(); exportAs(fmt, nm); };
+    const close = () => d.remove(); d.querySelector(".xs-no").onclick = close; let downTarget = null; d.onpointerdown = e => { downTarget = e.target; }; d.onclick = e => { if (downTarget === d && e.target === d) close(); downTarget = null; }; d.querySelector(".xsync-box").onclick = e => e.stopPropagation();
+    xeGo.onclick = () => { if (fmt !== "link" && A.setSaveDir) A.setSaveDir(dirInp.value); const nm = d.querySelector("#xeName").value; close(); exportAs(fmt, nm); };
     show(); document.body.appendChild(d); d.querySelector("#xeName").select();
   }
 
@@ -885,7 +966,7 @@
         ctxMenu(e, [["＋ Thêm breadboard", () => { if (B.bb.n >= 3) return A.toast("Tối đa 3 breadboard."); B.bb.n++; B.cam = null; save(); refresh(); }], ...(B.bb.n > 1 ? [["－ Xoá breadboard này", () => { B.bb.sel = bi; BBOARD.removeBB(); save(); refresh(); }]] : []), ...WIRE_ITEMS().filter(x => x === "-" || !/kiểu đi dây/.test(x[0])), "-", ["⬇ Xuất ảnh PNG", () => exportAs("png")]]);
       } else ctxMenu(e, [["🧲 Sắp xếp linh kiện", arrangeModules], ["⟳ Xoay board 90°", rotateBoard], ...(B.mods.length ? ["-", ["✨ Tự nối tất cả chân", () => { B.mods.forEach(autoAssign); save(); refresh(); }], ["🔌 Xoá hết nối dây", () => { B.mods.forEach((m, j) => unwireMod(j, true)); save(); refresh(); A.toast("Đã xoá hết nối dây"); }]] : []), ...WIRE_ITEMS(), "-", ["⬇ Xuất ảnh PNG", () => exportAs("png")]]);
     });
-    document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); if (!e.target.closest(".bset, #bsetBtn")) toggleSet(false); }, true);
+    document.addEventListener("pointerdown", e => { if (!e.target.closest(".bmenu")) closeMenu(); if ($("#bsetBtn") && !e.target.closest(".bset, #bsetBtn")) toggleSet(false); }, true);
     addEventListener("keydown", e => {
       if (e.key === "Escape") { closeMenu(); toggleSet(false); }
       if (A.state.tab === "build" && (e.key === "r" || e.key === "R") && !e.ctrlKey && !e.metaKey && B.selM != null && !(e.target.closest && e.target.closest("input, textarea, select, [contenteditable]"))) { e.preventDefault(); rotateMod(B.selM); return; }
@@ -929,7 +1010,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=181"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=182"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -1055,7 +1136,7 @@
     const au = box.querySelector("[data-auto]"); if (au) au.onclick = () => { B.mods.forEach(autoAssign); save(); refresh(); };
     box.querySelectorAll("[data-tab]").forEach(x => x.onclick = () => { B.tab = x.dataset.tab; side(); });
     const cp = box.querySelector("[data-copy]"); if (cp) cp.onclick = () => navigator.clipboard.writeText(code()).then(() => A.toast("Đã copy"));
-    box.querySelectorAll("[data-exp]").forEach(x => x.onclick = () => x.dataset.exp === "png" ? exportDialog() : exportAs(x.dataset.exp));
+    box.querySelectorAll("[data-exp]").forEach(x => x.onclick = () => x.dataset.exp === "link" ? exportAs("link") : exportDialog(x.dataset.exp));
     box.querySelector("input[type=file]").onchange = e => { const f = e.target.files[0]; if (f) f.text().then(t => { load(JSON.parse(t)); refresh(); }); };
   }
   function cleanBus() { for (const h of hosts()) withHost(h, () => { const need = new Set(B.mods.filter(m => hostOf(m) === h).flatMap(m => M[m.type].pins.map(x => x[1]))); for (const r in B.bus) if (!need.has(r)) delete B.bus[r]; }); }
@@ -1075,99 +1156,150 @@
   }
   function save() { try { localStorage.setItem("build:" + board().id, JSON.stringify(dump())); } catch (e) { } }
   function restore() { CUR = 0; B.boardId = board().id; B.buses = [{}]; B.mods = []; B.arm = null; B.cam = null; B.brot = 0; B.bb = { on: false, n: 1, board: null, extra: [], cur: 0 }; try { const o = JSON.parse(localStorage.getItem("build:" + B.boardId) || "null"); if (o) load(o); } catch (e) { } }
-  const dl = (name, href) => { const a = document.createElement("a"); a.href = href; a.download = name; a.click(); };
-  // ảnh ngoài (ảnh board thật) không tải được trong SVG xuất ảnh: nhúng thành data URL trước khi chụp
+  const dl = (name, data) => {
+    const blob = data instanceof Blob, url = blob ? URL.createObjectURL(data) : data;
+    const a = document.createElement("a"); a.href = url; a.download = name; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    if (blob || /^blob:/.test(url)) setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+  const loadImg = u => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = u; });
+  // ảnh ngoài (ảnh board thật, SVG con) nhúng thành data URL base64 trước khi chụp để trình duyệt giải mã SVG lồng nhau không lỗi
   const IMG_CACHE = {};
+  const svgToB64 = raw => {
+    if (raw.includes("xlink:") && !raw.includes("xmlns:xlink")) raw = raw.replace("<svg", '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(raw)));
+  };
   async function inlineImages(root) {
     for (const im of root.querySelectorAll("image")) {
-      const h = im.getAttribute("href"); if (!h || h.startsWith("data:")) continue;
-      try { IMG_CACHE[h] = IMG_CACHE[h] || await fetch(h).then(r => r.blob()).then(bl => new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); })); im.setAttribute("href", IMG_CACHE[h]); } catch (e) { }
+      const h = im.getAttribute("href") || im.getAttribute("xlink:href"); if (!h) continue;
+      if (h.startsWith("data:")) {
+        if (/^data:image\/svg\+xml;(utf8|charset=utf-8),/i.test(h)) {
+          try { im.setAttribute("href", svgToB64(decodeURIComponent(h.slice(h.indexOf(",") + 1)))); } catch (e) { }
+        }
+        continue;
+      }
+      try {
+        if (!IMG_CACHE[h]) {
+          if (/\.svg(\?|$)/i.test(h)) IMG_CACHE[h] = svgToB64(await fetch(h).then(r => r.text()));
+          else IMG_CACHE[h] = await fetch(h).then(r => r.blob()).then(bl => new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(bl); }));
+        }
+        im.setAttribute("href", IMG_CACHE[h]);
+      } catch (e) { }
     }
   }
-  async function exportAs(kind, name) {
+  async function exportAs(kind, name, opt = {}) {
     const b = board(), fname = (name || "").trim().replace(/[\\/:*?"<>|]+/g, "-") || `pindex-${b.id}`;
-    if (kind === "json") return dl(`${fname}.json`, URL.createObjectURL(new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" })));
+    if (kind === "json") {
+      A.toast("Đang tạo file .json...");
+      try {
+        const bl = new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" });
+        const r = A.saveFile ? await A.saveFile(`${fname}.json`, bl, opt.forceBrowser) : (dl(`${fname}.json`, bl), { ok: true });
+        const finalName = (r && r.name) || `${fname}.json`; if (!r || !r.aborted) A.toast(r && r.dir ? `Đã lưu ${finalName} vào thư mục: ${r.dir}` : `Đã tải ${finalName} về trình duyệt`);
+      } catch (err) {
+        console.error("Lỗi xuất JSON:", err);
+        A.toast("Lỗi xuất JSON: " + (err.message || err));
+      }
+      return;
+    }
     if (kind === "link") { const u = location.href.split("#")[0] + "#build=" + btoa(unescape(encodeURIComponent(JSON.stringify(dump())))); try { await navigator.clipboard.writeText(u); A.toast("Đã copy link Wiring"); } catch (e) { A.toast(u); } return; }
     toggleSet(false);
-    let img = null, logo = null;
-    if (EXP.wire) {
-      const keep = { ...B.cam }; B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
-      await inlineImages(svg());
-      let u = A.svgDataUrl(svg());
-      u ="data:image/svg+xml;charset=utf-8," + encodeURIComponent(decodeURIComponent(u.split(",").slice(1).join(",")).replace(/(<svg[^>]*?)\sstyle="background:[^"]*"/, "$1"));   // bỏ nền tối để vùng đấu dây cùng màu nền ảnh
-      img = new Image(); img.src = u; await img.decode(); B.cam = keep; draw();
-    }
-    if (EXP.logo) { logo = new Image(); logo.src = "icon.svg"; try { await logo.decode(); } catch (e) { logo = null; } }
-    // nền chung cho cả ảnh lẫn vùng đấu dây: Nguyên bản = màu canvas app, Trắng, hoặc trong suốt
-    const orig = EXP.bg === "orig", bg = orig ? getComputedStyle(svg()).backgroundColor : EXP.bg === "white" ? "#fff" : null;
-    const ink = orig ? getComputedStyle(document.body).color : "#1d232a", muted = orig ? "#8a93a0" : "#5b6570";
-    const k = EXP.scale, rs = Math.min(k * 2, 6);
-    // mỗi phần là một khối riêng (kèm tiêu đề) vẽ sẵn ở độ phân giải cao, rồi xếp vào khung ảnh
-    const leaf = (title, w, h, fn) => {
-      const T = title ? 34 : 0, c = document.createElement("canvas"); c.width = Math.ceil(w * rs); c.height = Math.ceil((h + T) * rs);
-      const g = c.getContext("2d"); g.scale(rs, rs);
-      if (title) { g.fillStyle = ink; g.font = "bold 18px sans-serif"; g.textBaseline = "alphabetic"; g.fillText(title, 0, 20); }
-      g.translate(0, T); fn(g);
-      return { w, h: h + T, draw: (G, x, y, s) => G.drawImage(c, x, y, w * s, (h + T) * s) };
-    };
-    const group = (list, row, gap = 32) => list.length === 1 ? list[0] : {
-      w: row ? list.reduce((a, x) => a + x.w, 0) + gap * (list.length - 1) : Math.max(...list.map(x => x.w)),
-      h: row ? Math.max(...list.map(x => x.h)) : list.reduce((a, x) => a + x.h, 0) + gap * (list.length - 1),
-      draw(G, x, y, s) { for (const it of list) { it.draw(G, x, y, s); if (row) x += (it.w + gap) * s; else y += (it.h + gap) * s; } }
-    };
-    const others = [];
-    if (EXP.sch && B.mods.length) { const L = schemLayout(); others.push(leaf("Sơ đồ nguyên lý", L.w, L.h, g => L.draw(g, ink, muted))); }
-    if (EXP.code) {
-      // khối code hẹp lại: dòng dài (comment hay code) tự xuống hàng, dòng nối thụt vào
-      const wrap = (l, W = 40) => { if (l.length <= W) return [l]; const cm = l.trim().startsWith("//"), out = []; let r = l;
-        while (r.length > W) { let k = r.lastIndexOf(" ", W); if (k < W * .5) k = W; out.push(r.slice(0, k)); r = (cm ? "//   " : "    ") + r.slice(k).trimStart(); }
-        return [...out, r]; };
-      const lines = code().split("\n").flatMap(l => wrap(l)), lh = 20, mg = document.createElement("canvas").getContext("2d"); mg.font = "14px Consolas, monospace";
-      others.push(leaf("Code #define", Math.max(200, ...lines.map(l => mg.measureText(l).width)) + 4, lines.length * lh, g => {
-        g.font = "14px Consolas, monospace"; g.textBaseline = "middle"; lines.forEach((l, i) => { g.fillStyle = l.trim().startsWith("//") ? muted : ink; g.fillText(l, 0, i * lh + lh / 2); });
-      }));
-    }
-    let wire = null;
-    if (img) {   // cắt bỏ lề trống quanh sơ đồ đấu dây (theo điểm ảnh không trong suốt)
-      const TW = 2400, th = Math.round(img.height * TW / img.width), t = document.createElement("canvas"); t.width = TW; t.height = th;
-      const tg = t.getContext("2d"); tg.drawImage(img, 0, 0, TW, th);
-      const a = tg.getImageData(0, 0, TW, th).data; let x0 = TW, y0 = th, x1 = 0, y1 = 0;
-      for (let y = 0; y < th; y += 2) for (let x = 0; x < TW; x += 2) if (a[(y * TW + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-      if (x1 > x0) {
-        const m = 16, cx = Math.max(0, x0 - m), cy = Math.max(0, y0 - m), cw = Math.min(TW, x1 + m) - cx, ch = Math.min(th, y1 + m) - cy, ww = 1100, wh = ch * ww / cw;
-        wire = leaf("", ww, wh, g => g.drawImage(t, cx, cy, cw, ch, 0, 0, ww, wh));
+    A.toast("Đang tạo ảnh PNG...");
+    try {
+      let img = null, logo = null;
+      if (EXP.wire) {
+        const keep = B.cam ? { ...B.cam } : null;
+        try {
+          B.cam = null; draw();               // chụp toàn cảnh rồi trả lại khung nhìn cũ
+          await inlineImages(svg());
+          const raw = decodeURIComponent(A.svgDataUrl(svg()).split(",").slice(1).join(",")).replace(/(<svg[^>]*?)\sstyle="background:[^"]*"/, "$1");   // bỏ nền tối để vùng đấu dây cùng màu nền ảnh
+          const u = URL.createObjectURL(new Blob([raw], { type: "image/svg+xml;charset=utf-8" }));
+          try { img = await loadImg(u); } finally { setTimeout(() => URL.revokeObjectURL(u), 2000); }
+        } catch (e) { console.error("Lỗi vẽ sơ đồ dây:", e); } finally { B.cam = keep; draw(); }
       }
-    }
-    // thử mọi cách xếp (ngang/dọc ở cả hai tầng), chọn cách cho nội dung to nhất trong khung
-    const cands = [];
-    for (const gr of [true, false]) {
-      const og = others.length ? group(others, gr) : null;
-      for (const tr of [true, false]) cands.push(wire && og ? group([wire, og], tr, 40) : wire || og);
-      if (!wire) break;
-    }
-    const [RW, RH] = RATIOS[EXP.ratio], P = 40, HEAD = 70, FOOT = logo ? 76 : 28;
-    let W = RW, H = RH, best = cands[0], s = 1;
-    if (best) {
-      if (!RH) {   // Tự do: rộng cố định, cao theo nội dung; ưu tiên cách xếp ít bị thu nhỏ rồi thấp nhất
-        const sc = c => Math.min(1.2, (W - 2 * P) / c.w);
-        best = cands.reduce((a, c) => sc(c) > sc(a) + .05 || (Math.abs(sc(c) - sc(a)) <= .05 && c.h * sc(c) < a.h * sc(a)) ? c : a);
-        s = sc(best); H = Math.ceil(HEAD + best.h * s + FOOT);
-      } else {
-        const sc = c => Math.min(2, (W - 2 * P) / c.w, (H - HEAD - FOOT) / c.h);
-        best = cands.reduce((a, c) => sc(c) > sc(a) ? c : a); s = sc(best);
+      if (EXP.logo) { try { logo = await loadImg("icon.svg"); } catch (e) { logo = null; } }
+      // nền chung cho cả ảnh lẫn vùng đấu dây: Nguyên bản = màu canvas app, Trắng, hoặc trong suốt
+      const orig = EXP.bg === "orig", bg = orig ? getComputedStyle(svg()).backgroundColor : EXP.bg === "white" ? "#fff" : null;
+      const ink = orig ? getComputedStyle(document.body).color : "#1d232a", muted = orig ? "#8a93a0" : "#5b6570";
+      const k = EXP.scale, rs = Math.min(k * 2, 6);
+      // mỗi phần là một khối riêng (kèm tiêu đề) vẽ sẵn ở độ phân giải cao, rồi xếp vào khung ảnh
+      const leaf = (title, w, h, fn) => {
+        const T = title ? 34 : 0, c = document.createElement("canvas"); c.width = Math.ceil(w * rs); c.height = Math.ceil((h + T) * rs);
+        const g = c.getContext("2d"); g.scale(rs, rs);
+        if (title) { g.fillStyle = ink; g.font = "bold 18px sans-serif"; g.textBaseline = "alphabetic"; g.fillText(title, 0, 20); }
+        g.translate(0, T); fn(g);
+        return { w, h: h + T, draw: (G, x, y, s) => G.drawImage(c, x, y, w * s, (h + T) * s) };
+      };
+      const group = (list, row, gap = 32) => list.length === 1 ? list[0] : {
+        w: row ? list.reduce((a, x) => a + x.w, 0) + gap * (list.length - 1) : Math.max(...list.map(x => x.w)),
+        h: row ? Math.max(...list.map(x => x.h)) : list.reduce((a, x) => a + x.h, 0) + gap * (list.length - 1),
+        draw(G, x, y, s) { for (const it of list) { it.draw(G, x, y, s); if (row) x += (it.w + gap) * s; else y += (it.h + gap) * s; } }
+      };
+      const others = [];
+      if (EXP.sch && B.mods.length) { const L = schemLayout(); others.push(leaf("Sơ đồ nguyên lý", L.w, L.h, g => L.draw(g, ink, muted))); }
+      if (EXP.code) {
+        // khối code hẹp lại: dòng dài (comment hay code) tự xuống hàng, dòng nối thụt vào
+        const wrap = (l, W = 40) => { if (l.length <= W) return [l]; const cm = l.trim().startsWith("//"), out = []; let r = l;
+          while (r.length > W) { let k = r.lastIndexOf(" ", W); if (k < W * .5) k = W; out.push(r.slice(0, k)); r = (cm ? "//   " : "    ") + r.slice(k).trimStart(); }
+          return [...out, r]; };
+        const lines = code().split("\n").flatMap(l => wrap(l)), lh = 20, mg = document.createElement("canvas").getContext("2d"); mg.font = "14px Consolas, monospace";
+        others.push(leaf("Code #define", Math.max(200, ...lines.map(l => mg.measureText(l).width)) + 4, lines.length * lh, g => {
+          g.font = "14px Consolas, monospace"; g.textBaseline = "middle"; lines.forEach((l, i) => { g.fillStyle = l.trim().startsWith("//") ? muted : ink; g.fillText(l, 0, i * lh + lh / 2); });
+        }));
       }
-    } else if (!H) H = HEAD + FOOT + 40;
-    const c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
-    const g = c.getContext("2d"); g.scale(k, k);
-    if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
-    g.fillStyle = ink; g.font = "bold 26px sans-serif"; g.textBaseline = "alphabetic"; g.fillText(`${b.name} · Pindex Wiring`, P, 46);
-    if (best) best.draw(g, (W - best.w * s) / 2, HEAD + (H - HEAD - FOOT - best.h * s) / 2, s);
-    if (logo) {   // logo pindexio to rõ góc phải dưới
-      const z = 40; g.font = "bold 28px sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
-      const tw = g.measureText("pindexio.com").width, ly = H - 20 - z / 2;
-      g.fillStyle = ink; g.fillText("pindexio.com", W - P, ly); g.drawImage(logo, W - P - tw - 12 - z, ly - z / 2, z, z);
+      let wire = null;
+      if (img) {   // cắt bỏ lề trống quanh sơ đồ đấu dây (theo điểm ảnh không trong suốt)
+        const TW = 2400, th = Math.round(img.height * TW / img.width), t = document.createElement("canvas"); t.width = TW; t.height = th;
+        const tg = t.getContext("2d"); tg.drawImage(img, 0, 0, TW, th);
+        const a = tg.getImageData(0, 0, TW, th).data; let x0 = TW, y0 = th, x1 = 0, y1 = 0;
+        for (let y = 0; y < th; y += 2) for (let x = 0; x < TW; x += 2) if (a[(y * TW + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        if (x1 > x0) {
+          const m = 16, cx = Math.max(0, x0 - m), cy = Math.max(0, y0 - m), cw = Math.min(TW, x1 + m) - cx, ch = Math.min(th, y1 + m) - cy, ww = 1100, wh = ch * ww / cw;
+          wire = leaf("", ww, wh, g => g.drawImage(t, cx, cy, cw, ch, 0, 0, ww, wh));
+        }
+      }
+      // thử mọi cách xếp (ngang/dọc ở cả hai tầng), chọn cách cho nội dung to nhất trong khung
+      const cands = [];
+      for (const gr of [true, false]) {
+        const og = others.length ? group(others, gr) : null;
+        for (const tr of [true, false]) cands.push(wire && og ? group([wire, og], tr, 40) : wire || og);
+        if (!wire) break;
+      }
+      const [RW, RH] = RATIOS[EXP.ratio], P = 40, HEAD = 70, FOOT = logo ? 76 : 28;
+      let W = RW, H = RH, best = cands[0], s = 1;
+      if (best) {
+        if (!RH) {   // Tự do: rộng cố định, cao theo nội dung; ưu tiên cách xếp ít bị thu nhỏ rồi thấp nhất
+          const sc = c => Math.min(1.2, (W - 2 * P) / c.w);
+          best = cands.reduce((a, c) => sc(c) > sc(a) + .05 || (Math.abs(sc(c) - sc(a)) <= .05 && c.h * sc(c) < a.h * sc(a)) ? c : a);
+          s = sc(best); H = Math.ceil(HEAD + best.h * s + FOOT);
+        } else {
+          const sc = c => Math.min(2, (W - 2 * P) / c.w, (H - HEAD - FOOT) / c.h);
+          best = cands.reduce((a, c) => sc(c) > sc(a) ? c : a); s = sc(best);
+        }
+      } else if (!H) H = HEAD + FOOT + 40;
+      const c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
+      const g = c.getContext("2d"); g.scale(k, k);
+      if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
+      g.fillStyle = ink; g.font = "bold 26px sans-serif"; g.textBaseline = "alphabetic"; g.fillText(`${b.name} · Pindex Wiring`, P, 46);
+      if (best) best.draw(g, (W - best.w * s) / 2, HEAD + (H - HEAD - FOOT - best.h * s) / 2, s);
+      if (logo) {   // logo pindexio to rõ góc phải dưới
+        const z = 40; g.font = "bold 28px sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
+        const tw = g.measureText("pindexio.com").width, ly = H - 20 - z / 2;
+        g.fillStyle = ink; g.fillText("pindexio.com", W - P, ly); g.drawImage(logo, W - P - tw - 12 - z, ly - z / 2, z, z);
+      }
+      c.toBlob(async bl => {
+        try {
+          const data = bl || c.toDataURL("image/png");
+          const r = A.saveFile ? await A.saveFile(`${fname}.png`, data, opt.forceBrowser) : (dl(`${fname}.png`, data), { ok: true });
+          const finalName = (r && r.name) || `${fname}.png`; if (!r || !r.aborted) A.toast(r && r.dir ? `Đã lưu ${finalName} vào thư mục: ${r.dir}` : `Đã tải ${finalName} về trình duyệt`);
+        } catch (err) {
+          console.error("Lỗi lưu ảnh PNG:", err);
+          A.toast("Lỗi lưu ảnh: " + (err.message || err));
+        }
+      }, "image/png");
+    } catch (err) {
+      console.error("Lỗi tạo ảnh PNG:", err);
+      A.toast("Lỗi tạo ảnh: " + (err.message || err));
     }
-    dl(`${fname}.png`, c.toDataURL("image/png"));
   }
   function importHash(h) { try { load(JSON.parse(decodeURIComponent(escape(atob(h))))); } catch (e) { A.toast("Link Wiring không hợp lệ."); } }
 
