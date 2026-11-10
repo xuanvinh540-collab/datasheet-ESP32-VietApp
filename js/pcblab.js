@@ -6,7 +6,7 @@
   ROOT.classList.add("pcblab");
   ROOT.innerHTML = `<aside class="pl-list" id="plList"></aside><nav class="pl-bar" id="plBar"></nav>
     <section class="pl-stage" id="plStage"><svg id="plSvg" xmlns="http://www.w3.org/2000/svg"></svg><canvas id="plRulerT" aria-hidden="true"></canvas><canvas id="plRulerL" aria-hidden="true"></canvas><div id="plTip"></div><div id="plHint"></div><div id="plToast"></div><div id="plCtx"></div></section>
-    <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side"><div id="plPanel"></div></aside><div class="pl-tips" id="plTips"></div>`;
+    <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side" id="plSide"><div id="plPanel"></div></aside><div class="pl-tips" id="plTips"></div><nav class="pl-mob-nav" id="plMobNav"></nav><div class="pl-sheet-overlay" id="plSheetOverlay"></div>`;
   const $ = s => ROOT.querySelector(s), $$ = s => ROOT.querySelectorAll(s);
   const BUILD = "2026-11-09 00:35"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
   // chạy thử trên máy (tools/serve.py): build xong thì trang tự tải lại. Trên web thật không có /__ver nên không làm gì
@@ -55,7 +55,7 @@
     // DevKitC-1 62,74 dài, 2 hàng chân cách 25,4 (1"), ăng-ten vượt quá chân 1
     S3: { pads: [...S3L.map((n, i) => ({ name: n, x: 0, y: i * G })), ...S3R.map((n, i) => ({ name: n, x: 10 * G, y: i * G }))], body: { x: -1.3, y: -7.4, w: 28, h: 62.74 }, label: "ESP32-S3-DevKitC-1", inner: true },
     ssd1306: hdr("SDA/d SCL/c VCC/3 GND/g", 27.3, 27.8, "T", "OLED 0.96\""),                       // 27,3 × 27,8, thứ tự chân theo Pindexio
-    st7789: hdr("GND/g VCC/3 SCL/k SDA/m RES/s DC/s BLK/s", 27.78, 39.22, "T", "ST7789 240×240"),  // 1,3": 27,78 × 39,22
+    st7789: { pads: pinsOf("GND/g VCC/3 SCL/k SDA/m RES/s DC/s CS/s BLK/s").map((p, i) => ({ ...p, x: i * G, y: 0 })), body: { x: -4.26, y: -3.44, w: 26.22, h: 34.41 }, label: "ST7789 240×240" },
     sevseg: { pads: at("E D GND/g C DP G F GND/g A B", [0, 1, 2, 3, 4, 0, 1, 2, 3, 4].map((k, i) => [k * G, i < 5 ? 0 : -6 * G])), body: { x: -1.17, y: -17.12, w: 12.5, h: 19 }, label: "8", inner: true },   // 0,56": 2 hàng cách 15,24, 2 chân COM nối trong
     ws2812: hdr("GND/g VCC/5 DIN/s", 30, 25, "T", "WS2812 RGB"),                                     // ~ module LED rất đa dạng
     tb6612fng: { pads: at("VM/5 VCC/3 GND/g A01 A02 B02 B01 GND2/g PWMA/s AIN2/s AIN1/s STBY/s BIN1/s BIN2/s PWMB/s GND3/g", [...[0, 1, 2, 3, 4, 5, 6, 7].map(i => [0, i * G]), ...[0, 1, 2, 3, 4, 5, 6, 7].map(i => [7 * G, i * G])]), body: { x: -2.54, y: -1.14, w: 20.32, h: 20.32 }, label: "TB6612", inner: true },   // SparkFun 0,8" × 0,8", 2 hàng 8 chân cách 0,7"
@@ -79,12 +79,22 @@
     // motor DC: 2 chân (domino / header) cách 5,08, nối ra A01/A02 hoặc B01/B02 của driver TB6612
     motor: { pads: at("M+ M-", [[0, 0], [2 * G, 0]]), body: { x: -2.5, y: -3.5, w: 10.08, h: 7 }, label: "M", motor: true },
     // transistor TO-92 (BJT): 3 chân 2,54, chân giữa luôn là B. E / C tuỳ loại (2N2222, 2N3904: E-B-C; BC547: C-B-E) – đổi ở bảng bên phải
-    to92: { pads: at("E B C", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 2.5, y: -6.9, w: 5, h: 6.1 }, label: "", val: "2N3904", to92: true },
+    to92: { pads: at("E B C", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 2.5, y: -2.0, w: 5.0, h: 4.5 }, label: "", val: "2N3904", to92: true },
     // MOSFET kênh N vỏ TO-220 đứng: G D S cách 2,54, thân 10,2 × 4,6 (tấm tản nhiệt phía sau = D). S về GND, G nhận tín hiệu
-    irfz44n: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -3.2, w: 10.2, h: 4.6 }, label: "", val: "IRFZ44N", to220: true },
-    irf540n: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -3.2, w: 10.2, h: 4.6 }, label: "", val: "IRF540N", to220: true },
-    irf520: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -3.2, w: 10.2, h: 4.6 }, label: "", val: "IRF520", to220: true }
+    irfz44n: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -2.4, w: 10.2, h: 4.8 }, label: "", val: "IRFZ44N", to220: true },
+    irf540n: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -2.4, w: 10.2, h: 4.8 }, label: "", val: "IRF540N", to220: true },
+    irf520: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -2.4, w: 10.2, h: 4.8 }, label: "", val: "IRF520", to220: true }
   };
+  // Footprint hàng rào cắm chân Header (Pin Header 1 hàng, bước 2.54mm): HDR:P1,P2,P3 hoặc pinHdr_N
+  function pinHdrFP(n) {
+    n = Math.max(1, Math.min(40, parseInt(n) || 3));
+    const k = "pinHdr_" + n;
+    if (FP0[k]) return FP0[k];
+    const pads = [];
+    for (let i = 0; i < n; i++) pads.push({ name: String(i + 1), x: i * G, y: 0 });
+    const span = (n - 1) * G;
+    return FP0[k] = { pads, body: { x: -1.3, y: -1.3, w: span + 2.6, h: 2.6 }, label: "", pinHdr: true, nPins: n };
+  }
   // board khác ESP32-S3 (Arduino, Raspberry Pi, Pico…): không cắm thẳng lên bo mà nối dây Dupont qua hàng rào header J1.
   // Footprint J1 sinh theo tên khoá "HDR:GND,3V3,D2,…": 1 hàng chân 2,54, mỗi chân mang tên chân của board (cũng là tên mạng)
   function hdrFP(key) {
@@ -103,14 +113,27 @@
     const pads = row.map(p => ({ name: p.name, x: Math.abs(p.x - x0) < .3 ? 0 : Math.round((x1 - x0) / G) * G, y: Math.round((p.y - y0) / G) * G }));
     return FP0[key] = { pads, body: { x: -x0, y: -y0, w: b.w, h: b.h }, label: b.name, inner: true, brd: true };
   }
-  const FP = new Proxy(FP0, { get: (t, k) => t[k] || (typeof k === "string" ? (k.startsWith("HDR:") ? hdrFP(k) : k.startsWith("BRD:") ? brdFP(k) : undefined) : undefined) });
+  const FP = new Proxy(FP0, { get: (t, k) => {
+    // Footprint hàng rào cắm chân Header (Pin Header 1 hàng, bước 2.54mm): HDR:P1,P2,P3 hoặc pinHdr_N
+    const pinHdr_m = typeof k === "string" && k.match(/^pinHdr(?:_(\d+))?$/);
+    if (pinHdr_m) return pinHdrFP(pinHdr_m[1] ? parseInt(pinHdr_m[1], 10) : 3);
+    return FP0[k] || (typeof k === "string" ? (k.startsWith("HDR:") ? hdrFP(k) : k.startsWith("BRD:") ? brdFP(k) : undefined) : undefined);
+  } });
   // [tiếng Việt, English, tên ngắn]. Trong Pindexio, module lấy tên từ MODULES (dịch qua từ điển của site)
   const NAMES = { to92: ["Transistor TO-92", "TO-92 transistor", "TO-92"], motor: ["Motor DC", "DC motor", "Motor DC"], ecap5: ["Tụ hoá Ø5 (35V)", "Electrolytic Ø5 (35V)", "Tụ hoá Ø5"], ecap6: ["Tụ hoá Ø6,3 (35V)", "Electrolytic Ø6.3 (35V)", "Tụ hoá Ø6,3"], ecap8: ["Tụ hoá Ø8 (35V)", "Electrolytic Ø8 (35V)", "Tụ hoá Ø8"],
-    irfz44n: ["MOSFET IRFZ44N", "MOSFET IRFZ44N", "IRFZ44N"], irf540n: ["MOSFET IRF540N / IRF540", "MOSFET IRF540N / IRF540", "IRF540N"], irf520: ["MOSFET IRF520", "MOSFET IRF520", "IRF520"], S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], tb6612fng: ["Driver động cơ TB6612FNG", "TB6612FNG motor driver", "TB6612FNG"], servo: ["Động cơ Servo SG90", "SG90 servo", "Servo"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
+    irfz44n: ["MOSFET IRFZ44N", "MOSFET IRFZ44N", "IRFZ44N"], irf540n: ["MOSFET IRF540N / IRF540", "MOSFET IRF540N / IRF540", "IRF540N"], irf520: ["MOSFET IRF520", "MOSFET IRF520", "IRF520"], pinHdr: ["Hàng rào cắm chân", "Pin header", "Pin Header"], S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], tb6612fng: ["Driver động cơ TB6612FNG", "TB6612FNG motor driver", "TB6612FNG"], servo: ["Động cơ Servo SG90", "SG90 servo", "Servo"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
   const tr = s => (EN() && window.trEN ? window.trEN(s) : s);
-  const NAME = new Proxy({}, { get: (_, k) => SITE && MODULES[k] ? tr(MODULES[k].name) : NAMES[k] ? L(NAMES[k][0], NAMES[k][1]) : k });
-  const SHORT = k => SITE && MODULES[k] ? tr(MODULES[k].short) : NAMES[k] ? (EN() ? NAMES[k][1] : NAMES[k][2]) : k;
-  const CATS_BASE = () => [[L("Board", "Board"), "🧠", ["S3"]], [L("Màn hình & hiển thị", "Displays"), "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]], [L("Cảm biến", "Sensors"), "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]], [L("Âm thanh & còi", "Audio & buzzers"), "🔊", ["buzzer", "max98357a", "inmp441"]], [L("Động cơ", "Motors"), "⚙️", ["servo", "tb6612fng", "motor"]], [L("Cơ bản", "Basics"), "🎛️", ["button", "led", "R", "C", "ecap5", "ecap6", "ecap8"]], [L("Công suất", "Power"), "⚡", ["to92", "irfz44n", "irf540n", "irf520"]]];
+  const NAME = new Proxy({}, { get: (_, k) => {
+    if (SITE && MODULES[k]) return tr(MODULES[k].name);
+    if (typeof k === "string" && k.startsWith("pinHdr_")) return (EN() ? "Pin header " : "Hàng rào ") + k.slice(7) + "P";
+    return NAMES[k] ? L(NAMES[k][0], NAMES[k][1]) : k;
+  } });
+  const SHORT = k => {
+    if (SITE && MODULES[k]) return tr(MODULES[k].short);
+    if (typeof k === "string" && k.startsWith("pinHdr_")) return "Header " + k.slice(7) + "P";
+    return NAMES[k] ? (EN() ? NAMES[k][1] : NAMES[k][2]) : k;
+  };
+  const CATS_BASE = () => [[L("Board", "Board"), "🧠", ["S3"]], [L("Màn hình & hiển thị", "Displays"), "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]], [L("Cảm biến", "Sensors"), "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]], [L("Âm thanh & còi", "Audio & buzzers"), "🔊", ["buzzer", "max98357a", "inmp441"]], [L("Động cơ", "Motors"), "⚙️", ["servo", "tb6612fng", "motor"]], [L("Cơ bản", "Basics"), "🎛️", ["pinHdr", "button", "led", "R", "C", "ecap5", "ecap6", "ecap8"]], [L("Công suất", "Power"), "⚡", ["to92", "irfz44n", "irf540n", "irf520"]]];
   const CATS = () => { const a = CATS_BASE(); if (MYIDS.length) a.push([L("Linh kiện của tôi", "My parts"), "⭐", MYIDS]); return a; };
   // lưu ý khi thêm (theo ghi chú linh kiện của Pindexio)
   const TIPS = { hcsr04: ["ECHO ra 5 V: để trống, nối qua chia áp R 1k + 2k rồi mới vào GPIO.", "ECHO outputs 5 V: left open, wire it through a 1k + 2k divider before a GPIO."], dht22: ["Thêm R 10k kéo SDA lên 3V3.", "Add a 10k pull-up from SDA to 3V3."], led: ["Chân A để trống: nối qua R 220–330 Ω rồi mới vào GPIO.", "Pin A is left open: wire it through 220–330 Ω before a GPIO."], sevseg: ["Các đoạn A–G, DP để trống: mỗi đoạn qua R 220–330 Ω.", "Segments A–G, DP are left open: each needs a 220–330 Ω resistor."], ws2812: ["Nên thêm R 330 Ω nối tiếp DIN.", "Add a 330 Ω series resistor on DIN."], inmp441: ["L/R nối GND = kênh trái. Chỉ chạy 3,3 V.", "L/R to GND = left channel. 3.3 V only."], max98357a: ["GAIN, SD để trống = 9 dB, bật.", "GAIN, SD left open = 9 dB, enabled."] };
@@ -125,8 +148,9 @@
   TIPS.servo = ["Nguồn servo đi chung nguồn motor (chân VM của TB6612) nếu có driver. Servo kéo dòng lớn: dùng nguồn 5 V riêng, chung GND, thêm tụ hoá 470µ gần servo. Chân SIG vẫn nối GPIO.", "Servo power shares the motor supply (TB6612 VM) when a driver is present. Servos draw large currents: use a separate 5 V supply, common GND, and a 470µ cap near the servo. SIG still goes to a GPIO."];
   // linh kiện rời (tuỳ mạch): app KHÔNG tự nối chân, người dùng tự chọn mạng ở bảng bên phải
   for (const k of ["ecap5", "to92", "irfz44n", "irf540n", "irf520"]) TIPS[k] = [TIPS[k][0] + " Chân chưa tự nối: nối theo mạch của bạn.", TIPS[k][1] + " Pins are not auto-wired: connect them to suit your circuit."];
+  TIPS.pinHdr = ["Hàng rào cắm chân header 2.54 mm. Đổi số chân ở bảng bên phải hoặc popup.", "2.54 mm pin header. Change pin count in the right panel or popup."];
   const TIP = new Proxy({}, { get: (_, k) => TIPS[k] && L(TIPS[k][0], TIPS[k][1]) });
-  const PRE = { to92: "Q", motor: "MOT", S3: "U", R: "R", C: "C", ecap5: "C", ecap6: "C", ecap8: "C", irfz44n: "Q", irf540n: "Q", irf520: "Q", led: "D", button: "SW", buzzer: "BZ" };
+  const PRE = { pinHdr: "J", to92: "Q", motor: "MOT", S3: "U", R: "R", C: "C", ecap5: "C", ecap6: "C", ecap8: "C", irfz44n: "Q", irf540n: "Q", irf520: "Q", led: "D", button: "SW", buzzer: "BZ" };
   // GPIO ESP32-S3 dùng được: hàng phải trước (gần module), IO8/9/11/12 để dành cho I2C / SPI. Tránh IO35–37 (PSRAM), TX/RX
   const PREF = "1 2 42 41 40 39 38 21 47 48 4 5 6 7 15 16 17 18 10 13 14 8 9 11 12".split(" ").map(n => "IO" + n);
   const RISKY = ["IO0", "IO3", "IO45", "IO46", "IO19", "IO20"];   // strapping / USB: dùng được nhưng dễ lỗi khởi động
@@ -219,7 +243,7 @@
   // mạng của chân: module lưu theo tên chân (c.nets); chân ESP32-S3 mang tên chính nó khi có module nối tới (IO5 …)
   const usedNets = () => { const s = new Set(); for (const c of S.comps) for (const k in c.nets || {}) if (c.nets[k]) s.add(c.nets[k]); return s; };
   const netOf = (c, name, used) => isHost(c) ? (PWR.has(name) || used.has(name) ? name : null) : (c.nets && c.nets[name]) || null;
-  const NOAUTO = new Set(["tb6612fng", "motor", "R", "C", "ecap5", "ecap6", "ecap8", "to92", "irfz44n", "irf540n", "irf520"]);   // người dùng tự nối
+  const NOAUTO = new Set(["pinHdr", "tb6612fng", "motor", "R", "C", "ecap5", "ecap6", "ecap8", "to92", "irfz44n", "irf540n", "irf520"]);   // người dùng tự nối
   function autoNets(fp) {   // nối sẵn khi thêm: nguồn, bus I2C / SPI, tín hiệu vào GPIO trống
     if (NOAUTO.has(fp) || (FP[fp] && FP[fp].mine)) { const z = {}; for (const p of FP[fp].pads) z[p.name] = null; return z; }
     const s3 = S.comps.some(isHost), H = hostInfo(), used = usedNets(), out = {};
@@ -250,7 +274,10 @@
   }
   // mạng trống "~n": dây vẽ tự do chưa chạm chân nào; nối vào mạng thật thì nhận tên mạng đó
   const isFree = n => typeof n === "string" && n[0] === "~";
-  function adopt(from, to) { for (const x of [...S.traces, ...S.jumpers, ...(S.holes || [])]) if (x.net === from) x.net = to; }
+  function adopt(from, to) {
+    for (const c of S.comps) if (c.nets) for (const k in c.nets) if (c.nets[k] === from) c.nets[k] = to;
+    for (const x of [...S.traces, ...S.jumpers, ...(S.holes || [])]) if (x.net === from) x.net = to;
+  }
   // thêm lỗ đơn; trùng chân / lỗ đã có thì dùng luôn chỗ đó (gộp)
   function addHole(q, net) {
     const old = pads().find(p => Math.hypot(p.x - q[0], p.y - q[1]) < PAD_R);
@@ -343,7 +370,8 @@
   const PC = Q / 2, POUR_CLR = 1, POUR_EDGE = 1.5, SPOKE = .8, GND = "GND";
   let pourCache = { key: null };
   function pour() {
-    const key = JSON.stringify([S.comps, S.traces, S.jumpers, S.board, S.pourClr, S.pourIsl]), CLRP = S.pourClr ?? POUR_CLR;
+    const clearArt = S.pourArt !== false;
+    const key = JSON.stringify([S.comps, S.traces, S.jumpers, S.board, S.pourClr, S.pourIsl, clearArt, clearArt ? S.art : null]), CLRP = S.pourClr ?? POUR_CLR;
     if (pourCache.key === key) return pourCache;
     const B = S.board, nx = Math.round(B.w / PC) + 1, ny = Math.round(B.h / PC) + 1, F = new Float32Array(nx * ny), P = pads(), CAP = 2 * PC;
     for (let gy = 0; gy < ny; gy++) for (let gx = 0; gx < nx; gx++) { const x = gx * PC, y = gy * PC; F[gy * nx + gx] = Math.min(CAP, bd(x, y) - POUR_EDGE); }
@@ -356,6 +384,40 @@
       win(p.x - R, p.y - R, p.x + R, p.y + R, p.net === GND ? (x, y) => Math.max(Math.hypot(x - p.x, y - p.y) - r, SPOKE / 2 - Math.min(Math.abs(x - p.x), Math.abs(y - p.y))) : (x, y) => Math.hypot(x - p.x, y - p.y) - r);
     }
     for (const t of S.traces) if (t.net !== GND) { const r = traceW(t) / 2 + CLRP, R = r + CAP; for (let k = 0; k < t.pts.length - 1; k++) { const [a, b] = [t.pts[k], t.pts[k + 1]]; win(Math.min(a[0], b[0]) - R, Math.min(a[1], b[1]) - R, Math.max(a[0], b[0]) + R, Math.max(a[1], b[1]) + R, (x, y) => segDist(x, y, a[0], a[1], b[0], b[1]) - r); } }
+    // né chữ & hình vẽ Pen trên lớp đồng (copper)
+    if (clearArt && Array.isArray(S.art)) {
+      for (const it of S.art) {
+        const ly = LYR(it.layer);
+        if (!ly || ly.kind !== "cu") continue;
+        const w = (it.w || .3) / 2 + CLRP, R = w + CAP;
+        for (const pa of it.paths) {
+          if (!pa.pts || !pa.pts.length) continue;
+          if (it.fill && pa.closed && pa.pts.length > 2) {
+            let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
+            for (const [x, y] of pa.pts) { bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y); }
+            win(bx0 - R, by0 - R, bx1 + R, by1 + R, (x, y) => {
+              let ins = false;
+              for (let i = 0, j = pa.pts.length - 1; i < pa.pts.length; j = i++) {
+                const [xi, yi] = pa.pts[i], [xj, yj] = pa.pts[j];
+                if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) ins = !ins;
+              }
+              if (ins) return -CLRP;
+              let minD = 1e9;
+              for (let i = 0; i < pa.pts.length; i++) {
+                const a = pa.pts[i], b = pa.pts[(i + 1) % pa.pts.length];
+                minD = Math.min(minD, segDist(x, y, a[0], a[1], b[0], b[1]));
+              }
+              return minD - w;
+            });
+          } else {
+            for (let k = 0; k < (pa.closed ? pa.pts.length : pa.pts.length - 1); k++) {
+              const a = pa.pts[k], b = pa.pts[(k + 1) % pa.pts.length];
+              win(Math.min(a[0], b[0]) - R, Math.min(a[1], b[1]) - R, Math.max(a[0], b[0]) + R, Math.max(a[1], b[1]) + R, (x, y) => segDist(x, y, a[0], a[1], b[0], b[1]) - w);
+            }
+          }
+        }
+      }
+    }
     // vùng liền nhau (đánh nhãn nút F > 0), rồi giữ những vùng chạm vật GND (chồng lên pad GND / đường GND)
     const lab = new Int32Array(nx * ny).fill(-1); let nl = 0;
     for (let s = 0; s < lab.length; s++) if (F[s] > 0 && lab[s] < 0) { const st = [s]; lab[s] = nl; while (st.length) { const c = st.pop(), x = c % nx, y = (c - x) / nx; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x2 = x + dx, y2 = y + dy, c2 = y2 * nx + x2; if (x2 >= 0 && y2 >= 0 && x2 < nx && y2 < ny && F[c2] > 0 && lab[c2] < 0) { lab[c2] = nl; st.push(c2); } } } nl++; }
@@ -842,7 +904,7 @@
   // tên chân ghi cạnh chân (toạ độ cục bộ của linh kiện). Hàng chân ngang: chữ dựng đứng phía trên (hàng dưới: phía dưới);
   // 2 cột chân (board, driver): chữ nằm ngang, trong thân nếu chân nằm trong thân (ESP32), ngoài thân nếu chân ở rìa
   const LBL_DX = 2.2, LBL_DY = 2.5;   // chữ cách tâm chân: pad Ø2 + lỗ khoan Ø1 → chừa ≥ 1 mm, không đè lên lỗ
-  const NOLBL = new Set(["R", "C", "button"]);
+  const NOLBL = new Set(["R", "C", "button", "to92", "irfz44n", "irf540n", "irf520"]);
   function padLabels(key) {
     const f = FP[key], out = []; if (!f || NOLBL.has(key)) return out;
     const L1 = (p, o) => out.push({ t: pinLabel(p.name), ...o });
@@ -876,7 +938,14 @@
     for (const c of S.comps) {
       const f = FP[c.fp], g = el("g", { class: "comp" + ((ui.sel && ui.sel.t === "c" && ui.sel.id === c.id) || inMs("c", c.id) ? " sel" : ""), "data-c": c.id, transform: `translate(${c.x} ${c.y}) rotate(${c.rot})` }, LY.silk), b = f.body;
       if (S.alpha > 0) art(c.fp, b, el("g", { class: "art", opacity: S.alpha }, g));
-      if (f.round) el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: b.h / 2, class: "body" }, g); else el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: .6, class: "body" }, g);
+      if (f.to92) {
+        // Viền in lụa chuẩn bán nguyệt TO-92
+        el("path", { d: `M${b.x} ${b.y + b.h} L${b.x + b.w} ${b.y + b.h} A${b.w / 2} ${b.h * 0.9} 0 0 0 ${b.x} ${b.y + b.h} Z`, class: "body" }, g);
+      } else if (f.to220) {
+        // Viền in lụa TO-220: chữ nhật bao quanh + vạch phân cách lá tản nhiệt
+        el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 0.5, class: "body" }, g);
+        el("line", { x1: b.x, y1: b.y + 1.3, x2: b.x + b.w, y2: b.y + 1.3, class: "body" }, g);
+      } else if (f.round) el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: b.h / 2, class: "body" }, g); else el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: .6, class: "body" }, g);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
       if (f.label) el("text", { x: cx, y: cy, class: "silkt", transform: c.rot % 180 ? `rotate(-90 ${cx} ${cy})` : "" }, g, f.label);
       // tên chân đặt theo toạ độ bo (không nằm trong nhóm linh kiện): không bị mờ theo linh kiện, luôn đọc xuôi kể cả khi xoay linh kiện / lật xem mặt Back
@@ -926,6 +995,7 @@
     if (ui.sel && ui.sel.t === "t") { const t = S.traces.find(x => x.id === ui.sel.id); if (t) t.pts.forEach((p, i) => { if (i > 0 && i < t.pts.length - 1) el("rect", { x: p[0] - .55, y: p[1] - .55, width: 1.1, height: 1.1, class: "vtx", "data-v": i }, LY.sel); else el("circle", { cx: p[0], cy: p[1], r: .65, class: "vtx vend", "data-v": i }, LY.sel); }); }   // 2 đầu dây: nút tròn, kéo được
     if (ui.tool === "ms" && ((ui.measList && ui.measList.length) || ui.meas)) drawMeas();   // giữ số đo sau khi vẽ lại
     renderJumperPop();
+    renderPinHdrPop();
     panel(); save();
   }
   function renderJumperPop() {
@@ -972,18 +1042,80 @@
     inc.onclick = () => cmd.setJumperLength(jw, Math.round((curLen + 0.5) * 10) / 10);
     dec.onclick = () => cmd.setJumperLength(jw, Math.max(1, Math.round((curLen - 0.5) * 10) / 10));
   }
+  function renderPinHdrPop() {
+    const pop = $("#plPinHdrPop");
+    if (!ui.sel || ui.sel.t !== "c" || ui.mode !== "idle" || !ui.newPinHdrId || ui.sel.id !== ui.newPinHdrId) {
+      if (pop) pop.remove();
+      return;
+    }
+    const c = S.comps.find(x => x.id === ui.sel.id);
+    if (!c || !c.fp || !c.fp.startsWith("pinHdr")) {
+      if (pop) pop.remove();
+      return;
+    }
+    const f = FP[c.fp], curPins = (f && f.nPins) || 3;
+    const b = f.body, [cx0, cy0] = rot(b.x + b.w / 2, b.y + b.h / 2, c.rot);
+    const pos = mmToStage(c.x + cx0, c.y + cy0);
+    if (!pos) {
+      if (pop) pop.remove();
+      return;
+    }
+    let elPop = pop;
+    if (!elPop) {
+      elPop = document.createElement("div");
+      elPop.id = "plPinHdrPop";
+      $("#plStage").appendChild(elPop);
+    }
+    elPop.innerHTML = `<span class="jp-lbl">${c.id}:</span>
+      <div class="jp-box">
+        <button type="button" class="jp-btn" id="phDecBtn" title="-1 pin">▼</button>
+        <input type="number" id="phCountInp" min="1" max="40" step="1" value="${curPins}">
+        <button type="button" class="jp-btn" id="phIncBtn" title="+1 pin">▲</button>
+      </div>
+      <span class="jp-unit">${L("chân", "pins")}</span>`;
+    elPop.style.left = pos.x + "px";
+    elPop.style.top = pos.y + "px";
+
+    const inp = elPop.querySelector("#phCountInp");
+    const inc = elPop.querySelector("#phIncBtn");
+    const dec = elPop.querySelector("#phDecBtn");
+
+    elPop.onpointerdown = e => e.stopPropagation();
+    inp.onchange = () => cmd.setPinCount(c, +inp.value);
+    inc.onclick = () => cmd.setPinCount(c, curPins + 1);
+    dec.onclick = () => cmd.setPinCount(c, Math.max(1, curPins - 1));
+  }
 
   // hình board thật (đơn giản) vẽ dưới nét in lụa, độ mờ chỉnh bằng thanh kéo
-  const NOART = new Set(["tb6612fng"]);   // hình màu không khớp chân với footprint: dùng hình vẽ đơn giản
+  const NOART = new Set(["tb6612fng", "to92", "irfz44n", "irf540n", "irf520"]);   // hình màu không khớp chân với footprint: dùng hình vẽ đơn giản
   function art(fp, b, g) {
     if (SITE && MODULES[fp] && MODULES[fp].svg && !FP[fp].mine && !NOART.has(fp)) { el("image", { href: MODULES[fp].svg, x: b.x, y: b.y, width: b.w, height: b.h, preserveAspectRatio: "xMidYMid meet" }, g); return; }
     if (FP[fp] && FP[fp].mine) { const q = FP[fp].bb; if (q && FP[fp].icon) { el("image", { href: FP[fp].icon, x: 0, y: 0, width: q.w, height: q.h, preserveAspectRatio: "none", transform: `translate(${q.x} ${q.y}) scale(${q.s}) rotate(${q.rot})` }, g); return; }
       if (FP[fp].art) el("image", { href: FP[fp].art, x: b.x, y: b.y, width: b.w, height: b.h, preserveAspectRatio: "xMidYMid meet" }, g); return; }
     const R = (x, y, w, h, fill, rx = .6) => el("rect", { x, y, width: w, height: h, rx, fill }, g), cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     if (FP[fp] && FP[fp].ecap) { el("circle", { cx, cy, r: b.w / 2, fill: "#2b4f9e" }, g); el("path", { d: `M${cx + b.w * .22} ${cy - b.w * .45}A${b.w / 2} ${b.w / 2} 0 0 1 ${cx + b.w * .22} ${cy + b.w * .45}Z`, fill: "#c9d2e0" }, g); return; }   // vạch trắng phía cực −
-    if (fp === "to92") { el("image", { href: TO92_ART, x: b.x, y: b.y, width: b.w, height: b.h, preserveAspectRatio: "xMidYMid meet" }, g); return; }
+    if (fp === "to92") {
+      // Bán nguyệt TO-92 D-shape: mặt phẳng ở dưới (phía chân), lưng cong tròn lên trên
+      el("path", { d: `M${b.x} ${b.y + b.h} L${b.x + b.w} ${b.y + b.h} A${b.w / 2} ${b.h * 0.9} 0 0 0 ${b.x} ${b.y + b.h} Z`, fill: "#1f2329" }, g);
+      el("rect", { x: b.x + 0.3, y: b.y + b.h - 1.2, width: b.w - 0.6, height: 1, rx: 0.2, fill: "#111418" }, g);
+      el("text", { x: cx, y: cy - 0.2, "font-size": "1.3", "font-weight": "700", "text-anchor": "middle", "dominant-baseline": "central", fill: "#9ca3af", "font-family": "sans-serif" }, g, "TO-92");
+      return;
+    }
     if (FP[fp] && FP[fp].motor) { R(b.x, b.y, b.w, b.h, "#3a3f47", 1.2); el("circle", { cx, cy, r: 2.2, fill: "#b8bcc2" }, g); return; }
-    if (FP[fp] && FP[fp].to220) { R(b.x, b.y, b.w, b.h, "#1d1f24", .3); R(b.x, b.y, b.w, 1.1, "#b8bcc2", .2); return; }   // thân đen, mép tấm tản nhiệt kim loại
+    if (FP[fp] && FP[fp].to220) {
+      // Chuẩn TO-220 đứng: phiến tản nhiệt kim loại phía trên (b.y), thân nhựa đúc đen phía dưới (phía chân)
+      const tabH = 1.3, bodyH = b.h - tabH;
+      // Lá tản nhiệt kim loại
+      R(b.x, b.y, b.w, tabH, "#94a3b8", 0.3);
+      // Thân nhựa đúc màu đen
+      R(b.x, b.y + tabH, b.w, bodyH, "#1e242d", 0.4);
+      // Lỗ khuyết/gờ đánh dấu trên mặt lưng tản nhiệt
+      el("circle", { cx, cy: b.y + tabH / 2, r: 0.45, fill: "#475569" }, g);
+      // In mã linh kiện (IRFZ44N / IRF540N / IRF520) lên thân nhựa
+      const txt = (FP[fp] && FP[fp].val) || "TO-220";
+      el("text", { x: cx, y: b.y + tabH + bodyH / 2, "font-size": "1.3", "font-weight": "700", "text-anchor": "middle", "dominant-baseline": "central", fill: "#cbd5e1", "font-family": "sans-serif" }, g, txt);
+      return;
+    }   // thân đen, mép tấm tản nhiệt kim loại
     if (fp === "S3") { R(b.x, b.y, b.w, b.h, "#1c2230", 1); R(cx - 9, b.y + .8, 18, 6, "#2a3142", .4); R(cx - 9, b.y + 6.8, 18, 18, "#c4c8ce", .5); R(cx - 4, b.y + b.h - 5.5, 8, 5.5, "#b8bcc2", .4); R(cx - 6.5, b.y + b.h - 13, 3, 2, "#e9e9e9", .3); R(cx + 3.5, b.y + b.h - 13, 3, 2, "#e9e9e9", .3); }
     else if (fp === "st7789") { R(b.x, b.y, b.w, b.h, "#1f4e96", 1); R(b.x + 1.5, b.y + 5.5, b.w - 3, b.h - 7.5, "#0b0e13", .8); R(b.x + 3, b.y + 7.5, b.w - 6, b.h - 11.5, "#1a2433", .4); }
     else if (fp === "hcsr04") { R(b.x, b.y, b.w, b.h, "#1d5fae", 1); for (const x of [cx - 13.25, cx + 13.25]) { el("circle", { cx: x, cy, r: 8, fill: "#c9cdd2" }, g); el("circle", { cx: x, cy, r: 6.3, fill: "#2b2f35" }, g); } R(cx - 2.5, b.y + 2, 5, 3, "#c9cdd2", .4); }
@@ -1001,6 +1133,7 @@
     else if (fp === "buzzer") { el("circle", { cx, cy, r: 6, fill: "#15171b" }, g); el("circle", { cx, cy, r: 1, fill: "#444" }, g); }
     else if (fp === "R") { R(b.x, b.y, b.w, b.h, "#d8c194", b.h / 2); [["#7b4a1e", .25], ["#111", .45], ["#c42a2a", .62]].forEach(([c, u]) => R(b.x + b.w * u, b.y, .7, b.h, c, 0)); }
     else if (fp === "C") R(b.x, b.y, b.w, b.h, "#d9a83a", b.h / 2);
+    else if (fp.startsWith("pinHdr")) R(b.x, b.y, b.w, b.h, "#181a1f", .4);   // thân header nhựa đen
     else if (fp.startsWith("BRD:")) R(b.x, b.y, b.w, b.h, "#1c2230", 1);
     else if (fp.startsWith("HDR:")) R(b.x, b.y, b.w, b.h, "#15171b", .3);   // hàng rào header nhựa đen
   }
@@ -1672,6 +1805,7 @@
     let w = c.w, h = c.h; if (w / h < ar) w = h * ar; else h = w / ar;
     svg.setAttribute("viewBox", `${c.x - (w - c.w) / 2} ${c.y - (h - c.h) / 2} ${w} ${h}`); ui.k = w / r.width; drawRulers();
     if (typeof renderJumperPop === "function") renderJumperPop();
+    if (typeof renderPinHdrPop === "function") renderPinHdrPop();
   }
   /* hai thước mm: cạnh trên (X) và cạnh trái (Y), gốc 0 ở góc trên-trái của bo; đi theo zoom / kéo; vạch xanh = vị trí chuột */
   function drawRulers() {
@@ -1874,7 +2008,7 @@
       el("circle", { cx: sx, cy: sy, r: .42, class: "sguide-cur" }, LY.tmp);
     }
   }
-  const PASSIVE_FPS = new Set(["R", "C", "ecap5", "ecap6", "ecap8"]);
+  const PASSIVE_FPS = new Set(["pinHdr", "R", "C", "ecap5", "ecap6", "ecap8", "to92", "irfz44n", "irf540n", "irf520"]);
   function findCompSplice(fp, cx, cy, rotAng) {
     const f = FP[fp];
     if (!f || !f.pads || f.pads.length !== 2) return null;
@@ -1919,8 +2053,13 @@
       el("circle", { cx: sp.pb.q[0], cy: sp.pb.q[1], r: 1.1, class: "jmark" }, LY.tmp);
     }
     const g = el("g", { transform: `translate(${cx} ${cy}) rotate(${rotAng})`, opacity: "0.85" }, LY.tmp);
-    const b = f.body;
-    if (f.round) el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: b.h / 2, class: "body", stroke: sp ? "#38bdf8" : "#fff", "stroke-width": "0.3", fill: "rgba(30,41,59,0.7)" }, g);
+    const b = f.body, cxLocal = b.x + b.w / 2;
+    if (f.to92) {
+      el("path", { d: `M${b.x} ${b.y + b.h} L${b.x + b.w} ${b.y + b.h} A${b.w / 2} ${b.h * 0.9} 0 0 0 ${b.x} ${b.y + b.h} Z`, class: "body", stroke: sp ? "#38bdf8" : "#fff", "stroke-width": "0.3", fill: "rgba(30,41,59,0.7)" }, g);
+    } else if (f.to220) {
+      el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 0.5, class: "body", stroke: sp ? "#38bdf8" : "#fff", "stroke-width": "0.3", fill: "rgba(30,41,59,0.7)" }, g);
+      el("line", { x1: b.x, y1: b.y + 1.3, x2: b.x + b.w, y2: b.y + 1.3, stroke: sp ? "#38bdf8" : "#cbd5e1", "stroke-width": "0.3" }, g);
+    } else if (f.round) el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: b.h / 2, class: "body", stroke: sp ? "#38bdf8" : "#fff", "stroke-width": "0.3", fill: "rgba(30,41,59,0.7)" }, g);
     else el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 0.6, class: "body", stroke: sp ? "#38bdf8" : "#fff", "stroke-width": "0.3", fill: "rgba(30,41,59,0.7)" }, g);
     if (f.val) el("text", { x: b.x + b.w / 2, y: b.y + b.h / 2, "font-size": "1.3", "font-weight": "700", "text-anchor": "middle", "dominant-baseline": "central", fill: "#fff" }, g, f.val);
     for (const p of f.pads) {
@@ -1958,19 +2097,22 @@
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const cx = snap(clamp(p.x, 2 - b.x, B.w - 2 - b.x - b.w), G);
     const cy = snap(clamp(p.y, 2 - b.y, B.h - 2 - b.y - b.h), G);
-    const pre = (f.mine ? "X" : PRE[fp] || "M");
+    const pre = (f.mine ? "X" : (fp.startsWith("pinHdr") ? "J" : (PRE[fp] || "M")));
     let n = 1; while (S.comps.some(c => c.id === pre + n)) n++;
     const id = pre + n;
     checkpoint();
-    const c = { id, fp, x: cx, y: cy, rot: rotAng };
-    if (f.val) c.val = f.val;
-    c.nets = autoNets(fp);
+    const actFp = fp === "pinHdr" ? "pinHdr_3" : fp;
+    const c = { id, fp: actFp, x: cx, y: cy, rot: rotAng };
+    if (ui.place.val != null) c.val = ui.place.val; else if (f.val) c.val = f.val;
+    if (ui.place.lbl != null) c.lbl = ui.place.lbl;
+    c.nets = autoNets(actFp);
     const sp = findCompSplice(fp, cx, cy, rotAng);
     if (sp) {
       placeCompOnTrace(sp, c);
     }
     S.comps.push(c);
     cancel();
+    if (fp.startsWith("pinHdr")) ui.newPinHdrId = id; else ui.newPinHdrId = null;
     ui.sel = { t: "c", id };
     render();
     afterParts([id]);
@@ -2594,6 +2736,7 @@
   let prevDown = { t: 0, x: 0, y: 0 };
   svg.addEventListener("pointerdown", e => {
     if (e.button === 2) return;
+    if (ui.newPinHdrId && (!e.target.closest("#plPinHdrPop"))) ui.newPinHdrId = null;
     { const now = performance.now(), dbl = now - prevDown.t < 420 && Math.hypot(e.clientX - prevDown.x, e.clientY - prevDown.y) < 6; prevDown = { t: now, x: e.clientX, y: e.clientY };
       if (dbl && e.button === 0 && ui.mode === "idle" && (!ui.tool || ui.tool === "sel")) { prevDown.t = 0; e.preventDefault(); return onDbl(e); } }
     const p = toMM(e); let g = [r3(p.x), r3(p.y)];
@@ -2694,6 +2837,67 @@
   }, true);
   addEventListener("pointerup", e => { if (ui.drag) { const d = ui.drag; ui.drag = null; d.up && d.up(); } });
   svg.addEventListener("pointerleave", () => $("#plTip").classList.remove("on"));
+  
+  // ===== PINCH-TO-ZOOM & MULTI-TOUCH PAN CHO MOBILE =====
+  const activePointers = new Map();
+  let pinchDist0 = 0, pinchCenter0 = { x: 0, y: 0 }, pinchCam0 = null;
+
+  svg.addEventListener("pointerdown", e => {
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.size === 2) {
+      // Bắt đầu 2 ngón tay: huỷ các thao tác vẽ / kéo đang dở để chuyển sang pinch zoom & pan
+      if (ui.drag) ui.drag = null;
+      if (ui.mode === "route") cancel();
+      const pts = [...activePointers.values()];
+      pinchDist0 = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      pinchCenter0 = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      pinchCam0 = { ...cam };
+    }
+  }, { capture: true, passive: true });
+
+  svg.addEventListener("pointermove", e => {
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2 && pinchCam0 && pinchDist0 > 5) {
+      const pts = [...activePointers.values()];
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const center = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+
+      // Tỉ lệ zoom
+      const zoomRatio = pinchDist0 / Math.max(dist, 10);
+      const f = Math.max(0.2, Math.min(zoomRatio, 5));
+
+      // Điểm tâm theo toạ độ view
+      const sr = $("#plStage").getBoundingClientRect();
+      const p = {
+        x: pinchCam0.x + ((center.x - sr.left) / sr.width) * pinchCam0.w,
+        y: pinchCam0.y + ((center.y - sr.top) / sr.height) * pinchCam0.h
+      };
+
+      // Dời vị trí theo cả pan (dịch tâm) lẫn zoom (khoảng cách 2 ngón)
+      const dx = (center.x - pinchCenter0.x) * (pinchCam0.w / sr.width);
+      const dy = (center.y - pinchCenter0.y) * (pinchCam0.h / sr.height);
+
+      cam.w = pinchCam0.w * f;
+      cam.h = pinchCam0.h * f;
+      cam.x = p.x - ((center.x - sr.left) / sr.width) * cam.w - dx;
+      cam.y = p.y - ((center.y - sr.top) / sr.height) * cam.h - dy;
+
+      applyCam();
+    }
+  }, { capture: true, passive: true });
+
+  const onPointerEnd = e => {
+    activePointers.delete(e.pointerId);
+    if (activePointers.size < 2) {
+      pinchCam0 = null;
+      pinchDist0 = 0;
+    }
+  };
+  svg.addEventListener("pointerup", onPointerEnd, { capture: true, passive: true });
+  svg.addEventListener("pointercancel", onPointerEnd, { capture: true, passive: true });
+
   svg.addEventListener("wheel", e => { e.preventDefault(); const f = e.deltaY < 0 ? 1 / 1.15 : 1.15, p = toV(e); cam.x = p.x - (p.x - cam.x) * f; cam.y = p.y - (p.y - cam.y) * f; cam.w *= f; cam.h *= f; applyCam(); }, { passive: false });
   svg.addEventListener("contextmenu", e => {
     e.preventDefault();
@@ -2713,6 +2917,16 @@
       ui.sel = { t: "j", id: jw.id, end }; ui.hlNet = jw.net; render();
       return ctxMenu(e, [[L("Nắn ngang", "Make horizontal"), "H", () => cmd.straight("h")], [L("Nắn dọc", "Make vertical"), "V", () => cmd.straight("v")], [L("Nắn 45°", "Make 45°"), "A", () => cmd.straight("a")],
         [L("Đổi thành đường đồng", "Convert to copper"), "", () => toCopper([jw])], [L("Đổi mọi dây nhảy của mạng này", "Convert all jumpers of this net"), "", () => toCopper(S.jumpers.filter(j => j.net === jw.net))], [L("Xoá dây nhảy", "Delete jumper"), "Del", cmd.del]]);
+    }
+    const pdC = padAt(p), cc = (pdC && S.comps.includes(pdC.c)) ? pdC.c : (blk("base") ? null : compAt(p));
+    if (cc && !isHost(cc)) {
+      ui.sel = { t: "c", id: cc.id }; render();
+      return ctxMenu(e, [
+        [L("📋 Nhân bản (Clone)", "📋 Clone part"), "Ctrl+C", () => cmd.cloneComp(cc)],
+        [L("⟳ Xoay 90°", "⟳ Rotate 90°"), "R", () => cmd.rotate()],
+        [L("Xoá dây nối LK", "Unwire part"), "", () => cmd.unwire()],
+        [L("Xoá linh kiện", "Delete part"), "Del", () => cmd.del()]
+      ]);
     }
     const ai = artAt(p) || selArt();
     if (ai) {
@@ -2951,6 +3165,17 @@
       toast(L(`Đã thêm ${id}`, `Added ${id}`) + (sig ? ": " + sig : "") + ". " + (TIP[fp] || L("Đổi chân nối ở bảng bên phải.", "Change pin connections in the right panel.")));
       if (f.ecap || f.to220) { const n = $("#plName"); if (n) { n.focus(); n.select(); } }
     },
+    cloneComp(c) {
+      if (!c || isHost(c)) return toast(L("Không thể nhân bản board mạch chủ.", "Cannot clone host MCU board."));
+      cancel();
+      setTool("sel");
+      ui.mode = "place";
+      const vx = cam.x + cam.w / 2, cx0 = S.flip ? S.board.w - vx : vx, cy0 = cam.y + cam.h / 2;
+      ui.place = { fp: c.fp, rot: c.rot || 0, cur: [snap(cx0, G), snap(cy0, G)], val: c.val, lbl: c.lbl };
+      svg.classList.add("routing");
+      $("#plHint").textContent = L("Bấm để đặt linh kiện nhân bản (R xoay 90°, Esc huỷ)", "Click to place cloned part (R rotates 90°, Esc cancels)");
+      drawPlaceGhost();
+    },
     rotate() {
       if (ui.sel && ui.sel.t === "a") { const it = selArt(); if (it) { checkpoint(); artRotate(it, Math.PI / 2); render(); } return; }
       const s = ui.sel; if (!s || s.t !== "c") return toast(L("Chọn một linh kiện để xoay.", "Select a part to rotate."));
@@ -2990,6 +3215,29 @@
       checkpoint(); S = fresh(S.mcu); ui.sel = null; render(); fit(); },
     rats() { S.rats = !S.rats; render(); },
     snapG() { S.snapG = S.snapG === false; ui.guides = null; LY.tmp.innerHTML = ""; render(); toast(S.snapG ? L("Đã bật Snap đỉnh & đường gióng ảo (F4).", "Vertex & smart guide snap ON (F4).") : L("Đã tắt Snap đỉnh & đường gióng ảo (F4).", "Vertex & smart guide snap OFF (F4).")); },
+    // đổi số chân của hàng rào Pin Header
+    setPinCount(c, newCount) {
+      if (!c || !c.fp || !c.fp.startsWith("pinHdr")) return;
+      newCount = Math.max(1, Math.min(40, parseInt(newCount, 10) || 3));
+      const oldF = FP[c.fp], oldCount = (oldF && oldF.nPins) || 3;
+      if (oldCount === newCount) return;
+      checkpoint();
+      if (newCount < oldCount) {
+        // gỡ các đường nối và chân bị cắt giảm
+        const removedPins = new Set();
+        for (let i = newCount + 1; i <= oldCount; i++) removedPins.add(String(i));
+        const P0 = pads().filter(q => q.c === c && removedPins.has(q.name));
+        const on = e => P0.some(q => Math.hypot(q.x - e[0], q.y - e[1]) < .05);
+        const dropNets = new Set(P0.map(q => q.net).filter(Boolean));
+        S.traces = S.traces.filter(t => !on(t.pts[0]) && !on(t.pts[t.pts.length - 1]));
+        if (c.nets) for (const pName of removedPins) delete c.nets[pName];
+        prune();
+        dropDangling(dropNets);
+      }
+      c.fp = "pinHdr_" + newCount;
+      render();
+      afterParts([c.id]);
+    },
     // điều chỉnh độ dài dây nhảy: giữ nguyên hướng / góc, ưu tiên đổi chiều dài cạnh line đồng nối vào thay vì đổi góc
     setJumperLength(jw, targetLen) {
       if (!jw) return;
@@ -3222,6 +3470,12 @@
     if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); return cmd.redo(); }
     if ((e.ctrlKey || e.metaKey) && k === "s") { e.preventDefault(); return cmd.saveProject(e.shiftKey); }
     if ((e.ctrlKey || e.metaKey) && k === "o") { e.preventDefault(); return cmd.openProject(); }
+    if ((e.ctrlKey || e.metaKey) && k === "c") {
+      if (ui.sel && ui.sel.t === "c") {
+        const c = S.comps.find(x => x.id === ui.sel.id);
+        if (c && !isHost(c)) { e.preventDefault(); return cmd.cloneComp(c); }
+      }
+    }
     if (e.key === "F4") { e.preventDefault(); return cmd.snapG(); }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (k === "escape") { const busy = ui.mode !== "idle"; cancel(); if (!busy) setTool("sel"); ui.sel = null; ui.hlNet = null; return render(); }
@@ -3534,9 +3788,10 @@
     const inp = m.querySelector("#plSpread"); inp.oninput = () => inp.nextElementSibling.textContent = inp.value + " mm"; inp.onchange = () => cmd.spread(inp.value);
   }
   function pourFly(btn, keep) {   // tuỳ chọn mass GND, xổ bên trái nút Mass
-    const m = pop("plPourPop", `<h4>${L("Mass GND", "GND pour")}</h4><div class="pourset"><label>${L("Khe cách", "Clearance")} <select id="plPourClr">${POUR_CLRS.map(v => `<option value="${v}"${v === (S.pourClr ?? POUR_CLR) ? " selected" : ""}>${String(v).replace(".", L(",", "."))} mm</option>`).join("")}</select></label><label class="bchk"><input type="checkbox" id="plPourIsl"${S.pourIsl ? " checked" : ""}> ${L("Phủ cả vùng không nối GND", "Also fill areas not connected to GND")}</label></div>`, btn, 250, keep);
+    const m = pop("plPourPop", `<h4>${L("Mass GND", "GND pour")}</h4><div class="pourset"><label>${L("Khe cách", "Clearance")} <select id="plPourClr">${POUR_CLRS.map(v => `<option value="${v}"${v === (S.pourClr ?? POUR_CLR) ? " selected" : ""}>${String(v).replace(".", L(",", "."))} mm</option>`).join("")}</select></label><label class="bchk"><input type="checkbox" id="plPourArt"${S.pourArt !== false ? " checked" : ""}> ${L("Né chữ & ký hiệu đồng", "Clear copper text & drawings")}</label><label class="bchk"><input type="checkbox" id="plPourIsl"${S.pourIsl ? " checked" : ""}> ${L("Phủ cả vùng không nối GND", "Also fill areas not connected to GND")}</label></div>`, btn, 250, keep);
     if (!m) { btn.classList.remove("on"); return; } btn.classList.add("on"); const r = btn.getBoundingClientRect(); m.style.left = Math.max(8, r.left - 256) + "px"; m.style.top = r.top + "px";
     $("#plPourClr").onchange = e => { checkpoint(); S.pourClr = +e.target.value; render(); toast(L(`Khe mass ${S.pourClr} mm`, `Pour clearance ${S.pourClr} mm`) + (S.pour ? "" : L(" · bật Phủ mass để thấy", " · turn on GND pour to see it"))); };
+    $("#plPourArt").onchange = e => { checkpoint(); S.pourArt = e.target.checked; render(); toast(S.pourArt ? L("Mass sẽ né chữ & hình vẽ đồng.", "Pour clears copper drawings.") : L("Mass phủ kín (không né chữ & hình vẽ đồng).", "Pour does not clear copper drawings.") + (S.pour ? "" : L(" · bật Phủ mass để thấy", " · turn on GND pour to see it"))); };
     $("#plPourIsl").onchange = e => { checkpoint(); S.pourIsl = e.target.checked; render(); if (S.pourIsl) toast(L("Vùng không nối GND cũng được phủ: đó là đồng trống, không thuộc mạng nào.", "Areas not connected to GND are filled too: floating copper, no net.") + (S.pour ? "" : L(" · bật Phủ mass để thấy", " · turn on GND pour to see it"))); };
   }
   function toggleHelp() { const b = $("#plHelpBtn"), m = pop("plHelpPop", `<h4>${L("Cách dùng", "How to use")}</h4><ul class="help">${HELP_HTML}</ul>`, b, 380); if (m) m.style.left = Math.max(8, b.getBoundingClientRect().right - 380) + "px"; }
@@ -3685,10 +3940,10 @@
   /* ---------- danh sách linh kiện bên trái (giống cột board của tab Sơ đồ chân) ---------- */
   const ICON_R = '<svg viewBox="0 0 40 28"><path d="M2 14h9M29 14h9" stroke="#9aa3a0" stroke-width="2"/><rect x="11" y="9" width="18" height="10" rx="5" fill="#d8c194"/><path d="M15 9v10M19 9v10M23 9v10" stroke-width="2" stroke="#7b4a1e"/></svg>';
   const ICON_E = '<svg viewBox="0 0 40 28"><path d="M16 22v4M24 22v4" stroke="#9aa3a0" stroke-width="2"/><rect x="12" y="2" width="16" height="20" rx="3" fill="#2b4f9e"/><rect x="23" y="2" width="4" height="20" fill="#c9d2e0"/></svg>';
-  const ICON_Q = '<svg viewBox="0 0 40 28"><rect x="12" y="1" width="16" height="7" rx="1" fill="#b8bcc2"/><circle cx="20" cy="4.5" r="1.8" fill="#555"/><rect x="12" y="8" width="16" height="11" rx="1" fill="#1d1f24"/><path d="M15 19v8M20 19v8M25 19v8" stroke="#9aa3a0" stroke-width="2"/></svg>';
+  const ICON_Q = '<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="2" width="20" height="6" rx="1" fill="#94a3b8"/><circle cx="20" cy="5" r="1.8" fill="#475569"/><rect x="10" y="8" width="20" height="12" rx="1" fill="#1e242d"/><path d="M14 20v6M20 20v6M26 20v6" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  const ICON_TO92 = '<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><path d="M11 20 L29 20 A9 9 0 0 0 11 20 Z" fill="#1e242d"/><rect x="12" y="18" width="16" height="2" fill="#111"/><path d="M15 20v6M20 20v6M25 20v6" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/><text x="20" y="14" font-size="5" font-weight="700" text-anchor="middle" fill="#9ca3af" font-family="sans-serif">TO-92</text></svg>';
   const ICON_M = '<svg viewBox="0 0 40 28"><rect x="8" y="5" width="22" height="18" rx="5" fill="#3a3f47"/><rect x="30" y="12" width="6" height="4" fill="#b8bcc2"/><text x="19" y="18" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">M</text></svg>';
-  const TO92 = vb => "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '" width="100%" height="100%"><g fill="#8C8C8C"><rect x="14.641" y="31.79" width="2.692" height="8.989"/><rect x="5.669" y="31.79" width="2.693" height="8.989"/><rect x="23.614" y="31.79" width="2.693" height="8.989"/><rect x="14.641" y="20.104" width="2.692" height="11.688"/><path d="M9.778,20.104v4.146c0,0.528-0.978,1.323-1.498,1.78c-1.282,1.113-2.61,2.273-2.61,3.74v2.023h2.693c0,0,0-1.25,0-1.512c0-0.646,1.13-1.736,1.688-2.211c1.246-1.088,2.431-2.113,2.431-3.437v-4.53H9.778z"/><path d="M22.195,20.104v4.146c0,0.528,0.977,1.323,1.499,1.78c1.285,1.113,2.61,2.273,2.61,3.74v2.023h-2.693c0,0,0-1.25,0-1.512c0-0.646-1.13-1.736-1.686-2.211c-1.248-1.088-2.433-2.113-2.433-3.437v-4.53H22.195z"/></g><rect x="7.688" y="7.512" fill="#1A1A1A" width="16.598" height="12.588"/><path fill="#141414" d="M23.029,7.512v3.066v10.286v2.303c0.79-0.891,1.256-1.941,1.256-3.065V7.512H23.029z"/><path fill="#242424" d="M8.945,7.512H7.69v12.588c0,1.125,0.466,2.175,1.256,3.065v-2.303V10.58L8.945,7.512z"/><path fill="#1F1F1F" d="M7.688,7.512c0,1.125,0.466,2.176,1.256,3.066h14.095c0.79-0.891,1.256-1.941,1.256-3.066H7.688z"/><path fill="#141414" d="M15.987,1.689c-4.584,0-8.3,2.607-8.3,5.827h16.598C24.285,4.297,20.572,1.689,15.987,1.689z"/><rect x="8.945" y="10.58" width="14.096" height="12.587" fill="#111"/><text x="16" y="17" font-size="4.6" font-weight="700" fill="#e6e6e6" text-anchor="middle" font-family="sans-serif">TO-92</text></svg>');
-  const TO92_ICON = TO92("3 0 26 41"), TO92_ART = TO92("5.4 1.2 21.2 22.4");   // danh sách: có chân; trên bo: chỉ thân (chân do app vẽ)
+  const ICON_H = '<svg viewBox="0 0 40 28"><rect x="4" y="6" width="32" height="16" rx="2" fill="#181a1f" stroke="#333" stroke-width="1"/><rect x="8" y="10" width="6" height="8" rx="1" fill="#2d3139"/><circle cx="11" cy="14" r="2.2" fill="#ffd700"/><circle cx="11" cy="14" r="1.1" fill="#111"/><rect x="17" y="10" width="6" height="8" rx="1" fill="#2d3139"/><circle cx="20" cy="14" r="2.2" fill="#ffd700"/><circle cx="20" cy="14" r="1.1" fill="#111"/><rect x="26" y="10" width="6" height="8" rx="1" fill="#2d3139"/><circle cx="29" cy="14" r="2.2" fill="#ffd700"/><circle cx="29" cy="14" r="1.1" fill="#111"/></svg>';
   const ICON_C = '<svg viewBox="0 0 40 28"><path d="M14 22v4M26 22v4" stroke="#9aa3a0" stroke-width="2"/><rect x="9" y="4" width="22" height="18" rx="9" fill="#d9a83a"/></svg>';
   const iconSrc = k => k.startsWith("MY:") ? FP[k].icon : k === "to92" ? TO92_ICON : SITE && MODULES[k] ? MODULES[k].svg : ({ button: "pushbutton", hcsr04: "hc-sr04" }[k] ? "src/assets/" + { button: "pushbutton", hcsr04: "hc-sr04" }[k] + ".svg" : "src/assets/" + k + ".svg");
   function s3Icon() {   // icon board vẽ từ chính footprint, như icon board của Pindexio
@@ -3698,7 +3953,7 @@
   function list() {
     const cnt = {}; for (const c of S.comps) cnt[c.fp] = (cnt[c.fp] || 0) + 1;
     const w = wiring(), n = k => cnt[k] ? `×${cnt[k]}` : "";
-    const rows = ks => ks.map(k => `<button type="button" class="mod-row" data-q="${(NAME[k] + " " + SHORT(k) + " " + k).toLowerCase().replace(/"/g, "")}" data-add="${k}" aria-pressed="${!!cnt[k]}" title="${L("Thêm", "Add")} ${NAME[k]}">${k === "motor" ? ICON_M : k === "R" ? ICON_R : k === "C" ? ICON_C : FP[k] && FP[k].ecap ? ICON_E : FP[k] && FP[k].to220 ? ICON_Q : `<img src="${iconSrc(k)}" alt="" loading="lazy">`}<span class="mr-name">${SHORT(k)}</span><span class="mr-if">${n(k)}</span></button>`).join("");
+    const rows = ks => ks.map(k => `<button type="button" class="mod-row" data-q="${(NAME[k] + " " + SHORT(k) + " " + k).toLowerCase().replace(/"/g, "")}" data-add="${k}" aria-pressed="${!!cnt[k]}" title="${L("Thêm", "Add")} ${NAME[k]}">${k === "motor" ? ICON_M : k === "R" ? ICON_R : k === "C" ? ICON_C : k.startsWith("pinHdr") ? ICON_H : FP[k] && FP[k].ecap ? ICON_E : FP[k] && FP[k].to220 ? ICON_Q : k === "to92" ? ICON_TO92 : `<img src="${iconSrc(k)}" alt="" loading="lazy">`}<span class="mr-name">${SHORT(k)}</span><span class="mr-if">${n(k)}</span></button>`).join("");
     const cats = CATS(), H = hostInfo();
     // chọn board (trong Pindexio): ESP32-S3 cắm thẳng lên bo, board khác nối dây Dupont qua hàng rào J1
     const pick = SITE && window.BOARDS ? `<select id="plMcu" class="pl-mcu" aria-label="Board">${BOARDS.filter(b => !b.mod && b.headers).map(b => `<option value="${b.id}"${b.id === S.mcu ? " selected" : ""}>${b.name}</option>`).join("")}</select>` : "";
@@ -3776,6 +4031,7 @@
     if ($("#plVerMine")) $("#plVerMine").onclick = () => toggleVerified(selC.fp);
     if ($("#plVal")) $("#plVal").onchange = e => { checkpoint(); selC.val = e.target.value.trim(); render(); };
     if ($("#plName")) $("#plName").onchange = e => { checkpoint(); const v = e.target.value.trim(); if (v) selC.lbl = v; else delete selC.lbl; render(); };
+    if ($("#plPinCount")) $("#plPinCount").onchange = e => cmd.setPinCount(selC, +e.target.value);
     if (selJ) {
       const jInp = $("#plJLen"), jInc = $("#plJInc"), jDec = $("#plJDec");
       if (jInp) jInp.onchange = () => cmd.setJumperLength(selJ, +jInp.value);
@@ -3877,7 +4133,8 @@
       + (s3 ? `<optgroup label="${L("Chân ", "Pins of ") + H.name}">${[...H.pref, ...H.risky].map(n => io(n, cur)).join("")}</optgroup>` : "")
       + `<optgroup label="${L("Mạng riêng (qua R, C…)", "Private nets (via R, C…)")}">${custom.map(n => opt(n, cur, n + (who[n] ? " · " + who[n].join(", ") : ""))).join("")}${opt("+", "", L("＋ Mạng mới", "＋ New net"))}</optgroup></select>`;
     const names = [...new Set(f.pads.map(p => p.name))];
-    return `<div class="box">${head}${mineBox(f)}<label class="pv">${L("Tên", "Name")} <input id="plName" value="${c.lbl || ""}" placeholder="${c.id}"></label>${f.val ? `<label class="pv">${L("Giá trị", "Value")} <input id="plVal" value="${c.val || ""}"></label>` : ""}
+    const isPH = c.fp.startsWith("pinHdr");
+    return `<div class="box">${head}${mineBox(f)}<label class="pv">${L("Tên", "Name")} <input id="plName" value="${c.lbl || ""}" placeholder="${c.id}"></label>${f.val ? `<label class="pv">${L("Giá trị", "Value")} <input id="plVal" value="${c.val || ""}"></label>` : ""}${isPH ? `<label class="pv">${L("Số chân", "Pin count")} <input id="plPinCount" type="number" min="1" max="40" value="${f.nPins || 3}"></label>` : ""}
       <div class="pins">${names.map(n => `<label><span>${n}</span>${sel(n, (c.nets || {})[n])}</label>`).join("")}</div>${pinStatusHTML(c)}${TIP[c.fp] ? `<p class="mut">💡 ${TIP[c.fp]}</p>` : ""}${foot}</div>`;
   }
   // menu thả của nút Tự đi dây: "Tự đi lại khi sửa linh kiện" mặc định tắt (nhẹ máy, người dùng tự bấm)
@@ -3979,8 +4236,86 @@
     wSync(); if (ui.wpaint) fw.classList.add("on");
 
   }
-  const relang = () => { tools(); list(); render(); };
-  tools(); list(); build(); fit(); render();
+  
+  /* ===== MOBILE DRAWER & BOTTOM ACTION BAR ===== */
+  function mobSetup() {
+    const nav = $("#plMobNav"), overlay = $("#plSheetOverlay");
+    if (!nav || !overlay) return;
+
+    nav.innerHTML = `
+      <div class="mob-actions">
+        <button type="button" class="mob-act-btn" id="mobActRot" title="${L("Xoay 90°", "Rotate 90°")}"><span class="m-ico">⟳</span><span class="m-txt">${L("Xoay", "Rotate")}</span></button>
+        <button type="button" class="mob-act-btn" id="mobActClone" title="${L("Nhân bản", "Clone")}"><span class="m-ico">📋</span><span class="m-txt">${L("Clone", "Clone")}</span></button>
+        <button type="button" class="mob-act-btn" id="mobActDel" title="${L("Xoá", "Delete")}"><span class="m-ico">🗑</span><span class="m-txt">${L("Xoá", "Del")}</span></button>
+        <button type="button" class="mob-act-btn" id="mobActPour" title="${L("Phủ Mass GND", "Pour GND")}"><span class="m-ico">▨</span><span class="m-txt">${L("Mass", "Pour")}</span></button>
+        <button type="button" class="mob-act-btn" id="mobActUndo" title="${L("Hoàn tác", "Undo")}"><span class="m-ico">↩</span><span class="m-txt">${L("Undo", "Undo")}</span></button>
+      </div>
+      <div class="mob-tabs">
+        <button type="button" class="mob-tab-btn" data-mob="parts"><span class="m-ico">🧩</span><span class="m-txt">${L("Linh kiện", "Parts")}</span></button>
+        <button type="button" class="mob-tab-btn" data-mob="tools"><span class="m-ico">🛠</span><span class="m-txt">${L("Công cụ", "Tools")}</span></button>
+        <button type="button" class="mob-tab-btn on" data-mob="stage"><span class="m-ico">📐</span><span class="m-txt">${L("Mạch in", "Canvas")}</span></button>
+        <button type="button" class="mob-tab-btn" data-mob="side"><span class="m-ico">⚙️</span><span class="m-txt">${L("Chi tiết & Lỗi", "Inspect")}</span></button>
+      </div>
+    `;
+
+    // Click quick action buttons
+    $("#mobActRot").onclick = () => { cmd.rotate(); };
+    $("#mobActClone").onclick = () => {
+      const c = selComp();
+      if (c) cmd.cloneComp(c);
+      else toast(L("Chạm chọn một linh kiện trước khi bấm Clone", "Tap a component first to clone"));
+    };
+    $("#mobActDel").onclick = () => { cmd.del(); };
+    $("#mobActPour").onclick = () => { cmd.pour(); };
+    $("#mobActUndo").onclick = () => { cmd.undo(); };
+
+    // Drawer tabs
+    let currentDrawer = null;
+    const closeDrawer = () => {
+      $("#plList").classList.remove("mob-open");
+      $("#plSide").classList.remove("mob-open");
+      $("#plVbar").classList.remove("mob-open");
+      overlay.classList.remove("on");
+      currentDrawer = null;
+      nav.querySelectorAll(".mob-tab-btn").forEach(b => b.classList.toggle("on", b.dataset.mob === "stage"));
+    };
+
+    overlay.onclick = closeDrawer;
+
+    nav.querySelectorAll(".mob-tab-btn").forEach(btn => {
+      btn.onclick = () => {
+        const target = btn.dataset.mob;
+        if (target === "stage") {
+          closeDrawer();
+          return;
+        }
+        if (currentDrawer === target) {
+          closeDrawer();
+          return;
+        }
+        // Open selected drawer
+        $("#plList").classList.toggle("mob-open", target === "parts");
+        $("#plSide").classList.toggle("mob-open", target === "side");
+        $("#plVbar").classList.toggle("mob-open", target === "tools");
+        overlay.classList.add("on");
+        currentDrawer = target;
+        nav.querySelectorAll(".mob-tab-btn").forEach(b => b.classList.toggle("on", b === btn));
+      };
+    });
+
+    // Auto close drawer when a part is selected to place
+    const origPickPart = $("#plList");
+    if (origPickPart) {
+      origPickPart.addEventListener("click", e => {
+        if (e.target.closest("[data-fp]")) {
+          setTimeout(closeDrawer, 150);
+        }
+      });
+    }
+  }
+
+  const relang = () => { tools(); list(); render(); mobSetup(); };
+  tools(); list(); build(); fit(); render(); mobSetup();
   new ResizeObserver(() => { if (!cam || !cam.w) fit(); applyCam(); }).observe($("#plStage"));
   // Pindexio đổi ngôn ngữ bằng window.onLangChange: nối thêm, không thay hàm của site
   const prevLang = window.onLangChange;

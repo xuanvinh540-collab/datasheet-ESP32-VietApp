@@ -98,12 +98,250 @@
 .pcblab .pl-vbar .tb.primary { margin-top: auto; }
 @media (max-width: 1100px) { .pcblab { grid-template-columns: 170px minmax(0, 1fr) 76px 250px; } }
 /* điện thoại / máy tính bảng dọc: xếp chồng */
-@media (max-width: 899px) {
-  .pcblab { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 62vh auto auto; grid-template-areas: "list" "bar" "stage" "vbar" "side"; height: auto; }
-  .pcblab .pl-list { max-height: 210px; }
-  .pcblab .pl-vbar { flex-direction: row; overflow-x: auto; } .pcblab .pl-vbar .tb { flex: none; min-width: 64px; }
-  .pcblab .vw { flex-direction: row; align-items: center; margin: 0 0 0 6px; padding: 0 0 0 6px; border-top: 0; border-left: 1px solid var(--line); } .pcblab .vw button { padding: 5px 8px; }
+
+
+/* =========================================================
+   THIẾT KẾ RIÊNG TỐI ƯU MOBILE (pcb-lab-mobop)
+   ========================================================= */
+
+/* Mặc định trên Desktop ẩn thanh điều hướng Mobile */
+.pcblab .pl-mob-nav,
+.pcblab .pl-sheet-overlay {
+  display: none;
 }
+
+@media (max-width: 899px) {
+  /* Khung chính: Stage chiếm 100% không gian, chừa chỗ cho Bottom Nav */
+  .pcblab {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    position: relative !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+    padding-bottom: 96px !important; /* Chỗ cho Action Bar + Tab Bar */
+    box-sizing: border-box !important;
+  }
+
+  /* Thanh tiêu đề / chế độ phía trên thu gọn mượt */
+  .pcblab .pl-bar {
+    flex: none !important;
+    height: 44px !important;
+    padding: 4px 8px !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    z-index: 5 !important;
+  }
+  .pcblab .pl-bar .tb {
+    min-height: 36px !important;
+    padding: 4px 10px !important;
+    font-size: 13px !important;
+  }
+
+  /* Stage vẽ mạch tràn trọn màn hình */
+  .pcblab .pl-stage {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    position: relative !important;
+    touch-action: none !important; /* Cho phép tự tính toán pinch & pan */
+  }
+
+  /* Cột linh kiện: Biến thành Bottom Sheet Drawer */
+  .pcblab .pl-list {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-height: 75vh !important;
+    background: var(--surface, #1e2632) !important;
+    border-top: 2px solid var(--accent, #00aeef) !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6) !important;
+    z-index: 100 !important;
+    padding: 14px 12px 100px 12px !important;
+    transform: translateY(105%) !important;
+    transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+    overflow-y: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .pcblab .pl-list.mob-open {
+    transform: translateY(0) !important;
+  }
+  .pcblab .pl-list details {
+    grid-column: 1 / -1 !important;
+  }
+  .pcblab .pl-list .mod-row {
+    min-height: 44px !important; /* Chuẩn ngón tay chạm */
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+
+  /* Cột công cụ vẽ mạch: Drawer tương tự */
+  .pcblab .pl-vbar {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-height: 70vh !important;
+    background: var(--surface, #1e2632) !important;
+    border-top: 2px solid var(--accent, #00aeef) !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6) !important;
+    z-index: 100 !important;
+    padding: 16px 14px 100px 14px !important;
+    transform: translateY(105%) !important;
+    transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+    overflow-y: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .pcblab .pl-vbar.mob-open {
+    transform: translateY(0) !important;
+  }
+  .pcblab .pl-vbar .tb {
+    min-height: 48px !important;
+    font-size: 13px !important;
+  }
+  .pcblab .pl-vbar .pl-tools {
+    display: contents !important;
+  }
+
+  /* Cột thuộc tính & lỗi (pl-side): Drawer */
+  .pcblab .pl-side {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-height: 75vh !important;
+    background: var(--surface, #1e2632) !important;
+    border-top: 2px solid var(--accent, #00aeef) !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6) !important;
+    z-index: 100 !important;
+    padding: 14px 14px 100px 14px !important;
+    transform: translateY(105%) !important;
+    transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+    overflow-y: auto !important;
+    display: block !important;
+  }
+  .pcblab .pl-side.mob-open {
+    transform: translateY(0) !important;
+  }
+
+  /* Lớp phủ làm tối màn hình phía sau Drawer */
+  .pcblab .pl-sheet-overlay {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px) !important;
+    z-index: 90 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.25s ease !important;
+  }
+  .pcblab .pl-sheet-overlay.on {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* THANH ĐIỀU HƯỚNG CỐ ĐỊNH Ở ĐÁY MÀN HÌNH (BOTTOM NAV) */
+  .pcblab .pl-mob-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 110 !important;
+    background: rgba(22, 28, 38, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    border-top: 1px solid var(--line, #384252) !important;
+    padding-bottom: env(safe-area-inset-bottom, 4px) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* Hàng nút thao tác nhanh: Xoay, Clone, Xoá, Mass, Undo */
+  .pcblab .mob-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 4px 8px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    gap: 4px !important;
+  }
+  .pcblab .mob-act-btn {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    min-height: 38px !important;
+    padding: 4px 6px !important;
+    background: var(--surface2, #293444) !important;
+    border: 1px solid var(--line, #3a4759) !important;
+    border-radius: 8px !important;
+    color: var(--fg, #fff) !important;
+    font: 600 12px var(--sans) !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
+  }
+  .pcblab .mob-act-btn:active {
+    background: var(--accent, #00aeef) !important;
+    color: #fff !important;
+    transform: scale(0.96) !important;
+  }
+  .pcblab .mob-act-btn .m-ico {
+    font-size: 15px !important;
+  }
+
+  /* Hàng 4 Tab mở Drawer: Linh kiện | Công cụ | Mạch in | Chi tiết */
+  .pcblab .mob-tabs {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 3px 6px !important;
+    gap: 4px !important;
+  }
+  .pcblab .mob-tab-btn {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    min-height: 46px !important;
+    padding: 4px 2px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    color: var(--muted, #94a3b8) !important;
+    font: 600 11.5px var(--sans) !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+  }
+  .pcblab .mob-tab-btn .m-ico {
+    font-size: 18px !important;
+  }
+  .pcblab .mob-tab-btn.on {
+    color: var(--accent, #00aeef) !important;
+    background: rgba(0, 174, 239, 0.12) !important;
+    font-weight: 700 !important;
+  }
+}
+
 
 /* nút mở PCB Lab trong Pindexio (thanh kiểu xem và thanh Wiring); màu FR4 để phân biệt với ⚡ Wiring */
 .seg .pcblab-btn { background: #1e5a3c !important; color: #fff !important; font-weight: 800; }
@@ -351,15 +589,16 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 .pcblab #plFlyD .fl-num input[type=number] { flex: 1; min-width: 0; height: 100%; border: 0; background: none; color: inherit; font: 600 11px var(--mono, Consolas, monospace); text-align: center; padding: 0 1px; -moz-appearance: textfield }
 .pcblab #plFlyD .fl-num input[type=number]::-webkit-inner-spin-button, .pcblab #plFlyD .fl-num input[type=number]::-webkit-outer-spin-button { opacity: .35 }
 
-/* Jumper length floating pop-up badge on canvas */
-#plJumperPop { position: absolute; z-index: 6; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 8px; background: rgba(14, 22, 33, 0.94); border: 1px solid #00aeef; box-shadow: 0 4px 14px rgba(0,0,0,0.45); color: #fff; font: 600 12px var(--sans); pointer-events: auto; transform: translate(-50%, -100%); margin-top: -10px; }
-#plJumperPop::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #00aeef; }
-#plJumperPop .jp-lbl { color: #a9c5e7; font-size: 11px; white-space: nowrap; }
-#plJumperPop .jp-box { display: inline-flex; align-items: center; height: 24px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.22); border-radius: 5px; overflow: hidden; }
-#plJumperPop .jp-box:focus-within { border-color: #00aeef; }
-#plJumperPop .jp-btn { width: 22px; height: 100%; padding: 0; border: 0; background: none; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; flex: none; transition: background 0.15s; }
-#plJumperPop .jp-btn:hover { background: rgba(255,255,255,0.18); color: #00aeef; }
-#plJumperPop input[type=number] { width: 50px; height: 100%; border: 0; background: none; color: #fff; font: 700 12px var(--mono); text-align: center; padding: 0 2px; -moz-appearance: textfield; }
-#plJumperPop input[type=number]::-webkit-inner-spin-button, #plJumperPop input[type=number]::-webkit-outer-spin-button { opacity: 0.4; }
-#plJumperPop .jp-unit { color: #8d98a6; font-size: 11px; font-family: var(--mono); }
+/* Jumper length & Pin Header count floating pop-up badge on canvas */
+#plJumperPop, #plPinHdrPop { position: absolute; z-index: 6; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 8px; background: rgba(14, 22, 33, 0.94); border: 1px solid #00aeef; box-shadow: 0 4px 14px rgba(0,0,0,0.45); color: #fff; font: 600 12px var(--sans); pointer-events: auto; transform: translate(-50%, -100%); margin-top: -10px; }
+#plJumperPop::after, #plPinHdrPop::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #00aeef; }
+#plJumperPop .jp-lbl, #plPinHdrPop .jp-lbl { color: #a9c5e7; font-size: 11px; white-space: nowrap; }
+#plJumperPop .jp-box, #plPinHdrPop .jp-box { display: inline-flex; align-items: center; height: 24px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.22); border-radius: 5px; overflow: hidden; }
+#plJumperPop .jp-box:focus-within, #plPinHdrPop .jp-box:focus-within { border-color: #00aeef; }
+#plJumperPop .jp-btn, #plPinHdrPop .jp-btn { width: 22px; height: 100%; padding: 0; border: 0; background: none; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; flex: none; transition: background 0.15s; }
+#plJumperPop .jp-btn:hover, #plPinHdrPop .jp-btn:hover { background: rgba(255,255,255,0.18); color: #00aeef; }
+#plJumperPop input[type=number], #plPinHdrPop input[type=number] { width: 50px; height: 100%; border: 0; background: none; color: #fff; font: 700 12px var(--mono); text-align: center; padding: 0 2px; -moz-appearance: textfield; }
+#plJumperPop input[type=number]::-webkit-inner-spin-button, #plJumperPop input[type=number]::-webkit-outer-spin-button,
+#plPinHdrPop input[type=number]::-webkit-inner-spin-button, #plPinHdrPop input[type=number]::-webkit-outer-spin-button { opacity: 0.4; }
+#plJumperPop .jp-unit, #plPinHdrPop .jp-unit { color: #8d98a6; font-size: 11px; font-family: var(--mono); }
 
