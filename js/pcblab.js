@@ -9,7 +9,7 @@
     <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side"><div id="plPanel"></div></aside><div class="pl-tips" id="plTips"></div>
     <nav class="pl-tab-switch" id="plTabSwitch"></nav>`;
   const $ = s => ROOT.querySelector(s), $$ = s => ROOT.querySelectorAll(s);
-  const BUILD = "2026-11-09 00:35"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
+  const BUILD = "2026-11-11 13:15"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
   // chạy thử trên máy (tools/serve.py): build xong thì trang tự tải lại. Trên web thật không có /__ver nên không làm gì
   if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
     let ver = null;
@@ -4234,7 +4234,7 @@
 
   }
   
-  /* ===== PHƯƠNG ÁN 2: 3 TAB TOÀN MÀN HÌNH CHO MOBILE ===== */
+  /* ===== GIAO DIỆN MOBILE THÔNG MINH (XOAY DỌC & XOAY NGANG) ===== */
   function mobTabsSetup() {
     const sw = $("#plTabSwitch");
     if (!sw) return;
@@ -4254,8 +4254,6 @@
         activeTab = v;
         ROOT.setAttribute("data-mobtab", v);
         sw.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("on", b === btn));
-
-        // Khi quay lại Canvas thì tự fit / refresh lại viewBox
         if (v === "canvas") {
           requestAnimationFrame(() => {
             if (typeof fit === "function") fit();
@@ -4265,18 +4263,144 @@
       };
     });
 
-    // Khi người dùng bấm chọn 1 linh kiện trong Tab 1 để đặt vào mạch -> tự động nhảy sang Tab 2 (Canvas) để đặt linh kiện
+    // Chạm linh kiện tự nhảy về Canvas (khi ở chế độ dọc) hoặc tự thu ngăn kéo trái (khi ở chế độ ngang)
     const listEl = $("#plList");
-    if (listEl) {
+    if (listEl && !listEl.__mobBound) {
+      listEl.__mobBound = true;
       listEl.addEventListener("click", e => {
-        if (e.target.closest("[data-fp]") || e.target.closest(".mod-row")) {
+        if (e.target.closest("[data-add]") || e.target.closest(".mod-row")) {
           setTimeout(() => {
-            const canvasBtn = sw.querySelector('[data-view="canvas"]');
-            if (canvasBtn) canvasBtn.click();
+            if (window.matchMedia("(max-width: 960px) and (orientation: landscape)").matches) {
+              ROOT.classList.remove("open-left");
+              updateHandles();
+            } else {
+              const canvasBtn = sw.querySelector('[data-view="canvas"]');
+              if (canvasBtn) canvasBtn.click();
+            }
           }, 120);
         }
       });
     }
+
+    // Tạo 4 tai mũi tên nhấn / vuốt cho Mobile (Xoay Ngang & Xoay Dọc):
+    // - Tai Trái (#plHdlLeft): Kéo / đẩy danh sách Linh kiện bên bìa trái (Landscape)
+    // - Tai Phải (#plHdlRight): Kéo / đẩy bảng Property & Lỗi bên bìa phải (Landscape)
+    // - Tai Trên (#plHdlTop): Kéo / đẩy thanh Toolbar phía trên (Cả Landscape & Portrait)
+    // - Tai Dưới (#plHdlBottom): Kéo / đẩy thanh Công cụ vẽ phía dưới (Portrait)
+    let hLeft = $("#plHdlLeft"), hRight = $("#plHdlRight"), hTop = $("#plHdlTop"), hBottom = $("#plHdlBottom");
+    if (!hLeft) {
+      hLeft = document.createElement("button");
+      hLeft.id = "plHdlLeft";
+      hLeft.className = "mob-handle hdl-left";
+      hLeft.type = "button";
+      ROOT.appendChild(hLeft);
+
+      hRight = document.createElement("button");
+      hRight.id = "plHdlRight";
+      hRight.className = "mob-handle hdl-right";
+      hRight.type = "button";
+      ROOT.appendChild(hRight);
+
+      hTop = document.createElement("button");
+      hTop.id = "plHdlTop";
+      hTop.className = "mob-handle hdl-top";
+      hTop.type = "button";
+      ROOT.appendChild(hTop);
+
+      hBottom = document.createElement("button");
+      hBottom.id = "plHdlBottom";
+      hBottom.className = "mob-handle hdl-bottom";
+      hBottom.type = "button";
+      ROOT.appendChild(hBottom);
+
+      // Hàm gắn sự kiện vừa Nhấn (Click) vừa Vuốt ngón tay (Swipe) cho các tai mũi tên
+      const bindSwipeHandle = (el, cls, axis, dirOpen) => {
+        let x0 = 0, y0 = 0, swiped = false;
+        el.addEventListener("pointerdown", e => {
+          x0 = e.clientX;
+          y0 = e.clientY;
+          swiped = false;
+          el.setPointerCapture(e.pointerId);
+        });
+        el.addEventListener("pointermove", e => {
+          if (!el.hasPointerCapture(e.pointerId)) return;
+          const dx = e.clientX - x0, dy = e.clientY - y0;
+          const delta = axis === "x" ? dx : dy;
+          if (Math.abs(delta) > 16) {
+            swiped = true;
+            if (delta * dirOpen > 0) ROOT.classList.add(cls);
+            else ROOT.classList.remove(cls);
+            updateHandles();
+          }
+        });
+        el.addEventListener("pointerup", e => {
+          if (!swiped) {
+            ROOT.classList.toggle(cls);
+            updateHandles();
+          }
+        });
+      };
+
+      bindSwipeHandle(hLeft, "open-left", "x", 1);      // Vuốt sang phải (+x) mở bìa trái
+      bindSwipeHandle(hRight, "open-right", "x", -1);   // Vuốt sang trái (-x) mở bìa phải
+      bindSwipeHandle(hTop, "open-top", "y", 1);        // Vuốt xuống (+y) mở thanh trên
+      bindSwipeHandle(hBottom, "open-bottom", "y", -1); // Vuốt lên (-y) mở thanh dưới
+
+      // Cho phép vuốt trực tiếp trên thân bảng để đẩy gọn vào trong
+      const bindPanelSwipeClose = (panelEl, cls, axis, dirClose) => {
+        if (!panelEl) return;
+        let px0 = 0, py0 = 0;
+        panelEl.addEventListener("pointerdown", e => { px0 = e.clientX; py0 = e.clientY; }, { passive: true });
+        panelEl.addEventListener("pointermove", e => {
+          const dx = e.clientX - px0, dy = e.clientY - py0;
+          if (axis === "x" && dx * dirClose > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            ROOT.classList.remove(cls);
+            updateHandles();
+          } else if (axis === "y" && dy * dirClose > 35 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+            ROOT.classList.remove(cls);
+            updateHandles();
+          }
+        }, { passive: true });
+      };
+
+      bindPanelSwipeClose($("#plList"), "open-left", "x", -1);
+      bindPanelSwipeClose($(".pl-side"), "open-right", "x", 1);
+      bindPanelSwipeClose($("#plBar"), "open-top", "y", -1);
+      bindPanelSwipeClose($("#plVbar"), "open-bottom", "y", 1);
+      window.addEventListener("resize", () => requestAnimationFrame(updateHandles));
+    }
+
+    function updateHandles() {
+      const oL = ROOT.classList.contains("open-left");
+      const oR = ROOT.classList.contains("open-right");
+      const oT = ROOT.classList.contains("open-top");
+      const oB = ROOT.classList.contains("open-bottom");
+      if (hLeft) hLeft.innerHTML = `<span class="h-arr">${oL ? "❮" : "❯"}</span><span class="h-lbl">${L("Linh kiện", "Parts")}</span>`;
+      if (hRight) hRight.innerHTML = `<span class="h-arr">${oR ? "❯" : "❮"}</span><span class="h-lbl">${L("Thuộc tính", "Props")}</span>`;
+      if (hTop) {
+        hTop.innerHTML = `<span class="h-arr">${oT ? "▲" : "▼"}</span><span class="h-lbl">${L("Menu trên", "Top bar")}</span>`;
+        requestAnimationFrame(() => {
+          const bar = $("#plBar");
+          hTop.style.top = (oT && bar ? bar.offsetHeight : 0) + "px";
+        });
+      }
+      if (hBottom) {
+        hBottom.innerHTML = `<span class="h-arr">${oB ? "▼" : "▲"}</span><span class="h-lbl">${L("Công cụ vẽ", "Tools")}</span>`;
+        requestAnimationFrame(() => {
+          const vbar = $("#plVbar");
+          const tabH = 54;
+          hBottom.style.bottom = (oB && vbar ? tabH + vbar.offsetHeight : tabH) + "px";
+        });
+      }
+    }
+
+    // Mặc định mở sẵn thanh trên & thanh dưới để thấy ngay công cụ, người dùng bấm/vuốt để thu gọn khi cần rộng màn hình
+    if (!ROOT.__initLand) {
+      ROOT.__initLand = true;
+      ROOT.classList.add("open-top");
+      ROOT.classList.add("open-bottom");
+    }
+    updateHandles();
   }
 
   const relang = () => { tools(); list(); render(); mobTabsSetup(); };
