@@ -6,7 +6,8 @@
   ROOT.classList.add("pcblab");
   ROOT.innerHTML = `<aside class="pl-list" id="plList"></aside><nav class="pl-bar" id="plBar"></nav>
     <section class="pl-stage" id="plStage"><svg id="plSvg" xmlns="http://www.w3.org/2000/svg"></svg><canvas id="plRulerT" aria-hidden="true"></canvas><canvas id="plRulerL" aria-hidden="true"></canvas><div id="plTip"></div><div id="plHint"></div><div id="plToast"></div><div id="plCtx"></div></section>
-    <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side"><div id="plPanel"></div></aside><div class="pl-tips" id="plTips"></div>`;
+    <nav class="pl-vbar" id="plVbar"></nav><aside class="pl-side"><div id="plPanel"></div></aside><div class="pl-tips" id="plTips"></div>
+    <nav class="pl-tab-switch" id="plTabSwitch"></nav>`;
   const $ = s => ROOT.querySelector(s), $$ = s => ROOT.querySelectorAll(s);
   const BUILD = "2026-11-09 00:35"; $("#plStage").insertAdjacentHTML("beforeend", `<div id="plBuild">build ${BUILD}</div>`);
   // chạy thử trên máy (tools/serve.py): build xong thì trang tự tải lại. Trên web thật không có /__ver nên không làm gì
@@ -2837,6 +2838,63 @@
   }, true);
   addEventListener("pointerup", e => { if (ui.drag) { const d = ui.drag; ui.drag = null; d.up && d.up(); } });
   svg.addEventListener("pointerleave", () => $("#plTip").classList.remove("on"));
+  
+  // ===== PINCH-TO-ZOOM & MULTI-TOUCH PAN CHO MOBILE =====
+  const activePointers = new Map();
+  let pinchDist0 = 0, pinchCenter0 = { x: 0, y: 0 }, pinchCam0 = null;
+
+  svg.addEventListener("pointerdown", e => {
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.size === 2) {
+      if (ui.drag) ui.drag = null;
+      if (ui.mode === "route") cancel();
+      const pts = [...activePointers.values()];
+      pinchDist0 = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      pinchCenter0 = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      pinchCam0 = { ...cam };
+    }
+  }, { capture: true, passive: true });
+
+  svg.addEventListener("pointermove", e => {
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2 && pinchCam0 && pinchDist0 > 5) {
+      const pts = [...activePointers.values()];
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const center = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+
+      const zoomRatio = pinchDist0 / Math.max(dist, 10);
+      const f = Math.max(0.2, Math.min(zoomRatio, 5));
+
+      const sr = $("#plStage").getBoundingClientRect();
+      const p = {
+        x: pinchCam0.x + ((center.x - sr.left) / sr.width) * pinchCam0.w,
+        y: pinchCam0.y + ((center.y - sr.top) / sr.height) * pinchCam0.h
+      };
+
+      const dx = (center.x - pinchCenter0.x) * (pinchCam0.w / sr.width);
+      const dy = (center.y - pinchCenter0.y) * (pinchCam0.h / sr.height);
+
+      cam.w = pinchCam0.w * f;
+      cam.h = pinchCam0.h * f;
+      cam.x = p.x - ((center.x - sr.left) / sr.width) * cam.w - dx;
+      cam.y = p.y - ((center.y - sr.top) / sr.height) * cam.h - dy;
+
+      applyCam();
+    }
+  }, { capture: true, passive: true });
+
+  const onPointerEnd = e => {
+    activePointers.delete(e.pointerId);
+    if (activePointers.size < 2) {
+      pinchCam0 = null;
+      pinchDist0 = 0;
+    }
+  };
+  svg.addEventListener("pointerup", onPointerEnd, { capture: true, passive: true });
+  svg.addEventListener("pointercancel", onPointerEnd, { capture: true, passive: true });
+
   svg.addEventListener("wheel", e => { e.preventDefault(); const f = e.deltaY < 0 ? 1 / 1.15 : 1.15, p = toV(e); cam.x = p.x - (p.x - cam.x) * f; cam.y = p.y - (p.y - cam.y) * f; cam.w *= f; cam.h *= f; applyCam(); }, { passive: false });
   svg.addEventListener("contextmenu", e => {
     e.preventDefault();
@@ -4175,8 +4233,54 @@
     wSync(); if (ui.wpaint) fw.classList.add("on");
 
   }
-  const relang = () => { tools(); list(); render(); };
-  tools(); list(); build(); fit(); render();
+  
+  /* ===== PHƯƠNG ÁN 2: 3 TAB TOÀN MÀN HÌNH CHO MOBILE ===== */
+  function mobTabsSetup() {
+    const sw = $("#plTabSwitch");
+    if (!sw) return;
+
+    sw.innerHTML = `
+      <button type="button" class="tab-btn" data-view="parts"><span class="tab-ico">🧩</span><span class="tab-txt">${L("Linh kiện", "Parts")}</span></button>
+      <button type="button" class="tab-btn on" data-view="canvas"><span class="tab-ico">📐</span><span class="tab-txt">${L("Canvas mạch", "Canvas")}</span></button>
+      <button type="button" class="tab-btn" data-view="side"><span class="tab-ico">📋</span><span class="tab-txt">${L("Lỗi & Chi tiết", "Details & DRC")}</span></button>
+    `;
+
+    let activeTab = ROOT.getAttribute("data-mobtab") || "canvas";
+    ROOT.setAttribute("data-mobtab", activeTab);
+
+    sw.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.onclick = () => {
+        const v = btn.dataset.view;
+        activeTab = v;
+        ROOT.setAttribute("data-mobtab", v);
+        sw.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("on", b === btn));
+
+        // Khi quay lại Canvas thì tự fit / refresh lại viewBox
+        if (v === "canvas") {
+          requestAnimationFrame(() => {
+            if (typeof fit === "function") fit();
+            if (typeof applyCam === "function") applyCam();
+          });
+        }
+      };
+    });
+
+    // Khi người dùng bấm chọn 1 linh kiện trong Tab 1 để đặt vào mạch -> tự động nhảy sang Tab 2 (Canvas) để đặt linh kiện
+    const listEl = $("#plList");
+    if (listEl) {
+      listEl.addEventListener("click", e => {
+        if (e.target.closest("[data-fp]") || e.target.closest(".mod-row")) {
+          setTimeout(() => {
+            const canvasBtn = sw.querySelector('[data-view="canvas"]');
+            if (canvasBtn) canvasBtn.click();
+          }, 120);
+        }
+      });
+    }
+  }
+
+  const relang = () => { tools(); list(); render(); mobTabsSetup(); };
+  tools(); list(); build(); fit(); render(); mobTabsSetup();
   new ResizeObserver(() => { if (!cam || !cam.w) fit(); applyCam(); }).observe($("#plStage"));
   // Pindexio đổi ngôn ngữ bằng window.onLangChange: nối thêm, không thay hàm của site
   const prevLang = window.onLangChange;

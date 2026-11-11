@@ -98,12 +98,180 @@
 .pcblab .pl-vbar .tb.primary { margin-top: auto; }
 @media (max-width: 1100px) { .pcblab { grid-template-columns: 170px minmax(0, 1fr) 76px 250px; } }
 /* điện thoại / máy tính bảng dọc: xếp chồng */
-@media (max-width: 899px) {
-  .pcblab { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 62vh auto auto; grid-template-areas: "list" "bar" "stage" "vbar" "side"; height: auto; }
-  .pcblab .pl-list { max-height: 210px; }
-  .pcblab .pl-vbar { flex-direction: row; overflow-x: auto; } .pcblab .pl-vbar .tb { flex: none; min-width: 64px; }
-  .pcblab .vw { flex-direction: row; align-items: center; margin: 0 0 0 6px; padding: 0 0 0 6px; border-top: 0; border-left: 1px solid var(--line); } .pcblab .vw button { padding: 5px 8px; }
+
+
+/* =========================================================
+   PHƯƠNG ÁN 2: 3 TAB CHUYỂN ĐỔI TOÀN MÀN HÌNH (pcb-lab-mobop_2)
+   ========================================================= */
+
+/* Mặc định trên Desktop: Ẩn thanh Tab Bar */
+.pcblab .pl-tab-switch {
+  display: none;
 }
+
+@media (max-width: 899px) {
+  /* Khung chính: flex cột toàn màn hình */
+  .pcblab {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    position: relative !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+    padding-bottom: 56px !important; /* Dành chỗ cho Tab Bar dưới đáy */
+    box-sizing: border-box !important;
+  }
+
+  /* THANH TAB BAR DƯỚI ĐÁY MÀN HÌNH */
+  .pcblab .pl-tab-switch {
+    display: flex !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 56px !important;
+    z-index: 100 !important;
+    background: rgba(18, 24, 34, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    border-top: 1px solid var(--line, #384252) !important;
+    padding-bottom: env(safe-area-inset-bottom, 2px) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  .pcblab .pl-tab-switch .tab-btn {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    color: var(--muted, #94a3b8) !important;
+    font: 600 12px var(--sans, sans-serif) !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    transition: color 0.15s, background 0.15s !important;
+  }
+  .pcblab .pl-tab-switch .tab-btn .tab-ico {
+    font-size: 19px !important;
+  }
+  .pcblab .pl-tab-switch .tab-btn.on {
+    color: var(--accent, #00aeef) !important;
+    background: rgba(0, 174, 239, 0.1) !important;
+    font-weight: 700 !important;
+  }
+
+  /* QUY TẮC HIỂN THỊ 3 TAB THEO data-mobtab */
+
+  /* -----------------------------------------------------------------
+     TAB 1: CHỌN LINH KIỆN (data-mobtab="parts")
+     Hiển thị toàn màn hình lưới linh kiện, ẩn các tab khác
+     ----------------------------------------------------------------- */
+  .pcblab[data-mobtab="parts"] .pl-bar,
+  .pcblab[data-mobtab="parts"] .pl-stage,
+  .pcblab[data-mobtab="parts"] .pl-vbar,
+  .pcblab[data-mobtab="parts"] .pl-side {
+    display: none !important;
+  }
+  .pcblab[data-mobtab="parts"] .pl-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 8px !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    background: var(--surface, #1e2632) !important;
+  }
+  .pcblab[data-mobtab="parts"] .pl-list details {
+    grid-column: 1 / -1 !important;
+  }
+  .pcblab[data-mobtab="parts"] .pl-list .mod-row {
+    min-height: 48px !important; /* Dễ chạm bằng ngón tay */
+    font-size: 13.5px !important;
+    padding: 8px 10px !important;
+  }
+
+  /* -----------------------------------------------------------------
+     TAB 2: CANVAS VẼ MẠCH (data-mobtab="canvas")
+     Stage chiếm trọn vẹn màn hình, thanh công cụ đặt ngang gọn gàng
+     ----------------------------------------------------------------- */
+  .pcblab[data-mobtab="canvas"] .pl-list,
+  .pcblab[data-mobtab="canvas"] .pl-side {
+    display: none !important;
+  }
+  .pcblab[data-mobtab="canvas"] .pl-bar {
+    display: flex !important;
+    flex: none !important;
+    height: 44px !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    padding: 4px 8px !important;
+  }
+  .pcblab[data-mobtab="canvas"] .pl-bar .tb {
+    min-height: 36px !important;
+    padding: 4px 8px !important;
+    font-size: 12.5px !important;
+  }
+  .pcblab[data-mobtab="canvas"] .pl-stage {
+    display: flex !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    position: relative !important;
+    touch-action: none !important;
+  }
+  /* Thanh công cụ vẽ (pl-vbar) chuyển thành dải ngang nổi nhỏ gọn trên đỉnh/đáy canvas */
+  .pcblab[data-mobtab="canvas"] .pl-vbar {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    padding: 4px 6px !important;
+    background: var(--surface, #1e2632) !important;
+    flex: none !important;
+  }
+  .pcblab[data-mobtab="canvas"] .pl-vbar .tb {
+    flex: none !important;
+    min-width: 60px !important;
+    min-height: 38px !important;
+    font-size: 12px !important;
+  }
+
+  /* -----------------------------------------------------------------
+     TAB 3: LỖI & THUỘC TÍNH (data-mobtab="side")
+     Hiển thị toàn màn hình bảng thuộc tính chân, mạng và kiểm tra DRC
+     ----------------------------------------------------------------- */
+  .pcblab[data-mobtab="side"] .pl-list,
+  .pcblab[data-mobtab="side"] .pl-bar,
+  .pcblab[data-mobtab="side"] .pl-stage,
+  .pcblab[data-mobtab="side"] .pl-vbar {
+    display: none !important;
+  }
+  .pcblab[data-mobtab="side"] .pl-side {
+    display: block !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    padding: 14px 12px !important;
+    overflow-y: auto !important;
+    background: var(--surface, #1e2632) !important;
+  }
+}
+
 
 /* nút mở PCB Lab trong Pindexio (thanh kiểu xem và thanh Wiring); màu FR4 để phân biệt với ⚡ Wiring */
 .seg .pcblab-btn { background: #1e5a3c !important; color: #fff !important; font-weight: 800; }
