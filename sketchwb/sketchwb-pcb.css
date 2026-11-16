@@ -1,0 +1,194 @@
+/* SketchWB-style Compact CAD UI Override for Pindexio & PCB Maker */
+body, main, .pcblab {
+  background: #1e1f22 !important;
+  color: #dcdedf !important;
+}
+header.top, .pcblab .pl-bar, .pcblab .pl-vbar, .pcblab .pl-side, .pcblab .pl-list,
+.pcblab .mods, .pcblab .board-card, .pcblab .pl-step, .pcblab .pl-box, .pcblab .pl-stat > div {
+  background: #2b2d30 !important;
+  border-color: #3f4248 !important;
+  border-radius: 3px !important;
+}
+.pcblab button, .pcblab select, .pcblab input, .seg button, nav a, .mod-row, .bc-icon {
+  border-radius: 3px !important;
+}
+.pcblab {
+  gap: 3px !important;
+  padding: 4px !important;
+}
+.pcblab .pl-bar {
+  gap: 3px !important;
+  padding: 3px 6px !important;
+}
+.pcblab .pl-vbar {
+  gap: 2px !important;
+  padding: 4px 3px !important;
+}
+.pcblab .pl-list {
+  gap: 3px !important;
+}
+.pcblab .pl-side {
+  padding: 8px !important;
+  gap: 5px !important;
+}
+.pcblab .pl-stage {
+  background: #181a1e !important;
+  border-color: #3f4248 !important;
+  border-radius: 3px !important;
+}
+#plStage.swb-active, #plStage.swb-active svg { cursor: crosshair !important; }
+#plStage.swb-active.swb-select, #plStage.swb-active.swb-select svg { cursor: default !important; }
+
+/* Left Column Tab Switcher: Linh kien | Sketch Props */
+.swb-left-tabs {
+  display: flex; gap: 2px; padding: 2px; background: #1e1f22; border-radius: 3px;
+  border: 1px solid #3f4248; margin-bottom: 4px; position: sticky; top: 0; z-index: 5;
+}
+.swb-left-tab {
+  flex: 1; padding: 4px 6px; border: none; border-radius: 2px; background: transparent;
+  color: #9aa0a6; font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.swb-left-tab.active { background: #35373b; color: #ffffff; border: 1px solid #4c8bf5; }
+
+#swb-props-pane {
+  display: none; flex-direction: column; gap: 4px; font-size: 11.5px; color: #dcdedf;
+}
+#swb-props-pane.open { display: flex; }
+.swb-sec { border: 1px solid #3f4248; border-radius: 3px; background: #26282d; overflow: hidden; }
+.swb-sec-hd {
+  padding: 4px 7px; font-size: 10.5px; font-weight: 600; background: #35373b; color: #e5e7eb;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.swb-sec-body { padding: 5px 7px; display: flex; flex-direction: column; gap: 4px; }
+.swb-badge { background: #1e1f22; padding: 1px 5px; border-radius: 6px; font-size: 10px; color: #9aa0a6; }
+.swb-solver { padding: 5px 7px; border-left: 3px solid #dcdedf; font-size: 11px; }
+.swb-solver.fully { border-left-color: #00e600; background: rgba(0,230,0,0.1); color: #86efac; }
+.swb-solver.over { border-left-color: #ff3333; background: rgba(255,51,51,0.12); color: #fca5a5; }
+.swb-solver.redundant { border-left-color: #f97316; background: rgba(249,115,22,0.12); color: #fdba74; }
+.swb-sub { font-size: 10px; color: #9aa0a6; margin-top: 2px; }
+.swb-opt { display: flex; align-items: center; justify-content: space-between; gap: 5px; font-size: 11px; }
+.swb-opt input[type="number"], .swb-opt select {
+  width: 64px; background: #1e1f22; color: #e5e7eb; border: 1px solid #3f4248; border-radius: 2px; padding: 2px 4px; font-size: 11px;
+}
+.swb-list { list-style: none; max-height: 130px; overflow-y: auto; padding: 2px; margin: 0; }
+.swb-list li {
+  display: flex; justify-content: space-between; align-items: center; padding: 2px 5px;
+  border-radius: 2px; cursor: pointer; font-size: 11px;
+}
+.swb-list li:hover { background: rgba(255,255,255,0.08); }
+.swb-list li.selected { background: rgba(28,184,28,0.22); color: #86efac; }
+.swb-list li.conflict { background: rgba(255,51,51,0.2); color: #fca5a5; }
+.swb-del { background: transparent; border: none; color: #9aa0a6; cursor: pointer; }
+.swb-del:hover { color: #ff4d4d; }
+
+/* Vertical Side Popout SketchWB Toolbar (Replaces Line Popout beside #plVbar) */
+#swb-toolbar {
+  display: none; position: absolute; top: 6px; right: 6px; z-index: 90;
+  flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px 3px; border-radius: 3px;
+  background: #2b2d30; border: 1px solid #4b5058; box-shadow: 0 8px 24px rgba(0,0,0,0.65);
+  max-height: calc(100% - 12px); overflow-y: visible;
+}
+#swb-toolbar.open { display: flex; }
+
+.swb-grip {
+  width: 24px; height: 6px; margin: 1px 0 2px; cursor: grab;
+  background-image: radial-gradient(#9ca3af 1px, transparent 1px); background-size: 4px 3px;
+}
+.swb-sep { width: 28px; height: 1px; background: #3f4248; margin: 2px 0; }
+.swb-btn {
+  height: 31px; min-width: 31px; padding: 3px; border: 1px solid transparent; border-radius: 3px;
+  background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+}
+.swb-btn img { width: 22px; height: 22px; display: block; pointer-events: none; }
+.swb-btn:hover { background: rgba(255,255,255,0.09); border-color: #4b5058; }
+.swb-btn.active { background: rgba(76,139,245,0.28); border-color: #4c8bf5; }
+.swb-btn.const-on { background: rgba(59,130,246,0.3); border-color: #3b82f6; }
+.swb-finish {
+  margin-top: 3px; width: 100%; padding: 5px 4px; border-radius: 3px; cursor: pointer;
+  background: #16a34a; border: 1px solid #22c55e; color: #fff; font-weight: 700; font-size: 10.5px;
+}
+.swb-finish:hover { filter: brightness(1.1); }
+
+/* Split Dropdown Button (opens to the LEFT into the canvas) */
+.swb-split { position: relative; display: inline-flex; align-items: center; }
+.swb-arrow {
+  width: 10px; height: 31px; border: none; background: transparent; color: #9aa0a6; font-size: 8.5px; cursor: pointer; padding: 0;
+}
+.swb-arrow:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.swb-menu {
+  display: none; position: absolute; top: 0; right: 100%; left: auto; margin-right: 4px; min-width: 205px; z-index: 980;
+  background: #2b2d30; border: 1px solid #4b5058; border-radius: 3px; padding: 3px; box-shadow: 0 8px 20px rgba(0,0,0,0.65);
+}
+.swb-menu.open { display: flex; flex-direction: column; gap: 1px; }
+.swb-menu button {
+  display: flex; align-items: center; justify-content: space-between; gap: 7px; padding: 5px 8px; border: none; border-radius: 2px;
+  background: transparent; color: #e5e7eb; font-size: 11.5px; cursor: pointer; text-align: left; width: 100%;
+}
+.swb-menu button:hover { background: rgba(76,139,245,0.25); }
+.swb-menu button span { display: inline-flex; align-items: center; gap: 7px; }
+.swb-menu button img { width: 16px; height: 16px; }
+.swb-menu kbd { color: #9aa0a6; font-size: 10.5px; font-family: ui-monospace, monospace; }
+
+/* Overlay SVG Geometry inside PCB Stage */
+#swb-overlay .geo-line, #swb-overlay .geo-circle, #swb-overlay .geo-arc { fill: none; stroke: #ffffff; stroke-width: 1.8; vector-effect: non-scaling-stroke; }
+#swb-overlay .geo-construction { stroke: #3b82f6 !important; stroke-dasharray: 4 3; }
+#swb-overlay .geo-fully { stroke: #00e600; }
+#swb-overlay .geo-selected { stroke: #1cb81c !important; stroke-width: 2.6; }
+#swb-overlay .geo-hover { stroke: #ffff00 !important; }
+#swb-overlay .geo-hit { fill: none; stroke: transparent; stroke-width: 10; vector-effect: non-scaling-stroke; cursor: pointer; }
+#swb-overlay .geo-point { fill: #ff2a2a; stroke: none; cursor: pointer; }
+#swb-overlay .geo-point.selected { fill: #1cb81c; stroke: #ffffff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+#swb-overlay .geo-point.hover { fill: #ffff00; stroke: #ffffff; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+#swb-overlay .const-coincident { fill: none; stroke: #38bdf8; stroke-width: 1.4; vector-effect: non-scaling-stroke; pointer-events: none; }
+#swb-overlay .swb-sug-ring { fill: none; stroke: #46e6a0; stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; animation: swb-sug-pulse 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+#swb-overlay .swb-sug-ring.risky { stroke: #f59e0b; stroke-dasharray: 3 2; }
+@keyframes swb-sug-pulse { 0%, 100% { opacity: 0.95; transform: scale(1); } 50% { opacity: 0.45; transform: scale(1.22); } }
+#swb-overlay .const-glyph { font-size: 11px; fill: #ff3333; font-weight: 700; cursor: pointer; }
+#swb-overlay .preview-shape { fill: none; stroke: #f59e0b; stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+#swb-overlay .trim-preview { fill: none; stroke: #ff3333; stroke-width: 3; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+#swb-overlay .snap-ring { fill: none; stroke: #ffff00; stroke-width: 1.6; vector-effect: non-scaling-stroke; pointer-events: none; }
+#swb-overlay .marquee-win { fill: rgba(76,139,245,0.16); stroke: #4c8bf5; stroke-width: 1.3; vector-effect: non-scaling-stroke; pointer-events: none; }
+#swb-overlay .marquee-cross { fill: rgba(28,184,28,0.16); stroke: #1cb81c; stroke-width: 1.3; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+#swb-overlay .dim-line { stroke: #ff3333; stroke-width: 1.2; vector-effect: non-scaling-stroke; pointer-events: none; }
+#swb-overlay .dim-line.driven { stroke: #3b82f6; }
+#swb-overlay .dim-arrow { fill: #ff3333; pointer-events: none; }
+#swb-overlay .dim-arrow.driven { fill: #3b82f6; }
+#swb-overlay .dim-bg { fill: #1a1c20; cursor: pointer; }
+#swb-overlay .dim-label { font-size: 11px; fill: #ff4d4d; font-weight: 700; text-anchor: middle; cursor: pointer; }
+#swb-overlay .dim-label.driven { fill: #3b82f6; }
+#swb-overlay .dim-label.selected { fill: #1cb81c !important; }
+#swb-overlay .dim-label:hover { fill: #ffff00; }
+
+/* Inline Dim Dialog / Line Width Popout & Toast */
+#swb-dlg {
+  display: none; position: fixed; z-index: 990; width: 230px; background: #2b2d30;
+  border: 1px solid #4b5058; border-radius: 3px; box-shadow: 0 10px 26px rgba(0,0,0,0.65); color: #e5e7eb; font-size: 12px;
+}
+.swb-dlg-hd { padding: 5px 10px; background: #35373b; border-bottom: 1px solid #3f4248; font-weight: 600; font-size: 11.5px; }
+.swb-dlg-row { display: flex; align-items: center; gap: 6px; padding: 7px 10px 3px; }
+.swb-dlg-row input[type="number"] { width: 72px; padding: 4px 6px; background: #1e1f22; color: #fff; border: 1px solid #4c8bf5; border-radius: 2px; }
+.swb-dlg-row input[type="range"] { flex: 1; accent-color: #4c8bf5; }
+.swb-dlg-btns { display: flex; justify-content: flex-end; gap: 6px; padding: 8px 10px; }
+.swb-dlg-btns button { padding: 4px 12px; border-radius: 2px; border: 1px solid #4b5058; background: #35373b; color: #e5e7eb; cursor: pointer; }
+.swb-dlg-btns button.primary { background: #2d5aa8; border-color: #4c8bf5; color: #fff; font-weight: 600; }
+
+#swb-toast {
+  display: none; position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 995;
+  padding: 6px 12px; border-radius: 3px; background: #2b2d30; color: #f3f4f6;
+  border: 1px solid #4b5058; border-left: 4px solid #f59e0b; font-size: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.55);
+}
+#swb-toast.error { border-left-color: #ef4444; }
+
+#swb-ctx-menu {
+  display: none; position: fixed; z-index: 998; min-width: 190px;
+  background: #2b2d30; border: 1px solid #4b5058; border-radius: 3px; padding: 3px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.65);
+}
+#swb-ctx-menu button {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  padding: 5px 8px; border: none; border-radius: 2px; background: transparent;
+  color: #e5e7eb; font-size: 11.5px; cursor: pointer; text-align: left;
+}
+#swb-ctx-menu button:hover { background: rgba(239, 68, 68, 0.25); color: #fecaca; }
+#swb-ctx-menu kbd { color: #9aa0a6; font-size: 10.5px; font-family: ui-monospace, monospace; }

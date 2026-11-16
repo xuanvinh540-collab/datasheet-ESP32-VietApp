@@ -35,7 +35,14 @@
     "Mặt trước": "Front", "Sơ đồ khối board: khối ngoại vi và bus/chân nối vào chip": "Board block diagram: peripherals and the buses/pins to the chip",
     // tab thông số
     "Boot / Strapping": "Boot / Strapping", "Nguồn & giới hạn": "Power & limits", "Dòng tiêu thụ": "Current draw", "Ngoại vi": "Peripherals",
-    "CPU & bộ nhớ": "CPU & memory", "Biến thể chip": "Chip variants", "Wi-Fi & BLE": "Wi-Fi & BLE"
+    "CPU & bộ nhớ": "CPU & memory", "Biến thể chip": "Chip variants", "Wi-Fi & BLE": "Wi-Fi & BLE",
+    "Xuất file": "Export", "Tên file": "File name", "Nơi lưu": "Save to", "Định dạng": "Format", "📁 Chọn…": "📁 Browse…",
+    "Chọn thư mục lưu file": "Choose save folder", "Đặt lại về thư mục Downloads mặc định": "Reset to default Downloads folder",
+    "Mặc định: thư mục Downloads (nhập đường dẫn hoặc bấm Chọn…)": "Default: Downloads folder (type path or click Browse…)",
+    "Huỷ": "Cancel", "⬇ Tải xuống": "⬇ Download", "🔗 Copy link": "🔗 Copy link",
+    "Ảnh PNG: sơ đồ đấu dây, sơ đồ nguyên lý và code theo tuỳ chọn dưới đây": "PNG image: wiring diagram, schematic and code with the options below",
+    "File .json của mạch này: mở lại bằng nút \"Mở .json\"": ".json file of this circuit: reopen with the \"Open .json\" button",
+    "Copy link: người nhận mở link là thấy đúng mạch này": "Copy link: anyone opening the link sees this exact circuit"
   };
   const RX = [
     [/^(\d+)\/(\d+) chân khớp$/, "$1/$2 pins match"], [/^(\d+) chân$/, "$1 pins"], [/^Chân trên (.+) \((\d+)\)$/, "Pins on $1 ($2)"],
@@ -66,7 +73,9 @@
     [/^Đã nối lại (.+) → (.+)$/, "Re-wired $1 → $2"],
     [/^Đã bỏ (.+)$/, "Removed $1"],
     [/^Đã xoá (.+)$/, "Removed $1"],
-    [/^(.+) không dùng được cho (.+)\.$/, "$1 can't be used for $2."]
+    [/^(.+) không dùng được cho (.+)\.$/, "$1 can't be used for $2."],
+    [/^Đã lưu (.+) vào (.+)$/, "Saved $1 to $2"],
+    [/^Đã tải (.+)$/, "Downloaded $1"]
   ];
   let lang = "vi";
   try { lang = localStorage.getItem("lang") || "vi"; } catch (e) { }

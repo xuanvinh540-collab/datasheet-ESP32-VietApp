@@ -935,3 +935,38 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 #plPinHdrPop input[type=number]::-webkit-inner-spin-button, #plPinHdrPop input[type=number]::-webkit-outer-spin-button { opacity: 0.4; }
 #plJumperPop .jp-unit, #plPinHdrPop .jp-unit { color: #8d98a6; font-size: 11px; font-family: var(--mono); }
 
+/* Construct Line badge: tham số không border, chữ đỏ/trắng rõ nét, cực gọn */
+#plCsPop { position: absolute; z-index: 6; display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 6px; background: rgba(15, 18, 24, 0.92); border: 0 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.5); color: #fff; font: 600 11px var(--sans); pointer-events: auto; transform: translate(-50%, -100%); margin-top: -8px; }
+#plCsPop .jp-lbl { color: #ff5252; font-size: 10.5px; font-weight: 700; }
+#plCsPop .jp-box { display: inline-flex; align-items: center; height: 22px; background: rgba(255,255,255,0.06); border: 0 !important; border-radius: 4px; overflow: hidden; }
+#plCsPop .jp-btn { width: 18px; height: 100%; padding: 0; border: 0; background: none; color: #ff7b7b; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; flex: none; transition: background 0.15s; }
+#plCsPop .jp-btn:hover { background: rgba(255,255,255,0.15); color: #ff5252; }
+#plCsPop input[type=number] { width: 48px; height: 100%; border: 0 !important; outline: none !important; background: none; color: #ff5252; font: 700 12px var(--mono); text-align: center; padding: 0 1px; -moz-appearance: textfield; }
+#plCsPop input[type=number]::-webkit-inner-spin-button, #plCsPop input[type=number]::-webkit-outer-spin-button { opacity: 0; display: none; }
+#plCsPop .jp-unit { color: #ff9999; font-size: 10.5px; font-family: var(--mono); font-weight: 700; margin-right: 2px; }
+#plCsPop .jp-mode-btn { height: 20px; padding: 0 4px; border-radius: 3px; border: 0 !important; outline: none; background: rgba(255,255,255,0.08); color: #ccc; font-size: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; }
+#plCsPop .jp-mode-btn:hover { background: rgba(255,82,82,0.25); color: #ff5252; }
+#plCsPop .jp-mode-btn.on { background: #ff5252; color: #fff; font-weight: 700; }
+
+/* Construct Line: nét liền đỏ siêu mảnh, đầu mốc A trắng đặc nhẹ nhàng, đầu dời B vàng nổi bật */
+.csln { stroke: #ff3b30; stroke-width: 0.16; pointer-events: stroke; cursor: pointer; }
+.csln:hover { stroke: #ff5252; stroke-width: 0.26; }
+.cspt { stroke-width: 0.16; }
+.cspt-anchor { fill: #ffffff; stroke: #b0b8c4; }
+.cspt-target { fill: #ffd60a; stroke: #ffffff; stroke-width: 0.2; cursor: move; filter: drop-shadow(0 0 1px rgba(0,0,0,0.8)); }
+.cspt-ring { fill: none; stroke: #ffd60a; stroke-width: 0.2; stroke-dasharray: 1 0.5; }
+.cstick { stroke: #ff3b30; stroke-width: 0.18; stroke-linecap: round; }
+.cstx { fill: #ff3b30; font-weight: 700; font-family: var(--mono, Consolas, monospace); text-anchor: middle; cursor: pointer; pointer-events: all; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.95)); user-select: none; }
+.cstx:hover { fill: #ff6b6b; text-decoration: underline; }
+#plCsPop { display: none !important; }
+
+/* Quick-add component search popup (right-click empty space inside PCB) */
+.pcblab .pl-qa { position: absolute; z-index: 12; width: 248px; padding: 6px; border-radius: 10px; background: var(--surface, #161d26); border: 1px solid var(--line, #2d3846); box-shadow: 0 10px 28px rgba(0,0,0,.45); display: flex; flex-direction: column; gap: 6px; }
+.pcblab .pl-qa input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line, #2d3846); border-radius: 6px; background: var(--surface2, #1f2833); color: var(--fg, #e6edf3); font: 500 12.5px var(--sans); outline: none; }
+.pcblab .pl-qa input:focus { border-color: var(--accent, #2e9d52); }
+.pcblab .pl-qa .qa-list { max-height: 230px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.pcblab .pl-qa .qa-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 7px; border: 0; border-radius: 6px; background: none; color: var(--fg, #e6edf3); font: 600 12px var(--sans); text-align: left; cursor: pointer; }
+.pcblab .pl-qa .qa-item[hidden] { display: none; }
+.pcblab .pl-qa .qa-item:hover { background: var(--surface2, #25303d); }
+.pcblab .pl-qa .qa-ico { width: 24px; height: 18px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
+.pcblab .pl-qa .qa-ico svg, .pcblab .pl-qa .qa-ico img { max-width: 100%; max-height: 100%; display: block; }
