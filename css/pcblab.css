@@ -51,6 +51,13 @@
 .pcblab #plTip.on { display: block; } .pcblab #plTip i { color: #ffd479; font-style: normal; }
 .pcblab #plHint { position: absolute; left: 12px; bottom: 12px; color: #fff; font: 600 12.5px var(--sans); pointer-events: none; max-width: calc(100% - 24px); }
 .pcblab #plHint:not(:empty) { padding: 7px 11px; border-radius: 8px; background: rgba(4,30,66,.92); }
+.pcblab .pl-stage.has-ctxbar #plHint { bottom: 56px; }
+.pcblab #plCtxBar { position: absolute; left: 34px; bottom: 12px; z-index: 65; display: none; align-items: center; gap: 6px; padding: 5px; border-radius: 12px; background: rgba(13, 30, 52, .92); border: 1.5px solid rgba(56, 189, 248, .55); box-shadow: 0 6px 20px rgba(0,0,0,.45); backdrop-filter: blur(8px); }
+.pcblab #plCtxBar.on { display: flex; }
+.pcblab #plCtxBar button { height: 34px; padding: 0 11px; border: 1px solid rgba(255,255,255,.16); border-radius: 8px; background: rgba(255,255,255,.07); color: #e2e8f0; font: 700 12px var(--sans); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; touch-action: manipulation; }
+.pcblab #plCtxBar button.on { background: #0284c7; border-color: #38bdf8; color: #fff; box-shadow: 0 0 10px rgba(56,189,248,.35); }
+.pcblab #plCtxBar button.ok { background: #15803d; border-color: #4ade80; color: #fff; }
+.pcblab #plCtxBar button.bad { background: #7f1d1d; border-color: #f87171; color: #fff; }
 .pcblab #plToast { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 8; padding: 8px 14px; border-radius: 9px; background: rgba(4,30,66,.96); color: #fff; font: 600 13px var(--sans); opacity: 0; transition: .2s; pointer-events: none; max-width: 86%; }
 .pcblab #plToast.on { opacity: 1; }
 .pcblab #plCtx { position: absolute; z-index: 9; display: none; min-width: 150px; padding: 4px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
@@ -385,7 +392,8 @@
   }
   /* Ẩn 2 tai trái/phải khi ở chế độ xoay dọc */
   .pcblab .hdl-left,
-  .pcblab .hdl-right {
+  .pcblab .hdl-right,
+  .pcblab .hdl-right-close {
     display: none !important;
   }
 
@@ -425,6 +433,12 @@
   /* Ẩn header lớn của trang web khi xoay ngang để nhường 100% chiều cao cho PCB Lab */
   body > header.appbar {
     display: none !important;
+  }
+  html:has(section[data-panel="pcblab"]:not([hidden])) main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100vw !important;
   }
 
   .pcblab {
@@ -470,7 +484,7 @@
     align-content: center !important;
     justify-content: center !important;
     gap: 7px !important;
-    padding: 8px 4px !important;
+    padding: 40px 4px 10px !important;
     background: var(--surface, #1a222d) !important;
     border: 0 !important;
     border-left: 1px solid var(--line, #334155) !important;
@@ -564,27 +578,27 @@
     transform: translateX(0) !important;
   }
 
-  /* NGĂN KÉO BÌA PHẢI (pl-side - Property & Lỗi): Kéo ra / đẩy vô (nằm sát bên trái cột 2 nút công cụ) */
+  /* NGĂN KÉO THUỘC TÍNH PHẢI (pl-side): Trượt từ trên xuống che cột Toolbar công cụ */
   .pcblab .pl-side {
     position: absolute !important;
     top: 0 !important;
-    right: 172px !important;
+    right: 0 !important;
     bottom: 0 !important;
-    width: 270px !important;
+    width: 250px !important;
     max-height: none !important;
     z-index: 50 !important;
     background: rgba(22, 29, 40, 0.97) !important;
     backdrop-filter: blur(10px) !important;
     border-left: 2px solid var(--accent, #00aeef) !important;
     border-radius: 12px 0 0 12px !important;
-    padding: 10px !important;
+    padding: 10px 10px 46px !important;
     overflow-y: auto !important;
-    transform: translateX(calc(100% + 175px)) !important;
+    transform: translateY(-102%) !important;
     transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
     box-shadow: -8px 0 24px rgba(0,0,0,0.5) !important;
   }
   .pcblab.open-right .pl-side {
-    transform: translateX(0) !important;
+    transform: translateY(0) !important;
   }
 
   /* CÁC TAI MŨI TÊN (HANDLES) ĐỂ NHẤN HOẶC VUỐT NGÓN TAY - TĂNG TO THÊM 50% & BẬT NỔI BẬT */
@@ -636,26 +650,50 @@
     letter-spacing: 0.8px !important;
   }
 
-  /* Tai Bìa Phải (Thuộc tính / Property) - TĂNG 50%: RỘNG 38px, CAO 130px */
+  /* Nút kéo/bấm Thuộc tính ở ĐỈNH cột phải (mặc định hiển thị trên Toolbar, không đè vào vùng vẽ) */
   .pcblab .hdl-right {
-    right: 172px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    width: 38px !important;
-    height: 130px !important;
+    right: 0 !important;
+    top: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    width: 172px !important;
+    height: 34px !important;
+    border-top: 0 !important;
     border-right: 0 !important;
-    border-radius: 14px 0 0 14px !important;
-    flex-direction: column !important;
+    border-radius: 0 0 0 12px !important;
+    flex-direction: row !important;
     gap: 6px !important;
+    z-index: 60 !important;
   }
   .pcblab.open-right .hdl-right {
-    right: 442px !important; /* 172 + 270 */
+    display: none !important;
   }
-  .pcblab .hdl-right .h-lbl {
-    writing-mode: vertical-rl !important;
+  .pcblab .hdl-right .h-lbl,
+  .pcblab .hdl-right-close .h-lbl {
+    writing-mode: horizontal-tb !important;
     font-size: 12px !important;
     font-weight: 700 !important;
-    letter-spacing: 0.8px !important;
+    letter-spacing: 0.4px !important;
+  }
+  /* Nút kéo/bấm đóng Thuộc tính ở ĐÁY cột phải để lộ lại Toolbar */
+  .pcblab .hdl-right-close {
+    display: none !important;
+  }
+  .pcblab.open-right .hdl-right-close {
+    display: flex !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: 250px !important;
+    height: 36px !important;
+    border-bottom: 0 !important;
+    border-right: 0 !important;
+    border-radius: 12px 0 0 0 !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    z-index: 60 !important;
   }
 
   /* Tai Phía Trên (Toolbar) - TĂNG 50%: RỘNG 135px, CAO 34px */
@@ -970,3 +1008,7 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 .pcblab .pl-qa .qa-item:hover { background: var(--surface2, #25303d); }
 .pcblab .pl-qa .qa-ico { width: 24px; height: 18px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
 .pcblab .pl-qa .qa-ico svg, .pcblab .pl-qa .qa-ico img { max-width: 100%; max-height: 100%; display: block; }
+
+/* Fullscreen button */
+.pcblab #plFull.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+@media (display-mode: standalone) { .pcblab #plFull { display: none !important; } }

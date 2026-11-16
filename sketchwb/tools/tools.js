@@ -19,6 +19,32 @@
       else if (dx / len < 0.04) ctx.model.addConstraint('vertical', [{ geoId: line.id }]);
     };
 
+    const snapLineTarget = (p0, w, e) => {
+      const s = ctx.vp.snap(w.x, w.y);
+      const useShift = !!(e && e.shiftKey) || !!(ctx.isShiftLock && ctx.isShiftLock());
+      if (!p0 || !useShift) return s;
+      const dx = s.x - p0.x, dy = s.y - p0.y;
+      if (Math.hypot(dx, dy) < 1e-6) return { x: p0.x, y: p0.y, snapRef: null, snapKind: null, orthoLbl: null };
+      const k = Math.round(Math.atan2(dy, dx) / (Math.PI / 4));
+      const ang = k * (Math.PI / 4);
+      const ca = Math.abs(Math.cos(ang)) < 1e-6 ? 0 : Math.cos(ang);
+      const sa = Math.abs(Math.sin(ang)) < 1e-6 ? 0 : Math.sin(ang);
+      const proj = dx * ca + dy * sa;
+      const ox = Number((ca === 0 ? p0.x : p0.x + proj * ca).toFixed(3));
+      const oy = Number((sa === 0 ? p0.y : p0.y + proj * sa).toFixed(3));
+      const samePt = Math.hypot(ox - s.x, oy - s.y) < 0.02;
+      const kMod = ((k % 4) + 4) % 4;
+      const orthoLbl = kMod === 0 ? 'H 0°' : kMod === 2 ? 'V 90°' : '45°';
+      return {
+        x: ox,
+        y: oy,
+        snapRef: samePt ? s.snapRef : null,
+        snapKind: samePt ? s.snapKind : 'ortho45',
+        fixedAnchor: samePt ? s.fixedAnchor : false,
+        orthoLbl,
+      };
+    };
+
     const snapCoincident = (geoId, pos, snapOrRef) => {
       if (!snapOrRef) return;
       const ref = snapOrRef.snapRef !== undefined ? snapOrRef.snapRef : snapOrRef;
@@ -216,14 +242,15 @@
 
     // 3. LINE
     tools.line = {
-      hint: 'Click start point, then end point • Esc to cancel',
+      hint: 'Click start point, then end point • Hold Shift: H/V/45° • Esc to cancel',
       p1: null,
       activate() { this.p1 = null; },
       onDown(e, w) {
-        const s = ctx.vp.snap(w.x, w.y);
+        const s = snapLineTarget(this.p1, w, e);
         if (!this.p1) {
           this.p1 = s;
           ctx.vp.render();
+          ctx.syncCtxBar?.();
         } else {
           const p1 = this.p1;
           this.p1 = null;
@@ -232,19 +259,28 @@
             const l = ctx.model.addLine(p1.x, p1.y, s.x, s.y, ctx.isConstruction());
             snapCoincident(l.id, 'start', p1);
             snapCoincident(l.id, 'end', s);
-            applyAutoHV(l, ctx.autoConst());
+            applyAutoHV(l, ctx.autoConst() || !!(e && e.shiftKey) || !!(ctx.isShiftLock && ctx.isShiftLock()));
             ctx.solve();
             ctx.updateUI();
           }
           ctx.vp.clearPreview();
           ctx.vp.render();
+          ctx.syncCtxBar?.();
         }
       },
       onMove(e, w) {
-        const s = ctx.vp.snap(w.x, w.y);
+        const s = snapLineTarget(this.p1, w, e);
         ctx.vp.drawPreview((g, el) => {
           if (s.snapRef || s.snapKind) el('circle', { cx: s.x, cy: s.y, r: 5 / ctx.vp.scale, class: 'snap-ring' }, g);
-          if (this.p1) el('line', { x1: this.p1.x, y1: this.p1.y, x2: s.x, y2: s.y, class: 'preview-shape' }, g);
+          if (this.p1) {
+            el('line', { x1: this.p1.x, y1: this.p1.y, x2: s.x, y2: s.y, class: 'preview-shape' }, g);
+            if (s.orthoLbl) {
+              const invS = 1 / Math.max(0.5, ctx.vp.scale);
+              const tx = s.x + 10 * invS, ty = s.y - 10 * invS;
+              const t = el('text', { x: 0, y: 0, transform: ctx.vp.textTransform ? ctx.vp.textTransform(tx, ty) : `translate(${tx}, ${ty}) scale(${invS})`, class: 'dim-text', style: 'fill:#38bdf8;font-size:11px;font-weight:700;' }, g);
+              t.textContent = s.orthoLbl;
+            }
+          }
         });
       },
       onKey(e) {
@@ -254,7 +290,7 @@
 
     // 4. POLYLINE
     tools.polyline = {
-      hint: 'Click vertices sequentially • Right-click or Esc to finish segment chain',
+      hint: 'Click vertices sequentially • Hold Shift: H/V/45° • Right-click or Esc to finish segment chain',
       startPt: null,
       lastPt: null,
       lastGeoId: null,
@@ -262,14 +298,16 @@
       onDown(e, w) {
         if (e.button === 2) {
           this.startPt = null; this.lastPt = null; this.lastGeoId = null; ctx.vp.clearPreview(); ctx.vp.render();
+          ctx.syncCtxBar?.();
           return;
         }
-        const s = ctx.vp.snap(w.x, w.y);
+        const s = snapLineTarget(this.lastPt, w, e);
         if (!this.lastPt) {
           this.startPt = s;
           this.lastPt = s;
           this.lastGeoId = null;
           ctx.vp.render();
+          ctx.syncCtxBar?.();
         } else if (Math.hypot(s.x - this.lastPt.x, s.y - this.lastPt.y) > 0.5) {
           ctx.model.pushHistory();
           const l = ctx.model.addLine(this.lastPt.x, this.lastPt.y, s.x, s.y, ctx.isConstruction());
@@ -279,19 +317,28 @@
             snapCoincident(l.id, 'start', this.lastPt);
           }
           snapCoincident(l.id, 'end', s);
-          applyAutoHV(l, ctx.autoConst());
+          applyAutoHV(l, ctx.autoConst() || !!(e && e.shiftKey) || !!(ctx.isShiftLock && ctx.isShiftLock()));
           this.lastPt = s;
           this.lastGeoId = l.id;
           ctx.solve();
           ctx.vp.render();
           ctx.updateUI();
+          ctx.syncCtxBar?.();
         }
       },
       onMove(e, w) {
-        const s = ctx.vp.snap(w.x, w.y);
+        const s = snapLineTarget(this.lastPt, w, e);
         ctx.vp.drawPreview((g, el) => {
           if (s.snapRef || s.snapKind) el('circle', { cx: s.x, cy: s.y, r: 5 / ctx.vp.scale, class: 'snap-ring' }, g);
-          if (this.lastPt) el('line', { x1: this.lastPt.x, y1: this.lastPt.y, x2: s.x, y2: s.y, class: 'preview-shape' }, g);
+          if (this.lastPt) {
+            el('line', { x1: this.lastPt.x, y1: this.lastPt.y, x2: s.x, y2: s.y, class: 'preview-shape' }, g);
+            if (s.orthoLbl) {
+              const invS = 1 / Math.max(0.5, ctx.vp.scale);
+              const tx = s.x + 10 * invS, ty = s.y - 10 * invS;
+              const t = el('text', { x: 0, y: 0, transform: ctx.vp.textTransform ? ctx.vp.textTransform(tx, ty) : `translate(${tx}, ${ty}) scale(${invS})`, class: 'dim-text', style: 'fill:#38bdf8;font-size:11px;font-weight:700;' }, g);
+              t.textContent = s.orthoLbl;
+            }
+          }
         });
       },
       onKey(e) {

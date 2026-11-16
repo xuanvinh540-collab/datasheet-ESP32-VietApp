@@ -529,6 +529,8 @@
       getExtraGeos: () => (bridge.getTraceLines ? bridge.getTraceLines() : []),
       isConstruction: () => constructionMode,
       autoConst: () => document.getElementById('swb-auto').checked,
+      isShiftLock: () => !!(bridge.isShiftLock && bridge.isShiftLock()),
+      syncCtxBar: () => bridge.syncCtxBar?.(),
       opts,
     });
 
@@ -544,8 +546,29 @@
       if (oBtn) oBtn.classList.toggle('active', name === 'coincident');
       if (name === 'coincident' && !arg) notify('Coincident: chọn 2 điểm, hoặc điểm + cạnh, hoặc 2 đường tròn', 'info');
       vp.render();
+      bridge.syncCtxBar?.();
     };
     bridge._setSwbTool = setSwbTool;
+    bridge._getSwbCtxState = () => ({
+      active,
+      tool: activeToolName,
+      drawing: (activeToolName === 'polyline' && !!tools?.polyline?.lastPt) || (activeToolName === 'line' && !!tools?.line?.p1),
+    });
+    bridge._finishSwbActive = () => {
+      if (activeToolName === 'polyline' && tools?.polyline?.lastPt) tools.polyline.onKey({ key: 'Escape' });
+      else if (activeToolName === 'line' && tools?.line?.p1) tools.line.onKey({ key: 'Escape' });
+      bridge.syncCtxBar?.();
+    };
+    bridge._cancelSwbActive = () => {
+      tools[activeToolName]?.onKey?.({ key: 'Escape' });
+      bridge.syncCtxBar?.();
+    };
+    bridge._refreshSwbPreview = () => {
+      if (active && lastWorldPt && (activeToolName === 'line' || activeToolName === 'polyline')) {
+        vp.syncScale();
+        tools[activeToolName]?.onMove?.({ shiftKey: !!(bridge.isShiftLock && bridge.isShiftLock()) }, lastWorldPt);
+      }
+    };
 
     const applyConstraintSwb = (tp) => {
       const pts = [...vp.selectedPoints], geos = [...vp.selectedGeos];
@@ -736,6 +759,18 @@
           notify('Nhấn Esc lần nữa (hoặc ✓ Finish) để thoát Line Sketch', 'info');
         }
       }
+      else if (e.key === 'Shift' && lastWorldPt && (activeToolName === 'line' || activeToolName === 'polyline')) {
+        vp.syncScale();
+        tools[activeToolName]?.onMove?.({ shiftKey: true }, lastWorldPt);
+      }
+    }, true);
+
+    window.addEventListener('keyup', (e) => {
+      if (!active || e.key !== 'Shift' || !lastWorldPt) return;
+      if (activeToolName === 'line' || activeToolName === 'polyline') {
+        vp.syncScale();
+        tools[activeToolName]?.onMove?.({ shiftKey: false }, lastWorldPt);
+      }
     }, true);
 
     // Block PCB contextmenu & handle Right-click to exit ONLY current SketchWB tool (stay in Line Sketch)
@@ -746,11 +781,12 @@
     }, true);
 
     // Capture-phase mouse events on PCB stage when SketchWB is active
-    // Ignore events originating on #swb-toolbar, #swb-dlg, or #swb-toast!
-    const isSwbUi = (e) => !!(e.target && e.target.closest && e.target.closest('#swb-toolbar, #swb-dlg, #swb-toast'));
-    let rPanMoved = false, rDownPos = null;
+    // Ignore events originating on #swb-toolbar, #swb-dlg, #swb-toast, or #plCtxBar!
+    const isSwbUi = (e) => !!(e.target && e.target.closest && e.target.closest('#swb-toolbar, #swb-dlg, #swb-toast, #plCtxBar'));
+    let rPanMoved = false, rDownPos = null, lastWorldPt = null;
     stageEl.addEventListener('pointerdown', (e) => {
       if (!active || isSwbUi(e)) return;
+      if (bridge.isPenOnly?.() && e.pointerType === 'touch') return;
       if (e.button === 2) {
         rPanMoved = false;
         rDownPos = { x: e.clientX, y: e.clientY };
@@ -759,24 +795,30 @@
       if (e.button !== 0) return;
       e.stopImmediatePropagation(); e.preventDefault();
       vp.syncScale();
-      tools[activeToolName]?.onDown?.(e, bridge.toMM(e));
+      const w = bridge.toMM(e);
+      lastWorldPt = w;
+      tools[activeToolName]?.onDown?.(e, w);
     }, true);
     stageEl.addEventListener('pointermove', (e) => {
       if (!active || isSwbUi(e)) return;
+      if (bridge.isPenOnly?.() && e.pointerType === 'touch') return;
       if (rDownPos && Math.hypot(e.clientX - rDownPos.x, e.clientY - rDownPos.y) > 4) rPanMoved = true;
       if (!rDownPos && e.buttons === 0) e.stopImmediatePropagation();
       vp.syncScale();
-      tools[activeToolName]?.onMove?.(e, bridge.toMM(e));
+      const w = bridge.toMM(e);
+      lastWorldPt = w;
+      tools[activeToolName]?.onMove?.(e, w);
     }, true);
     stageEl.addEventListener('pointerup', (e) => {
       if (!active || isSwbUi(e)) return;
+      if (bridge.isPenOnly?.() && e.pointerType === 'touch') return;
       if (e.button === 2) {
         const wasClick = rDownPos && !rPanMoved;
         rDownPos = null;
         if (wasClick) {
           e.preventDefault();
           e.stopImmediatePropagation();
-          if (activeToolName === 'polyline' && tools.polyline.lastPt) tools.polyline.onKey({ key: 'Escape' });
+          if (activeToolName === 'polyline' && tools.polyline.lastPt) { tools.polyline.onKey({ key: 'Escape' }); bridge.syncCtxBar?.(); }
           else if (activeToolName === 'dimension' && tools.dimension.picks.length) tools.dimension.onKey({ key: 'Escape' });
           else if (activeToolName !== 'select') {
             tools[activeToolName]?.onKey?.({ key: 'Escape' });
