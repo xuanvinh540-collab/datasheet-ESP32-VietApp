@@ -1,0 +1,25 @@
+# Pindexio
+
+> Pindexio (https://pindexio.com) là web miễn phí tra sơ đồ chân vi điều khiển (ESP32, Arduino, Raspberry Pi Pico…) và tự làm mạch in 1 mặt DIY (PCB Maker: đặt linh kiện, tự đi dây, dây nhảy, đổ đồng GND, xuất Gerber/SVG để in ủi/khắc).
+
+## Cho AI agent: điều khiển PCB Maker qua MCP
+
+- Người dùng mở https://pindexio.com → PCB Maker → File → Kết nối AI… → Bật, rồi đưa bạn URL có mã phòng.
+- URL MCP (Streamable HTTP): `https://mcp.pindexio.com/mcp?room=<MÃ>` (mã dạng PCB-XXXXXX).
+- Claude Code: `claude mcp add --transport http pindexio https://mcp.pindexio.com/mcp?room=<MÃ>`
+- Tab của người dùng đã mở sẵn: KHÔNG mở/điều khiển trình duyệt, không chụp màn hình, không đọc mã nguồn. Mọi việc qua lệnh MCP; xem kết quả bằng số (get_state, get_drc, báo cáo autoroute), cần nhìn thì get_image 1 lần.
+- Gọi HTTP trực tiếp: dùng httpx / requests / node / curl (Cloudflare chặn User-Agent Python-urllib).
+
+## Thứ tự nên gọi
+
+1. `get_state` (và `get_rules` nếu cần khe hở, pad, dây nhảy, quy ước xoay).
+2. `list_parts {q}`: tra mã footprint và tên chân.
+3. `build_from_netlist {parts:[{fp, ref, val, nets:{chân:mạng}}], tries:3, net_widths:{...}}`: app tự xếp nhiều kiểu, đi dây, đổ đồng GND, kiểm DRC và giữ bản tốt nhất.
+4. Đọc báo cáo (`failed`, `jumpersNeeded`, `drcCount`, `score`, `hints`), sửa có chủ đích: `move_part`, `rotate_part`, `set_nets`, `set_net_width`, `arrange {tries, autoroute:true}`, `autoroute {nets, max_jumpers}`; gộp nhiều bước bằng `batch`.
+5. `get_drc`, `check_current {currents:{VM:5}}` cho dây công suất.
+
+Không tự vẽ dây hàng loạt hay tự viết router: gán mạng cho chân rồi dùng autoroute; chỉ `add_trace` / `add_jumper` cho vài chỗ kẹt. Mỗi lệnh thay đổi bo là 1 bước Hoàn tác (Ctrl+Z); lỗi trả kèm `hint`.
+
+## Lệnh
+
+get_state, get_rules, get_geometry, get_image, check_current, list_parts, build_from_netlist, add_part, add_parts_batch, move_part, rotate_part, remove_part, set_nets, clear_board, arrange, autoroute, set_net_width, add_trace, add_jumper, delete_trace, pour_gnd, batch, get_drc, export_pdi, load_pdi, create_board, resize_board, fit_board, auto_board, set_route_config, get_bom, pinworld_search, pinworld_import, edit_mypart.

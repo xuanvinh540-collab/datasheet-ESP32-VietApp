@@ -36,6 +36,7 @@
   const PIN_GAP = 0.5;
   // tuỳ chọn đi dây (chỉ để thử / đo so sánh qua PCB.opt): esc lối thoát quanh chân chờ, ord thứ tự đi (mps / pwr), rip gỡ đường vây,
   // nearCost phí chạy sát vật khác mạng, roomPct lề bo khi thiết kế, timeCap giới hạn Tự đi dây (ms)
+  const RT = { only: null, maxJ: null };   // tuỳ chọn tạm của autoroute khi agent gọi: chỉ các mạng này / giới hạn số dây nhảy tự đặt
   const OPT = { esc: .8, ord: "mps", rip: true, nearCost: .7, roomPct: .15, timeCap: 10000 };
   const PREVIEW_W = .4;   // nét hiển thị khi đang vẽ dây (mm): mảnh để thấy chính xác; độ rộng thật áp khi chốt dây
   let W_SIG = .8, W_PWR = 1; const PWR = new Set(["GND", "3V3", "5V"]);
@@ -43,6 +44,9 @@
   const SPREAD0 = 3;   // mặc định chừa đủ 1 làn: sau này chỗ kẹt vẫn nhét thêm được 1 đường   // chân chưa đi dây: đường khác mạng chừa thêm khoảng này, để chân còn lối thoát (đặt lỗ, kéo đồng ra)   // tự đi dây: đường khác mạng chừa thêm khoảng này quanh chân, để chỗ sát chân còn đặt lỗ và hàn được   // JP_OVER: dây trần ở mặt trên cách chân khác mạng (ngoài mép pad)
   const snap = (v, s) => Math.round(v / s) * s;
   const r3 = v => Math.round(v * 1000) / 1000;
+  // hiển thị độ dài theo hệ thước đang chọn (S.unit); dữ liệu luôn lưu mm
+  const pmLbl = root => root.querySelectorAll("[data-pm],[data-cpm]").forEach(b => { const v = +(b.dataset.pm || b.dataset.cpm); b.textContent = UIN() ? String(+(v / 25.4).toFixed(3)).replace(".", L(",", ".")) + " in" : String(v).replace(".", L(",", ".")) + " mm"; });
+  const UIN = () => !!(S && S.unit === "in"), nU = v => UIN() ? (v / 25.4).toFixed(3) : v.toFixed(2), fU = v => nU(v) + (UIN() ? " in" : " mm");
 
   /* ---------- footprint (toạ độ cục bộ, gốc = chân 1) ---------- */
   const S3L = ["3V3", "3V3", "RST", "IO4", "IO5", "IO6", "IO7", "IO15", "IO16", "IO17", "IO18", "IO8", "IO3", "IO46", "IO9", "IO10", "IO11", "IO12", "IO13", "IO14", "5V", "GND"];
@@ -58,6 +62,8 @@
   }
   const at = (spec, xy) => pinsOf(spec).map((p, i) => ({ ...p, x: xy[i][0], y: xy[i][1] }));
   // linh kiện của Pindexio (tab Sơ đồ chân / Nối dây), kích thước theo hàng phổ biến (mm). "~" = ước lượng, nên đo bo thật
+  const dipFP = (names, label) => ({ pads: names.split(" ").map((n, i) => ({ name: n, x: i < 4 ? 0 : 3 * G, y: (i < 4 ? i : 7 - i) * G, ...(i ? {} : { sq: true }) })), body: { x: .81, y: -1.27, w: 6, h: 10.16 }, label, dip: true });
+  const to220FP = (names, val) => ({ pads: at(names, [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -2.4, w: 10.2, h: 4.8 }, label: "", val, to220: true });
   const FP0 = {
     // DevKitC-1 62,74 dài, 2 hàng chân cách 25,4 (1"), ăng-ten vượt quá chân 1
     S3: { pads: [...S3L.map((n, i) => ({ name: n, x: 0, y: i * G })), ...S3R.map((n, i) => ({ name: n, x: 10 * G, y: i * G }))], body: { x: -1.3, y: -7.4, w: 28, h: 62.74 }, label: "ESP32-S3-DevKitC-1", inner: true },
@@ -95,6 +101,23 @@
     to92: { pads: at("E B C", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 2.5, y: -2.0, w: 5.0, h: 4.5 }, label: "", val: "2N3904", to92: true },
     // MOSFET kênh N vỏ TO-220 đứng: G D S cách 2,54, thân 10,2 × 4,6 (tấm tản nhiệt phía sau = D). S về GND, G nhận tín hiệu
     irfz44n: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -2.4, w: 10.2, h: 4.8 }, label: "", val: "IRFZ44N", to220: true },
+    // DIP-8 (op-amp, NE555…): 2 hàng cách 7,62; chân 1–4 cột trái từ trên xuống, 5–8 cột phải từ dưới lên
+    dip8: dipFP("1 2 3 4 5 6 7 8", "DIP-8"),
+    lm358: dipFP("OUT1 IN1- IN1+ GND IN2+ IN2- OUT2 VCC", "LM358"),   // op-amp kép
+    lm393: dipFP("OUT1 IN1- IN1+ GND IN2+ IN2- OUT2 VCC", "LM393"),   // so sánh kép (ra cực thu hở: cần R kéo lên)
+    ir2104: dipFP("VCC IN SD COM LO VS HO VB", "IR2104"),             // driver nửa cầu MOSFET
+    // ổn áp / MOSFET vỏ TO-220 (cùng hình học: chân cách 2,54, thân 10,2 × 4,8)
+    lm7805: to220FP("IN GND OUT", "LM7805"), lm317: to220FP("ADJ OUT IN", "LM317"), irf3205: to220FP("G D S", "IRF3205"), irlz44n: to220FP("G D S", "IRLZ44N"),
+    lm35: { pads: at("+VS VOUT GND", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 2.5, y: -2.0, w: 5.0, h: 4.5 }, label: "", val: "LM35", to92: true },   // cảm biến nhiệt TO-92 (nhìn mặt phẳng)
+    // nút nhấn 12 × 12 (THT, 4 chân cách 12,5 × 5,0; cặp cùng tên nối trong)
+    button12: { pads: at("SIG/s SIG/s GND/g GND/g", [[0, 0], [12.5, 0], [0, 5], [12.5, 5]]), body: { x: .25, y: -3.5, w: 12, h: 12 }, label: "", inner: true },
+    // TO-220 chung (LM7805, MOSFET, triac…): chân 1 2 3 cách 2,54, tấm tản nhiệt phía sau
+    to220: to220FP("1 2 3", ""),
+    // cầu đấu vít (domino KF301) bước 5,08: pad Ø2,6 khoan Ø1,3
+    term2_508: { term: true, pads: [0, 1].map(i => ({ name: String(i + 1), x: i * 2 * G, y: 0, r: 1.3, drill: 1.3 })), body: { x: -2.54, y: -4, w: 10.16, h: 8 }, label: "" },
+    term3_508: { term: true, pads: [0, 1, 2].map(i => ({ name: String(i + 1), x: i * 2 * G, y: 0, r: 1.3, drill: 1.3 })), body: { x: -2.54, y: -4, w: 15.24, h: 8 }, label: "" },
+    // điện trở shunt SMD 2512 (6,3 × 3,2): đo dòng
+    smd_2512: { pads: [{ name: "1", x: -3.0, y: 0, w: 1.8, h: 3.4, smd: true }, { name: "2", x: 3.0, y: 0, w: 1.8, h: 3.4, smd: true }], body: { x: -3.15, y: -1.6, w: 6.3, h: 3.2 }, label: "2512" },
     irf540n: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -2.4, w: 10.2, h: 4.8 }, label: "", val: "IRF540N", to220: true },
     irf520: { pads: at("G D S", [[0, 0], [G, 0], [2 * G, 0]]), body: { x: G - 5.1, y: -2.4, w: 10.2, h: 4.8 }, label: "", val: "IRF520", to220: true }
   };
@@ -130,7 +153,11 @@
   } });
   // [tiếng Việt, English, tên ngắn]. Trong Pindexio, module lấy tên từ MODULES (dịch qua từ điển của site)
   const NAMES = { smd_0402: ["SMD 0402 (R/C/LED)", "SMD 0402 (R/C/LED)", "0402"], smd_0603: ["SMD 0603 (R/C/LED)", "SMD 0603 (R/C/LED)", "0603"], smd_0805: ["SMD 0805 (R/C/LED)", "SMD 0805 (R/C/LED)", "0805"], smd_1206: ["SMD 1206 (R/C/LED)", "SMD 1206 (R/C/LED)", "1206"], smd_sot23: ["SOT-23 (transistor)", "SOT-23 (transistor)", "SOT-23"], smd_soic8: ["SOIC-8 (IC, 1,27 mm)", "SOIC-8 (IC, 1.27 mm)", "SOIC-8"], to92: ["Transistor TO-92", "TO-92 transistor", "TO-92"], motor: ["Motor DC", "DC motor", "Motor DC"], ecap5: ["Tụ hoá Ø5 (35V)", "Electrolytic Ø5 (35V)", "Tụ hoá Ø5"], ecap6: ["Tụ hoá Ø6,3 (35V)", "Electrolytic Ø6.3 (35V)", "Tụ hoá Ø6,3"], ecap8: ["Tụ hoá Ø8 (35V)", "Electrolytic Ø8 (35V)", "Tụ hoá Ø8"],
-    irfz44n: ["MOSFET IRFZ44N", "MOSFET IRFZ44N", "IRFZ44N"], irf540n: ["MOSFET IRF540N / IRF540", "MOSFET IRF540N / IRF540", "IRF540N"], irf520: ["MOSFET IRF520", "MOSFET IRF520", "IRF520"], pinHdr: ["Hàng rào cắm chân", "Pin header", "Pin Header"], S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], tb6612fng: ["Driver động cơ TB6612FNG", "TB6612FNG motor driver", "TB6612FNG"], servo: ["Động cơ Servo SG90", "SG90 servo", "Servo"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
+    irfz44n: ["MOSFET IRFZ44N", "MOSFET IRFZ44N", "IRFZ44N"], irf540n: ["MOSFET IRF540N / IRF540", "MOSFET IRF540N / IRF540", "IRF540N"], irf520: ["MOSFET IRF520", "MOSFET IRF520", "IRF520"],
+    irf3205: ["MOSFET IRF3205", "MOSFET IRF3205", "IRF3205"], irlz44n: ["MOSFET IRLZ44N (logic 5V)", "MOSFET IRLZ44N (logic-level)", "IRLZ44N"], to220: ["Vỏ TO-220 (chung)", "TO-220 (generic)", "TO-220"],
+    lm7805: ["Ổn áp LM7805 (5V)", "LM7805 regulator (5V)", "LM7805"], lm317: ["Ổn áp chỉnh LM317", "LM317 adjustable regulator", "LM317"], lm35: ["Cảm biến nhiệt LM35", "LM35 temperature sensor", "LM35"],
+    lm358: ["Op-amp LM358 (DIP-8)", "LM358 op-amp (DIP-8)", "LM358"], lm393: ["So sánh LM393 (DIP-8)", "LM393 comparator (DIP-8)", "LM393"], ir2104: ["Driver nửa cầu IR2104 (DIP-8)", "IR2104 half-bridge driver (DIP-8)", "IR2104"], dip8: ["IC DIP-8 (chung)", "DIP-8 IC (generic)", "DIP-8"],
+    button12: ["Nút nhấn 12×12", "Push button 12×12", "Nút 12×12"], term2_508: ["Cầu đấu vít 2 chân (5,08)", "Screw terminal 2P (5.08)", "Domino 2P"], term3_508: ["Cầu đấu vít 3 chân (5,08)", "Screw terminal 3P (5.08)", "Domino 3P"], smd_2512: ["Điện trở shunt 2512", "2512 shunt resistor", "2512"], pinHdr: ["Hàng rào cắm chân", "Pin header", "Pin Header"], S3: ["ESP32-S3 DevKitC-1", "ESP32-S3 DevKitC-1", "ESP32-S3"], ssd1306: ["OLED SSD1306 0.96\"", "OLED SSD1306 0.96\"", "OLED 0.96\""], st7789: ["Màn TFT ST7789", "ST7789 TFT display", "ST7789"], sevseg: ["LED 7 đoạn", "7-segment LED", "LED 7 đoạn"], ws2812: ["LED RGB WS2812", "WS2812 RGB LED", "WS2812"], hcsr04: ["Siêu âm HC-SR04", "HC-SR04 ultrasonic", "HC-SR04"], tb6612fng: ["Driver động cơ TB6612FNG", "TB6612FNG motor driver", "TB6612FNG"], servo: ["Động cơ Servo SG90", "SG90 servo", "Servo"], vl53l0x: ["ToF VL53L0X", "VL53L0X ToF", "VL53L0X"], mpu6050: ["IMU MPU6050", "MPU6050 IMU", "MPU6050"], dht22: ["Nhiệt ẩm DHT22", "DHT22 temp/humidity", "DHT22"], ldr: ["Ánh sáng LDR", "LDR light sensor", "LDR"], buzzer: ["Còi buzzer", "Buzzer", "Buzzer"], max98357a: ["Ampli I2S MAX98357A", "MAX98357A I2S amp", "MAX98357A"], inmp441: ["Micro I2S INMP441", "INMP441 I2S mic", "INMP441"], button: ["Nút bấm", "Push button", "Nút bấm"], led: ["Đèn LED 5 mm", "5 mm LED", "Đèn LED"], R: ["Điện trở", "Resistor", "Điện trở"], C: ["Tụ điện", "Capacitor", "Tụ điện"] };
   const tr = s => (EN() && window.trEN ? window.trEN(s) : s);
   const VNCH = /[ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i;   // còn chữ Việt = chưa dịch
   const NAME = new Proxy({}, { get: (_, k) => {
@@ -143,8 +170,8 @@
     if (typeof k === "string" && k.startsWith("pinHdr_")) return "Header " + (/_r2_/.test(k) ? "2×" : "") + k.split("_")[1] + "P";
     return NAMES[k] ? (EN() ? NAMES[k][1] : NAMES[k][2]) : k;
   };
-  const CATS_BASE = () => [[L("Board", "Board"), "🧠", ["S3"]], [L("Màn hình & hiển thị", "Displays"), "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]], [L("Cảm biến", "Sensors"), "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]], [L("Âm thanh & còi", "Audio & buzzers"), "🔊", ["buzzer", "max98357a", "inmp441"]], [L("Động cơ", "Motors"), "⚙️", ["servo", "tb6612fng", "motor"]], [L("Cơ bản", "Basics"), "🎛️", ["pinHdr", "button", "led", "R", "C", "ecap5", "ecap6", "ecap8"]], [L("Công suất", "Power"), "⚡", ["to92", "irfz44n", "irf540n", "irf520"]]];
-  const CATS = () => { const a = CATS_BASE(); if (STUDIO) a.push([L("SMD chuẩn", "Standard SMD"), "🔲", ["smd_0402", "smd_0603", "smd_0805", "smd_1206", "smd_sot23", "smd_soic8"]]); if (MYIDS.length) a.push([L("Linh kiện của tôi", "My parts"), "⭐", MYIDS]); return a; };
+  const CATS_BASE = () => [[L("Board", "Board"), "🧠", ["S3"]], [L("Màn hình & hiển thị", "Displays"), "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]], [L("Cảm biến", "Sensors"), "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]], [L("Âm thanh & còi", "Audio & buzzers"), "🔊", ["buzzer", "max98357a", "inmp441"]], [L("Động cơ", "Motors"), "⚙️", ["servo", "tb6612fng", "motor"]], [L("Cơ bản", "Basics"), "🎛️", ["pinHdr", "button", "button12", "led", "R", "C", "ecap5", "ecap6", "ecap8", "term2_508", "term3_508"]], [L("Công suất", "Power"), "⚡", ["to92", "irfz44n", "irf540n", "irf520", "irf3205", "irlz44n", "lm7805", "lm317", "to220"]], [L("IC", "ICs"), "🔳", ["lm358", "lm393", "ir2104", "dip8", "lm35"]]];
+  const CATS = () => { const a = CATS_BASE(); a.push([L("SMD chuẩn", "Standard SMD"), "🔲", ["smd_0402", "smd_0603", "smd_0805", "smd_1206", "smd_sot23", "smd_soic8", "smd_2512"]]); if (MYIDS.length) a.push([L("Linh kiện của tôi", "My parts"), "⭐", MYIDS]); return a; };
   // lưu ý khi thêm (theo ghi chú linh kiện của Pindexio)
   const TIPS = { hcsr04: ["ECHO ra 5 V: để trống, nối qua chia áp R 1k + 2k rồi mới vào GPIO.", "ECHO outputs 5 V: left open, wire it through a 1k + 2k divider before a GPIO."], dht22: ["Thêm R 10k kéo SDA lên 3V3.", "Add a 10k pull-up from SDA to 3V3."], led: ["Chân A để trống: nối qua R 220–330 Ω rồi mới vào GPIO.", "Pin A is left open: wire it through 220–330 Ω before a GPIO."], sevseg: ["Các đoạn A–G, DP để trống: mỗi đoạn qua R 220–330 Ω.", "Segments A–G, DP are left open: each needs a 220–330 Ω resistor."], ws2812: ["Nên thêm R 330 Ω nối tiếp DIN.", "Add a 330 Ω series resistor on DIN."], inmp441: ["L/R nối GND = kênh trái. Chỉ chạy 3,3 V.", "L/R to GND = left channel. 3.3 V only."], max98357a: ["GAIN, SD để trống = 9 dB, bật.", "GAIN, SD left open = 9 dB, enabled."] };
   Object.assign(TIPS, {
@@ -179,7 +206,7 @@
     else return null;
     return d;
   }
-  const PRE = { pinHdr: "J", to92: "Q", motor: "MOT", S3: "U", R: "R", C: "C", ecap5: "C", ecap6: "C", ecap8: "C", irfz44n: "Q", irf540n: "Q", irf520: "Q", led: "D", button: "SW", buzzer: "BZ" };
+  const PRE = { dip8: "U", lm358: "U", lm393: "U", ir2104: "U", lm7805: "U", lm317: "U", lm35: "U", irf3205: "Q", irlz44n: "Q", button12: "SW", to220: "Q", term2: "J", term3: "J", smd_2512: "R", pinHdr: "J", to92: "Q", motor: "MOT", S3: "U", R: "R", C: "C", ecap5: "C", ecap6: "C", ecap8: "C", irfz44n: "Q", irf540n: "Q", irf520: "Q", led: "D", button: "SW", buzzer: "BZ" };
   // GPIO ESP32-S3 dùng được: hàng phải trước (gần module), IO8/9/11/12 để dành cho I2C / SPI. Tránh IO35–37 (PSRAM), TX/RX
   const PREF = "1 2 42 41 40 39 38 21 47 48 4 5 6 7 15 16 17 18 10 13 14 8 9 11 12".split(" ").map(n => "IO" + n);
   const RISKY = ["IO0", "IO3", "IO45", "IO46", "IO19", "IO20"];   // strapping / USB: dùng được nhưng dễ lỗi khởi động
@@ -354,7 +381,7 @@
   // mạng của chân: module lưu theo tên chân (c.nets); chân ESP32-S3 mang tên chính nó khi có module nối tới (IO5 …)
   const usedNets = () => { const s = new Set(); for (const c of S.comps) for (const k in c.nets || {}) if (c.nets[k]) s.add(c.nets[k]); return s; };
   const netOf = (c, name, used) => isHost(c) ? (PWR.has(name) || used.has(name) ? name : null) : (c.nets && c.nets[name]) || null;
-  const NOAUTO = new Set(["pinHdr", "tb6612fng", "motor", "R", "C", "ecap5", "ecap6", "ecap8", "to92", "irfz44n", "irf540n", "irf520"]);   // người dùng tự nối
+  const NOAUTO = new Set(["button12", "term2_508", "term3_508", "dip8", "to220", "smd_2512", "lm358", "lm393", "ir2104", "lm7805", "lm317", "irf3205", "irlz44n", "lm35", "pinHdr", "tb6612fng", "motor", "R", "C", "ecap5", "ecap6", "ecap8", "to92", "irfz44n", "irf540n", "irf520"]);   // người dùng tự nối
   function autoNets(fp) {   // nối sẵn khi thêm: nguồn, bus I2C / SPI, tín hiệu vào GPIO trống
     if (NOAUTO.has(fp) || (FP[fp] && FP[fp].mine)) { const z = {}; for (const p of FP[fp].pads) z[p.name] = null; return z; }
     const s3 = S.comps.some(isHost), H = hostInfo(), used = usedNets(), out = {};
@@ -403,7 +430,7 @@
     S.holes = S.holes.filter(h => h.pad || on(h));
   }
   const SN = G / 2; const gridStep = () => S.gridStep || (STUDIO ? SN : G); const snapStep = () => gridStep();   // lưới khi vẽ đường / dây nhảy (1,27 mm): bớt nhạy hơn lưới 0,635
-  const traceW = t => t.w || (PWR.has(t.net) ? W_PWR : W_SIG);
+  const netW = n => (S.netW && +S.netW[n]) || (PWR.has(n) ? W_PWR : W_SIG); const traceW = t => t.w || netW(t.net);
   const segDist = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l)) : 0; return Math.hypot(px - ax - t * dx, py - ay - t * dy); };
   function segSeg(a, b, c, d) {     // khoảng cách ngắn nhất giữa 2 đoạn thẳng
     const cross = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
@@ -648,12 +675,12 @@
   }
   function autoroute(si, prio, gndAsNet, ord = OPT.ord) {
     const sc = SCHEMES[si]; autoroute.failed = []; autoroute.why = {};
-    S.traces = S.traces.filter(t => t.lock); S.jumpers = S.jumpers.filter(j => !j.auto);
+    S.traces = S.traces.filter(t => t.lock || (RT.only && !RT.only.has(t.net))); S.jumpers = S.jumpers.filter(j => !j.auto || (RT.only && !RT.only.has(j.net)));
     const pw = S.pour; if (gndAsNet) S.pour = false; analyze(); S.pour = pw;
     const nx = Math.floor(S.board.w / Q) + 1, ny = Math.floor(S.board.h / Q) + 1, P = A.P;
     const len = r => Math.hypot(r.a.x - r.b.x, r.a.y - r.b.y), pr = r => prio && prio.has(ratKey(r)) ? 0 : 1;
     const cx = new Map(A.rats.map(r => [r, A.rats.reduce((n, o) => n + (o.net !== r.net && segSeg([r.a.x, r.a.y], [r.b.x, r.b.y], [o.a.x, o.a.y], [o.b.x, o.b.y]) === 0 ? 1 : 0), 0)]));
-    const edges = A.rats.slice().sort((a, b) => (pr(a) - pr(b)) || (ord === "mps" ? cx.get(a) - cx.get(b) : PWR.has(a.net) - PWR.has(b.net)) || (len(a) - len(b)));
+    const edges = A.rats.filter(r => !RT.only || RT.only.has(r.net)).sort((a, b) => (pr(a) - pr(b)) || (ord === "mps" ? cx.get(a) - cx.get(b) : PWR.has(a.net) - PWR.has(b.net)) || (len(a) - len(b)));
     const holes = () => S.jumpers.flatMap(j => [{ x: j.a[0], y: j.a[1], r: JP_R, net: j.net, jw: j }, { x: j.b[0], y: j.b[1], r: JP_R, net: j.net, jw: j }]);
     let pend = new Map();
     const RZ = PAD_R + CLR + JP_R + 1.5 * Q;
@@ -695,7 +722,7 @@
     const toMMs = cells => cells.map(([gx, gy]) => [r3(gx * Q), r3(gy * Q)]);
     if (!S.pour || gndAsNet) return run(edges);
     const f = run(edges.filter(e => e.net !== GND)); analyze();
-    return f + run(A.rats.filter(e => e.net === GND).sort((a, b) => (pr(a) - pr(b)) || (len(a) - len(b))));
+    return f + run(A.rats.filter(e => e.net === GND && (!RT.only || RT.only.has(GND))).sort((a, b) => (pr(a) - pr(b)) || (len(a) - len(b))));
     function grp(k) { return A.find(k); }
     function padKey(p) { return "p" + A.P.indexOf(p); }
     function link(t, e) { const ia = A.P.indexOf(e.a), ib = A.P.indexOf(e.b); if (ia < 0 || ib < 0) return; if (t) A.uni("t" + t.id, "p" + ia); A.uni("p" + ia, "p" + ib); }
@@ -716,7 +743,7 @@
       const done = e => { for (const p of [e.a, e.b]) pend.set(p, pend.get(p) - 1); };
       for (const e of list) {
         done(e);
-        const w = PWR.has(e.net) ? W_PWR : W_SIG, { block, soft, near } = grids(e, w);
+        const w = netW(e.net), { block, soft, near } = grids(e, w);
         for (let i = 0; i < block.length; i++) if (soft[i]) block[i] = 1;
         const sx = Math.round(e.a.x / Q), sy = Math.round(e.a.y / Q), tx = Math.round(e.b.x / Q), ty = Math.round(e.b.y / Q);
         let path = canReach(nx, ny, block, sx, sy, tx, ty, sc.dirs) && astar(nx, ny, block, sx, sy, tx, ty, sc, null, near);
@@ -740,7 +767,7 @@
       }
       let fail = 0;
       for (const e of failed) {
-        const w = PWR.has(e.net) ? W_PWR : W_SIG;
+        const w = netW(e.net);
         const sx = Math.round(e.a.x / Q), sy = Math.round(e.a.y / Q), tx = Math.round(e.b.x / Q), ty = Math.round(e.b.y / Q);
         let cut = null, usedBlock = null;
         for (const tight of [false, true]) {
@@ -755,10 +782,11 @@
           cut = findJumpBridge(nx, ny, bl, holeGrid, jStop, sx, sy, tx, ty, sc, near, e.net, allP);
           if (cut) { usedBlock = bl; break; }
         }
-        autoroute.why[ratKey(e)] = cut ? "ok" : "không đặt được lỗ dây nhảy";
+        const capJ = !!cut && RT.maxJ != null && S.jumpers.filter(j => j.auto).length + cut.jumps.length > RT.maxJ; if (capJ) cut = null;
+        autoroute.why[ratKey(e)] = cut ? "ok" : capJ ? "vượt giới hạn dây nhảy" : "không đặt được lỗ dây nhảy";
         if (!cut && depth === 0 && OPT.rip) {
           const near = t => t.pts.some((q, k) => k && [e.a, e.b].some(p => segDist(p.x, p.y, t.pts[k - 1][0], t.pts[k - 1][1], q[0], q[1]) < RZ + traceW(t) / 2 + CLR + 1));
-          const rip = new Set(S.traces.filter(t => !t.lock && t.net !== e.net && near(t)).map(t => t.net));
+          const rip = new Set(S.traces.filter(t => !t.lock && t.net !== e.net && (!RT.only || RT.only.has(t.net)) && near(t)).map(t => t.net));
           if (rip.size) {
             const keep = JSON.stringify([S.traces, S.jumpers]), kf = autoroute.failed.slice(), pd0 = pend;
             S.traces = S.traces.filter(t => t.lock || !rip.has(t.net)); S.jumpers = S.jumpers.filter(j => !j.auto || !rip.has(j.net));
@@ -1066,9 +1094,25 @@
         // Viền in lụa TO-220: chữ nhật bao quanh + vạch phân cách lá tản nhiệt
         el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 0.5, class: "body" }, g);
         el("line", { x1: b.x, y1: b.y + 1.3, x2: b.x + b.w, y2: b.y + 1.3, class: "body" }, g);
+      } else if (f.ecap) {
+        // Ký hiệu in lụa chuẩn tụ hoá (IPC/KiCad): vòng tròn ngoài + dải gạch sọc nửa cực âm (−) + dấu (+) cực dương
+        const cx0 = b.x + b.w / 2, cy0 = b.y + b.h / 2, r0 = b.w / 2;
+        el("circle", { cx: cx0, cy: cy0, r: r0, class: "body" }, g);
+        // Nửa bên phải (cực −): tô mờ + 3 vạch sọc chuẩn nhận diện cực âm
+        el("path", { d: `M${cx0} ${cy0 - r0} A${r0} ${r0} 0 0 1 ${cx0} ${cy0 + r0} Z`, class: "body", fill: "currentColor", "fill-opacity": "0.18" }, g);
+        for (const fOff of [-0.55, 0, 0.55]) {
+          const yOff = fOff * r0, xEnd = cx0 + Math.sqrt(Math.max(0, r0 * r0 - yOff * yOff));
+          el("line", { x1: cx0 + r0 * 0.25, y1: cy0 + yOff, x2: xEnd, y2: cy0 + yOff, class: "body" }, g);
+        }
+        // Dấu (+) sắc nét ở phía cực dương (bên trái)
+        const px0 = b.x - 0.85, py0 = cy0 - r0 * 0.55, ps = 0.55;
+        el("path", { d: `M${px0 - ps} ${py0} H${px0 + ps} M${px0} ${py0 - ps} V${py0 + ps}`, class: "body", fill: "none" }, g);
       } else if (f.round) el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: b.h / 2, class: "body" }, g); else el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: .6, class: "body" }, g);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-      if (f.label && !sd) el("text", { x: cx, y: cy, class: "silkt", transform: c.rot % 180 ? `rotate(-90 ${cx} ${cy})` : "" }, g, f.label);
+      if (f.label && !sd) {
+        if (c.bl) { const P = lblPos(c, "b"), a = c.bl.r || 0; el("text", { x: P[0], y: P[1], class: "silkt" + lblCls(c, "b"), ...lblHit(c, "b"), transform: S.flip ? `translate(${2 * P[0]} 0) scale(-1 1)${a ? ` rotate(${-a} ${P[0]} ${P[1]})` : ""}` : a ? `rotate(${a} ${P[0]} ${P[1]})` : "" }, LY.silk, f.label); }
+        else el("text", { x: cx, y: cy, class: "silkt" + lblCls(c, "b"), ...lblHit(c, "b"), transform: c.rot % 180 ? `rotate(-90 ${cx} ${cy})` : "" }, g, f.label);
+      }
       // tên chân đặt theo toạ độ bo (không nằm trong nhóm linh kiện): không bị mờ theo linh kiện, luôn đọc xuôi kể cả khi xoay linh kiện / lật xem mặt Back
       padLabels(c.fp, c).forEach(l => {
         const [rx, ry] = rot(l.x, l.y, c.rot); let th = (((l.rot || 0) + c.rot) % 360 + 360) % 360, an = l.a;
@@ -1078,7 +1122,9 @@
         el("text", { x: 0, y: 0, class: "hdrl", "text-anchor": an, transform: `translate(${c.x + rx} ${c.y + ry}) ${S.flip ? "scale(-1 1) " : ""}rotate(${th})` }, LY.pinl, l.t);
       });
       // J1: tên ngắn của board ghi bên phải hàng rào (không đè linh kiện bên dưới)
-      el("text", f.hdr ? { x: b.x + b.w + 1, y: b.y + b.h / 2 + .5, class: "ref" } : { x: b.x + .6, y: b.y - .8, class: "ref" }, g, (c.lbl || c.id) + (f.hdr ? " → " + hostInfo().name.split(" (")[0] : "") + (c.val ? " " + c.val : ""));
+      { const tx = (c.lbl || c.id) + (f.hdr ? " → " + hostInfo().name.split(" (")[0] : "") + (c.val ? " " + c.val : ""), hit = lblHit(c, "r");
+        if (c.rl) { const P = lblPos(c, "r"), a = c.rl.r || 0; el("text", { x: P[0], y: P[1], class: "ref" + lblCls(c, "r"), ...hit, transform: S.flip ? `translate(${2 * P[0]} 0) scale(-1 1)${a ? ` rotate(${-a} ${P[0]} ${P[1]})` : ""}` : a ? `rotate(${a} ${P[0]} ${P[1]})` : "" }, LY.silk, tx); }
+        else el("text", f.hdr ? { x: b.x + b.w + 1, y: b.y + b.h / 2 + .5, class: "ref" + lblCls(c, "r"), ...hit } : { x: b.x + .6, y: b.y - .8, class: "ref" + lblCls(c, "r"), ...hit }, g, tx); }
     }
     // mass GND
     // path mass lớn (vài trăm KB): chỉ dựng lại khi hình đổi, còn lại chỉ đổi lớp mờ
@@ -1763,8 +1809,8 @@
         const f = FP[c.fp], b = f.body, cx = b.x + b.w / 2, cy = b.y + b.h / 2, p1 = f.pads.find(p => p.sq) || f.pads[0];
         o.push(`<g transform="translate(${c.x} ${c.y}) rotate(${c.rot})"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${f.round ? b.h / 2 : .6}" fill="none" stroke="#000" stroke-width=".15"/>`
           + (p1 ? `<circle cx="${p1.x - PAD_R - .9}" cy="${p1.y}" r=".35" fill="#000"/>` : "") + hdrText(f, 1.0, c.fp, c)
-          + (f.label ? `<text x="${cx}" y="${cy}" font-size="1.6" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
-          + `<text x="${b.x + .4}" y="${b.y - .6}" font-size="1.3" font-weight="700" font-family="sans-serif">${c.lbl || c.id}${c.val ? " " + c.val : ""}</text></g>`);
+          + (f.label && !c.bl ? `<text x="${cx}" y="${cy}" font-size="1.6" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
+          + (c.rl ? "" : `<text x="${b.x + .4}" y="${b.y - .6}" font-size="1.3" font-weight="700" font-family="sans-serif">${c.lbl || c.id}${c.val ? " " + c.val : ""}</text>`) + "</g>" + (c.rl ? refSvg(c, 1.3) : "") + (c.bl && f.label ? bodySvg(c, f.label, 1.6) : ""));
       }
       for (const j of S.jumpers.filter(j => !noWire(j))) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width=".15" stroke-dasharray=".8 .5"/>` + jText(j, 1.2));
       for (const p of P) o.push(`<circle cx="${p.x}" cy="${p.y}" r="${(p.r || PAD_R) + .25}" fill="#fff"/>`);
@@ -1774,8 +1820,8 @@
       for (const c of S.comps) {
         const f = FP[c.fp], b = f.body, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
         o.push(`<g transform="translate(${c.x} ${c.y}) rotate(${c.rot})"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${f.round ? b.h / 2 : .6}" fill="none" stroke="#000" stroke-width=".2"/>`
-          + hdrText(f, 1.1, c.fp, c) + (f.label ? `<text x="${cx}" y="${cy}" font-size="2" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
-          + `<text x="${b.x + .6}" y="${b.y - .8}" font-size="1.5" font-weight="700" font-family="sans-serif">${c.lbl || c.id}${c.val ? " " + c.val : ""}</text></g>`);
+          + hdrText(f, 1.1, c.fp, c) + (f.label && !c.bl ? `<text x="${cx}" y="${cy}" font-size="2" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${c.rot % 180 ? ` transform="rotate(-90 ${cx} ${cy})"` : ""}>${f.label}</text>` : "")
+          + (c.rl ? "" : `<text x="${b.x + .6}" y="${b.y - .8}" font-size="1.5" font-weight="700" font-family="sans-serif">${c.lbl || c.id}${c.val ? " " + c.val : ""}</text>`) + "</g>" + (c.rl ? refSvg(c, 1.5) : "") + (c.bl && f.label ? bodySvg(c, f.label, 2) : ""));
       }
       for (const p of P) o.push(`<circle cx="${p.x}" cy="${p.y}" r="${(p.r || PAD_R) * .8}" fill="none" stroke="#000" stroke-width=".15"/>`);
       for (const j of S.jumpers.filter(j => !noWire(j))) o.push(`<line x1="${j.a[0]}" y1="${j.a[1]}" x2="${j.b[0]}" y2="${j.b[1]}" stroke="#000" stroke-width=".35" stroke-linecap="round"/>` + jText(j, 1.4));
@@ -2447,7 +2493,7 @@
         const mx = (ox + gx) / 2, my = (oy + gy) / 2;
         const tg = el("g", { transform: `translate(${mx} ${my - 1.4})${S.flip ? " scale(-1 1)" : ""}` }, LY.tmp);
         el("rect", { x: -6.5, y: -1.7, width: 13, height: 3.2, rx: 0.6, fill: "rgba(15,23,42,0.88)", stroke: "#38bdf8", "stroke-width": 0.2 }, tg);
-        el("text", { x: 0, y: 0, "font-size": "1.9", "font-weight": "700", "text-anchor": "middle", "dominant-baseline": "central", fill: "#38bdf8", class: "cstx" }, tg, d.toFixed(2) + " mm");
+        el("text", { x: 0, y: 0, "font-size": "1.9", "font-weight": "700", "text-anchor": "middle", "dominant-baseline": "central", fill: "#38bdf8", class: "cstx" }, tg, fU(d));
       }
     }
   }
@@ -3398,7 +3444,7 @@
     const s0 = (p0[0] - mid[0]) * dir[0] + (p0[1] - mid[1]) * dir[1], s1 = (p1[0] - mid[0]) * dir[0] + (p1[1] - mid[1]) * dir[1];
     const ln = (a, b) => el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: "pdim-ln " + cls }, layer);
     for (const [pi, si] of [[p0, s0], [p1, s1]]) { const qi = at(si), c = (qi[0] - pi[0]) * n[0] + (qi[1] - pi[1]) * n[1], sg = c < 0 ? -1 : 1; if (Math.abs(c) > GAP) ln([pi[0] + n[0] * sg * GAP, pi[1] + n[1] * sg * GAP], [qi[0] + n[0] * sg * OV, qi[1] + n[1] * sg * OV]); }
-    const m = Math.abs(PCBSolver.measure(dd, [])), str = dd.driven ? "(" + m.toFixed(2) + ")" : m.toFixed(2);
+    const m = Math.abs(PCBSolver.measure(dd, [])), str = dd.driven ? "(" + nU(m) + ")" : nU(m);
     const hw = str.length * 3.7 * px + GAP, hh = 8 * px, lo = Math.min(s0, s1), hi = Math.max(s0, s1), span = hi - lo;
     const inside = span > 2 * AR + 2 * hw && Math.abs(al) + hw <= span / 2;
     const arrow = (s, sg) => { const T = at(s), B = [T[0] - dir[0] * sg * AR, T[1] - dir[1] * sg * AR], w = AR * .32; el("polygon", { points: [T, [B[0] + n[0] * w, B[1] + n[1] * w], [B[0] - n[0] * w, B[1] - n[1] * w]].map(q => q.join(",")).join(" "), class: "pdim-ar " + cls }, layer); };
@@ -3471,12 +3517,12 @@
     const M = LY.cs.getScreenCTM(), R = st.getBoundingClientRect(); if (!M) return;
     const sx = M.a * h.cx + M.c * h.cy + M.e - R.left, sy = M.b * h.cx + M.d * h.cy + M.f - R.top;
     let inp = $("#plDimEd"); if (!inp) { inp = document.createElement("input"); inp.id = "plDimEd"; inp.type = "text"; inp.className = "pl-dimed"; inp.autocomplete = "off"; st.appendChild(inp); }
-    inp.style.left = (sx - 40) + "px"; inp.style.top = (sy - 13) + "px"; inp.hidden = false; inp.value = String(r3(d.val)); inp.focus(); inp.select();
+    inp.style.left = (sx - 40) + "px"; inp.style.top = (sy - 13) + "px"; inp.hidden = false; inp.value = String(UIN() ? Math.round(d.val / 25.4 * 1e4) / 1e4 : r3(d.val)); inp.focus(); inp.select();
     let fin = false;
     const done = ok => {
       if (fin) return; fin = true; inp.hidden = true; inp.onkeydown = inp.onblur = null;
-      const v = parseFloat(String(inp.value).replace(",", "."));
-      if (!ok || !(v >= 0) || Math.abs(v - d.val) < 1e-9) return render();
+      const v = parseFloat(String(inp.value).replace(",", ".")) * (UIN() ? 25.4 : 1);
+      if (!ok || !(v >= 0) || Math.abs(v - d.val) < 1e-6) return render();
       const snapS = JSON.stringify(S), old = d.val; d.val = r3(v);
       if (dimSolve()) { pushRaw(snapS); save(); } else { d.val = old; }
       render();
@@ -3542,7 +3588,7 @@
       const tx = (a[0] + b[0]) / 2 + (-dy / d) * offsetDist;
       const ty = (a[1] + b[1]) / 2 + (dx / d) * offsetDist;
       const modeTag = mode === "x" ? " (X)" : mode === "y" ? " (Y)" : "";
-      el("text", { x: tx, y: ty, "font-size": 2.1 * k, class: "cstx", transform: S.flip ? `translate(${2 * tx} 0) scale(-1 1)` : "" }, layer, `${val.toFixed(2)} mm${modeTag}`);
+      el("text", { x: tx, y: ty, "font-size": 2.1 * k, class: "cstx", transform: S.flip ? `translate(${2 * tx} 0) scale(-1 1)` : "" }, layer, `${fU(val)}${modeTag}`);
     }
   }
 
@@ -3601,8 +3647,8 @@
       el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], "stroke-width": .25 * k, class: "measln" }, LY.tmp);
       for (const e of [a, b]) el("circle", { cx: e[0], cy: e[1], r: .45 * k, class: "measpt" }, LY.tmp);
       if (d > .01) {
-        const tx = (a[0] + b[0]) / 2 + 1.2 * k, t = el("text", { x: tx, y: (a[1] + b[1]) / 2 - 1.2 * k, "font-size": 2.2 * k, class: "meastx", transform: S.flip ? `translate(${2 * tx} 0) scale(-1 1)` : "" }, LY.tmp, `${d.toFixed(2)} mm`);
-        el("tspan", { x: tx, dy: 2.4 * k, "font-size": 1.6 * k }, t, `Δx ${Math.abs(dx).toFixed(2)} · Δy ${Math.abs(dy).toFixed(2)}`);
+        const tx = (a[0] + b[0]) / 2 + 1.2 * k, t = el("text", { x: tx, y: (a[1] + b[1]) / 2 - 1.2 * k, "font-size": 2.2 * k, class: "meastx", transform: S.flip ? `translate(${2 * tx} 0) scale(-1 1)` : "" }, LY.tmp, fU(d));
+        el("tspan", { x: tx, dy: 2.4 * k, "font-size": 1.6 * k }, t, `Δx ${nU(Math.abs(dx))} · Δy ${nU(Math.abs(dy))}`);
       }
     }
   }
@@ -3765,7 +3811,7 @@
     const items = [];
     for (const [, , ks] of cats.slice(1)) {
       for (const k of ks) {
-        const ico = k === "motor" ? ICON_M : k === "R" ? ICON_R : k === "C" ? ICON_C : k.startsWith("pinHdr") ? ICON_H : FP[k] && FP[k].ecap ? ICON_E : FP[k] && FP[k].to220 ? ICON_Q : k === "to92" ? ICON_TO92 : `<img src="${iconSrc(k)}" alt="">`;
+        const ico = k === "motor" ? ICON_M : k === "R" ? ICON_R : k === "C" ? ICON_C : k.startsWith("pinHdr") ? ICON_H : FP[k] && FP[k].ecap ? ICON_E : FP[k] && FP[k].to220 ? ICON_Q : k === "to92" || (FP[k] && FP[k].to92) ? ICON_TO92 : FP[k] && FP[k].dip ? ICON_DIP : FP[k] && FP[k].term ? ICON_TERM : k === "smd_2512" ? smdIcon(k) : k === "button12" ? `<img src="${iconSrc("button")}" alt="" loading="lazy">` : `<img src="${iconSrc(k)}" alt="">`;
         items.push({ k, name: SHORT(k), q: (NAME[k] + " " + SHORT(k) + " " + k).toLowerCase().replace(/"/g, ""), ico });
       }
     }
@@ -3955,6 +4001,11 @@
       return;
     }
     if (ui.newPinHdrId && (!e.target.closest("#plPinHdrPop"))) ui.newPinHdrId = null;
+    if (ui.lblEdit) {   // chế độ sửa chữ (bấm đúp vào linh kiện): kéo chữ để dời, R xoay; bấm ra ngoài để thoát
+      const rt = e.button === 0 && e.target && e.target.closest ? e.target.closest("[data-lbl]") : null, c = rt && rt.getAttribute("data-cid") === ui.lblEdit && S.comps.find(x => x.id === ui.lblEdit);
+      if (c) { e.preventDefault(); return startLblDrag(e, c, rt.getAttribute("data-lbl")); }
+      ui.lblEdit = null; ui.refSel = null; render();
+    }
     if (e.button === 0 && ui.mode === "idle" && (!ui.tool || ui.tool === "sel" || (ui.tool === "cs" && !(ui.dim && ui.dim.a)))) { const dh = dimAt(toMM(e)); if (dh) { e.preventDefault(); return dimTextDown(e, dh); } }
     { const now = performance.now(), dbl = now - prevDown.t < 420 && Math.hypot(e.clientX - prevDown.x, e.clientY - prevDown.y) < 6; prevDown = { t: now, x: e.clientX, y: e.clientY };
       if (dbl && e.button === 0 && ui.mode === "idle" && (!ui.tool || ui.tool === "sel")) { prevDown.t = 0; e.preventDefault(); return onDbl(e); } }
@@ -4025,6 +4076,7 @@
         return startCsDrag(e, distB < 2.0 ? "b" : "body");
       }
     }
+    if (ui.sel && ui.sel.t === "m" && ui.ms) { const h = pickObj(p); if (h && inMs(h.k, h.id)) return startMsMove(e); }   // đang chọn nhiều: kéo 1 đối tượng trong nhóm = dời cả nhóm
     if (pd && S.comps.includes(pd.c) && !blk("base")) { ui.sel = { t: "c", id: pd.c.id }; ui.hlNet = pd.net; render(); return startComp(e, pd.c); }
     const jw = blk("jw") ? null : S.jumpers.find(j => segDist(p.x, p.y, j.a[0], j.a[1], j.b[0], j.b[1]) < .6);
     if (jw) { ui.sel = { t: "j", id: jw.id }; ui.hlNet = jw.net; render(); return startJBody(e, jw); }
@@ -4321,6 +4373,7 @@
     const vt = e.target.closest("[data-v]");
     if (vt && ui.sel && ui.sel.t === "t") return cmd.delVtx(+vt.dataset.v);
     const pdHit = padAt(p), cmpHit = (pdHit && S.comps.includes(pdHit.c)) ? pdHit.c : compAt(p);
+    if (cmpHit) { ui.lblEdit = cmpHit.id; ui.refSel = null; ui.sel = { t: "c", id: cmpHit.id }; render(); if (isHost(cmpHit)) return; }
     if (cmpHit && !isHost(cmpHit)) return openPinNamesPop(cmpHit, e, pdHit ? pdHit.i : 0);
     const sg = segAt(p); if (sg && !pdHit) { const ids = chainOf(sg.t); ui.sel = { t: "t", id: sg.t.id, ids }; ui.hlNet = sg.t.net; render(); if (ids.length > 1) return toast(L(`Đã chọn cả chuỗi ${ids.length} đoạn dây nối liền`, `Selected the whole chain of ${ids.length} joined traces`)); return; }
     if (!pdHit && Math.abs(bd(p.x, p.y)) <= 2.2) return openBoardPop(e);
@@ -4426,6 +4479,56 @@
   }
   function startPan(e) { const c0 = { ...cam }, x0 = e.clientX, y0 = e.clientY; ui.drag = { move: (p, ev) => { cam.x = c0.x - (ev.clientX - x0) * ui.k; cam.y = c0.y - (ev.clientY - y0) * ui.k; applyCam(); } }; }
   // kéo linh kiện: bám lưới 2,54 (hoặc tự do khi tắt Snap), Alt đảo snap, Shift khoá trục (ngang/dọc)
+  // dời cả nhóm đang chọn: linh kiện, đường đồng, dây nhảy, hình vẽ; đầu đường ngoài nhóm dính chân linh kiện đi theo chân
+  function startMsMove(e) {
+    const p0 = toMM(e), snapS = JSON.stringify(S), M = ui.ms;
+    const cs = S.comps.filter(c => M.c.includes(c.id)), ts = S.traces.filter(t => M.t.includes(t.id)), js = S.jumpers.filter(j => M.j.includes(j.id)), as = (S.art || []).filter(a => M.a.includes(a.id));
+    const oc = cs.map(c => [c.x, c.y]), ot = ts.map(t => t.pts.map(q => q.slice())), oj = js.map(j => [j.a.slice(), j.b.slice()]), ends = [];
+    const P = pads();
+    for (const c of cs) { const P0 = P.filter(q => q.c === c); for (const t of S.traces) if (!ts.includes(t)) for (const k of [0, t.pts.length - 1]) if (P0.some(q => Math.hypot(q.x - t.pts[k][0], q.y - t.pts[k][1]) < .05)) ends.push({ t, k, q0: t.pts[k].slice() }); }
+    let ad = [0, 0], moved = false;
+    ui.drag = {
+      hold: new Set(cs.map(c => "c" + c.id)),
+      move: (p, ev) => {
+        let dx = p.x - p0.x, dy = p.y - p0.y;
+        if (ev && ev.shiftKey) { if (Math.abs(dx) >= Math.abs(dy)) dy = 0; else dx = 0; }
+        if ((S.snapG !== false) ^ !!(ev && ev.altKey)) { dx = snap(dx, snapStep()); dy = snap(dy, snapStep()); }
+        dx = r3(dx); dy = r3(dy); if (dx === ad[0] && dy === ad[1]) return; moved = true;
+        cs.forEach((c, i) => { const nx = r3(oc[i][0] + dx), ny = r3(oc[i][1] + dy); syncCsCompMove(c.id, nx - c.x, ny - c.y); c.x = nx; c.y = ny; });
+        ts.forEach((t, i) => { t.pts = ot[i].map(q => [r3(q[0] + dx), r3(q[1] + dy)]); });
+        js.forEach((j, i) => { j.a = [r3(oj[i][0][0] + dx), r3(oj[i][0][1] + dy)]; j.b = [r3(oj[i][1][0] + dx), r3(oj[i][1][1] + dy)]; });
+        for (const a of as) artMove(a, dx - ad[0], dy - ad[1]);
+        for (const en of ends) en.t.pts[en.k] = [r3(en.q0[0] + dx), r3(en.q0[1] + dy)];
+        ad = [dx, dy]; render();
+      },
+      up: () => { if (moved) { pushRaw(snapS); if (cs.length) { dimSolve(new Set(cs.map(c => "c" + c.id))); afterParts(cs.map(c => c.id)); } save(); } render(); }
+    };
+  }
+  // tên linh kiện dời được: c.rl = { x, y } theo hệ toạ độ linh kiện (xoay cùng linh kiện), r = góc chữ 0 / 90 (tuyệt đối, luôn đọc xuôi)
+  // chữ của linh kiện dời / xoay được: c.rl = tên (R1 10k), c.bl = chữ trên thân (LM393, ESP32…). { x, y } theo hệ toạ độ linh kiện, r = góc chữ 0 / 90 (luôn đọc xuôi)
+  const LK = k => k === "b" ? "bl" : "rl";
+  function lblPos(c, k) { const o = c[LK(k)], [ox, oy] = rot(o.x, o.y, c.rot); return [r3(c.x + ox), r3(c.y + oy)]; }
+  const lblHit = (c, k) => ({ "data-lbl": k, "data-cid": c.id, style: ui.lblEdit === c.id ? "pointer-events:all;cursor:move" : "pointer-events:none" });
+  const lblCls = (c, k) => ui.lblEdit === c.id ? " lbled" + (ui.refSel && ui.refSel.id === c.id && ui.refSel.k === k ? " lblsel" : "") : "";
+  function refSvg(c, fz) { const P = lblPos(c, "r"), a = c.rl.r || 0; return `<text x="${P[0]}" y="${P[1]}" font-size="${fz}" font-weight="700" font-family="sans-serif"${a ? ` transform="rotate(${a} ${P[0]} ${P[1]})"` : ""}>${c.lbl || c.id}${c.val ? " " + c.val : ""}</text>`; }
+  function bodySvg(c, t, fz) { const P = lblPos(c, "b"), a = c.bl.r || 0; return `<text x="${P[0]}" y="${P[1]}" font-size="${fz}" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"${a ? ` transform="rotate(${a} ${P[0]} ${P[1]})"` : ""}>${t}</text>`; }
+  function lblInit(c, k) {
+    const f = FP[c.fp], b = f.body;
+    if (k === "b") { if (!c.bl) c.bl = { x: r3(b.x + b.w / 2), y: r3(b.y + b.h / 2), r: 0 }; return; }
+    if (!c.rl) c.rl = { x: r3(f.hdr ? b.x + b.w + 1 : b.x + .6), y: r3(f.hdr ? b.y + b.h / 2 + .5 : b.y - .8), r: (c.rot || 0) % 180 ? 90 : 0 };
+  }
+  function startLblDrag(e, c, k) {
+    const snapS = JSON.stringify(S), key = LK(k), had = !!c[key];
+    ui.sel = { t: "c", id: c.id }; ui.hlNet = null; ui.refSel = { id: c.id, k }; lblInit(c, k); { const pp = document.getElementById("plPinNamePop"); if (pp) pp.remove(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }   // chữ đang chọn: phím R xoay chữ
+    const p0 = toMM(e), l0 = { ...c[key] }; let moved = false;
+    ui.drag = {
+      move: (p, ev) => { let dx = p.x - p0.x, dy = p.y - p0.y; if (ev && ev.shiftKey) { if (Math.abs(dx) >= Math.abs(dy)) dy = 0; else dx = 0; } const [lx, ly] = rot(dx, dy, (360 - (c.rot || 0)) % 360); c[key].x = r3(l0.x + lx); c[key].y = r3(l0.y + ly); moved = true; render(); },
+      up: () => { if (moved) { pushRaw(snapS); save(); } else if (!had) delete c[key]; render(); }
+    };
+    render();
+  }
+  if (!document.getElementById("plLblCss")) { const st = document.createElement("style"); st.id = "plLblCss"; st.textContent = ".pcblab .lbled{fill:#38bdf8!important;opacity:1!important}.pcblab .lblsel{fill:#fde047!important}"; document.head.appendChild(st); }
+  function lblRotate(c, k) { const snapS = JSON.stringify(S), key = LK(k); lblInit(c, k); c[key].r = c[key].r ? 0 : 90; pushRaw(snapS); save(); render(); }
   function startComp(e, c) {
     const p0 = toMM(e), x0 = c.x, y0 = c.y, snapS = JSON.stringify(S), P0 = pads().filter(q => q.c === c), ends = [];
     for (const t of S.traces) for (const k of [0, t.pts.length - 1]) { const q = P0.find(q => Math.hypot(q.x - t.pts[k][0], q.y - t.pts[k][1]) < .05); if (q) ends.push({ t, k, i: q.i }); }
@@ -4814,9 +4917,9 @@
     const mode = cs.mode || "d";
     const curVal = mode === "x" ? Math.abs(dx) : mode === "y" ? Math.abs(dy) : Math.hypot(dx, dy);
     const unitLabel = mode === "x" ? " (X)" : mode === "y" ? " (Y)" : "";
-    const val = await promptBox(L(`Nhập cự ly mới${unitLabel} (mm):`, `Enter new distance${unitLabel} (mm):`), curVal.toFixed(2), { title: L("Đặt cự ly", "Set distance") });
+    const uu = UIN() ? "in" : "mm", val = await promptBox(L(`Nhập cự ly mới${unitLabel} (${uu}):`, `Enter new distance${unitLabel} (${uu}):`), nU(curVal), { title: L("Đặt cự ly", "Set distance") });
     if (val !== null && val.trim() !== "" && !isNaN(+val) && +val >= 0) {
-      cmd.setConstructLineLength(cs, +val, mode);
+      cmd.setConstructLineLength(cs, +val * (UIN() ? 25.4 : 1), mode);
     }
   }
   /* ---------- lệnh ---------- */
@@ -5276,6 +5379,7 @@
   addEventListener("keydown", e => {
     if (!visible() || (e.target.closest && e.target.closest("input,select,textarea"))) return;
     const k = e.key.toLowerCase();
+    if (k === "escape" && ui.lblEdit) { ui.lblEdit = null; ui.refSel = null; render(); }
     if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); return e.shiftKey ? cmd.redo() : cmd.undo(); }
     if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); return cmd.redo(); }
     if ((e.ctrlKey || e.metaKey) && k === "s") { e.preventDefault(); return cmd.saveProject(e.shiftKey); }
@@ -5318,7 +5422,7 @@
       }
       e.preventDefault(); cmd.del();
     }
-    else if (k === "r") cmd.rotate(); else if (k === "l") { if (e.shiftKey) cmd.lock(); else setTool("cu"); } else if (k === "a") { if (!STUDIO) cmd.auto(); } else if (k === "f") cmd.fill(); else if (k === "c") cmd.chamfer(); else if (k === "0" || k === "home") fit(); else if (k === "v") cmd.flip(); else if (k === "j") setTool("jw"); else if (k === "b") setTool("cu"); else if (k === "t") setTool("tr"); else if (k === "e") setTool("ex"); else if (k === "x") setTool(ui.tool === "pt" ? "sel" : "pt"); else if (k === "w") setTool(ui.tool === "saw" ? "sel" : "saw"); else if (k === "p") setTool(ui.tool === "dr" ? "sel" : "dr"); else if (k === "d") setTool(ui.tool === "cs" ? "sel" : "cs"); else if (k === "m") setTool("ms"); else if (k === "s" && !e.ctrlKey && !e.metaKey) cmd.snapG();
+    else if (k === "r") { const rc = ui.lblEdit && ui.refSel && ui.refSel.id === ui.lblEdit && S.comps.find(x => x.id === ui.refSel.id); if (rc) lblRotate(rc, ui.refSel.k); else cmd.rotate(); } else if (k === "l") { if (e.shiftKey) cmd.lock(); else setTool("cu"); } else if (k === "a") { if (!STUDIO) cmd.auto(); } else if (k === "f") cmd.fill(); else if (k === "c") cmd.chamfer(); else if (k === "0" || k === "home") fit(); else if (k === "v") cmd.flip(); else if (k === "j") setTool("jw"); else if (k === "b") setTool("cu"); else if (k === "t") setTool("tr"); else if (k === "e") setTool("ex"); else if (k === "x") setTool(ui.tool === "pt" ? "sel" : "pt"); else if (k === "w") setTool(ui.tool === "saw" ? "sel" : "saw"); else if (k === "p") setTool(ui.tool === "dr" ? "sel" : "dr"); else if (k === "d") setTool(ui.tool === "cs" ? "sel" : "cs"); else if (k === "m") setTool("ms"); else if (k === "s" && !e.ctrlKey && !e.metaKey) cmd.snapG();
   });
 
   /* ---------- khung bo ---------- */
@@ -5937,6 +6041,16 @@
   const ICON_R = '<svg viewBox="0 0 40 28"><path d="M2 14h9M29 14h9" stroke="#9aa3a0" stroke-width="2"/><rect x="11" y="9" width="18" height="10" rx="5" fill="#d8c194"/><path d="M15 9v10M19 9v10M23 9v10" stroke-width="2" stroke="#7b4a1e"/></svg>';
   const ICON_E = '<svg viewBox="0 0 40 28"><path d="M16 22v4M24 22v4" stroke="#9aa3a0" stroke-width="2"/><rect x="12" y="2" width="16" height="20" rx="3" fill="#2b4f9e"/><rect x="23" y="2" width="4" height="20" fill="#c9d2e0"/></svg>';
   const ICON_Q = '<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="2" width="20" height="6" rx="1" fill="#94a3b8"/><circle cx="20" cy="5" r="1.8" fill="#475569"/><rect x="10" y="8" width="20" height="12" rx="1" fill="#1e242d"/><path d="M14 20v6M20 20v6M26 20v6" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  // icon SMD nền trong suốt, cùng khung 40 × 28 với icon linh kiện khác
+  const smdIcon = k => {
+    const pin = "#cbd5e1", body = "#1e242d", svg = b => `<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg">${b}</svg>`;
+    if (k === "smd_sot23") return svg(`<rect x="13" y="9" width="14" height="10" rx="1" fill="${body}"/><path d="M16 19v5M24 19v5M20 9V4" stroke="${pin}" stroke-width="2.4" stroke-linecap="square"/>`);
+    if (k === "smd_soic8") return svg(`<rect x="11" y="7" width="18" height="14" rx="1" fill="${body}"/><circle cx="14" cy="10" r="1.2" fill="#64748b"/><path d="M13.5 7V3M18 7V3M22 7V3M26.5 7V3M13.5 21v4M18 21v4M22 21v4M26.5 21v4" stroke="${pin}" stroke-width="1.8"/>`);
+    const w = { smd_0402: 10, smd_0603: 14, smd_0805: 18, smd_1206: 24, smd_2512: 32 }[k] || 18, h = Math.max(6, Math.round(w * .5)), x = 20 - w / 2, y = 14 - h / 2, e = Math.max(2, w * .2);
+    return svg(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx=".8" fill="${body}"/><rect x="${x}" y="${y}" width="${e}" height="${h}" fill="${pin}"/><rect x="${x + w - e}" y="${y}" width="${e}" height="${h}" fill="${pin}"/>`);
+  };
+  const ICON_DIP = '<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="5" width="22" height="18" rx="1.5" fill="#1e242d"/><path d="M18 5a2 2 0 0 0 4 0" fill="#475569"/><path d="M12 5V1M17 5V1M23 5V1M28 5V1M12 23v4M17 23v4M23 23v4M28 23v4" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/></svg>';
+  const ICON_TERM = '<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="5" width="28" height="18" rx="1.5" fill="#1f8a4c"/><circle cx="14" cy="14" r="4.5" fill="#cbd5e1"/><circle cx="26" cy="14" r="4.5" fill="#cbd5e1"/><path d="M11.5 14h5M23.5 14h5" stroke="#475569" stroke-width="1.6"/></svg>';
   const ICON_TO92 = '<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><path d="M11 20 L29 20 A9 9 0 0 0 11 20 Z" fill="#1e242d"/><rect x="12" y="18" width="16" height="2" fill="#111"/><path d="M15 20v6M20 20v6M25 20v6" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/><text x="20" y="14" font-size="5" font-weight="700" text-anchor="middle" fill="#9ca3af" font-family="sans-serif">TO-92</text></svg>';
   const ICON_M = '<svg viewBox="0 0 40 28"><rect x="8" y="5" width="22" height="18" rx="5" fill="#3a3f47"/><rect x="30" y="12" width="6" height="4" fill="#b8bcc2"/><text x="19" y="18" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">M</text></svg>';
   const ICON_H = '<svg viewBox="0 0 40 28"><rect x="4" y="6" width="32" height="16" rx="2" fill="#181a1f" stroke="#333" stroke-width="1"/><rect x="8" y="10" width="6" height="8" rx="1" fill="#2d3139"/><circle cx="11" cy="14" r="2.2" fill="#ffd700"/><circle cx="11" cy="14" r="1.1" fill="#111"/><rect x="17" y="10" width="6" height="8" rx="1" fill="#2d3139"/><circle cx="20" cy="14" r="2.2" fill="#ffd700"/><circle cx="20" cy="14" r="1.1" fill="#111"/><rect x="26" y="10" width="6" height="8" rx="1" fill="#2d3139"/><circle cx="29" cy="14" r="2.2" fill="#ffd700"/><circle cx="29" cy="14" r="1.1" fill="#111"/></svg>';
@@ -5960,7 +6074,7 @@
   function list() {
     const cnt = {}; for (const c of S.comps) cnt[c.fp] = (cnt[c.fp] || 0) + 1;
     const w = wiring(), n = k => cnt[k] ? `×${cnt[k]}` : "";
-    const rows = ks => ks.map(k => `<button type="button" class="mod-row" data-q="${(NAME[k] + " " + SHORT(k) + " " + k).toLowerCase().replace(/"/g, "")}" data-add="${k}" aria-pressed="${!!cnt[k]}" title="${L("Thêm", "Add")} ${NAME[k]}">${k === "motor" ? ICON_M : k === "R" ? ICON_R : k === "C" ? ICON_C : k.startsWith("pinHdr") ? ICON_H : FP[k] && FP[k].ecap ? ICON_E : FP[k] && FP[k].to220 ? ICON_Q : k === "to92" ? ICON_TO92 : (typeof SMD_IMG !== "undefined" && SMD_IMG[k]) ? `<img src="${FZ + SMD_IMG[k]}" alt="" onerror="this.style.visibility='hidden'">` : `<img src="${iconSrc(k)}" alt="" loading="lazy">`}<span class="mr-name">${SHORT(k)}</span><span class="mr-if">${n(k)}</span></button>`).join("");
+    const rows = ks => ks.map(k => `<button type="button" class="mod-row" data-q="${(NAME[k] + " " + SHORT(k) + " " + k).toLowerCase().replace(/"/g, "")}" data-add="${k}" aria-pressed="${!!cnt[k]}" title="${L("Thêm", "Add")} ${NAME[k]}">${k === "motor" ? ICON_M : k === "R" ? ICON_R : k === "C" ? ICON_C : k.startsWith("pinHdr") ? ICON_H : FP[k] && FP[k].ecap ? ICON_E : FP[k] && FP[k].to220 ? ICON_Q : k === "to92" || (FP[k] && FP[k].to92) ? ICON_TO92 : FP[k] && FP[k].dip ? ICON_DIP : FP[k] && FP[k].term ? ICON_TERM : k === "smd_2512" ? smdIcon(k) : k === "button12" ? `<img src="${iconSrc("button")}" alt="" loading="lazy">` : k.startsWith("smd_") ? smdIcon(k) : `<img src="${iconSrc(k)}" alt="" loading="lazy">`}<span class="mr-name">${SHORT(k)}</span><span class="mr-if">${n(k)}</span></button>`).join("");
     const cats = CATS(), H = hostInfo();
     // chọn board (trong Pindexio): ESP32-S3 cắm thẳng lên bo, board khác nối dây Dupont qua hàng rào J1
     const pick = SITE && window.BOARDS ? `<select id="plMcu" class="pl-mcu" aria-label="Board">${BOARDS.filter(b => !b.mod && b.headers).map(b => `<option value="${b.id}"${b.id === S.mcu ? " selected" : ""}>${b.name}</option>`).join("")}</select>` : "";
@@ -5971,11 +6085,11 @@
     $("#plList").innerHTML = `${w ? `<button type="button" class="pl-wire" id="plWire" title="${L("Lấy module và chân đã nối ở tab ⚡ Wiring", "Take the modules and pins wired in the ⚡ Wiring tab")} (${H.name})">⚡ ${L("Lấy mạch từ Wiring", "Import from Wiring")} <span class="mods-n">${w.mods.length}</span></button>` : ""}
       ${pick}${card}
       <input id="plSearch" class="pl-search" type="search" placeholder="${L("Tìm linh kiện…", "Search parts…")}" aria-label="${L("Tìm linh kiện", "Search parts")}">
-      ${STUDIO ? '<div class="mods open" id="plPw"><div class="mods-h"><span>Pinworld</span><span class="mods-n" id="plPwN"></span></div><div class="mods-list" id="plPwList" style="height:300px;min-height:80px;max-height:80vh;overflow:auto;resize:vertical;flex:none"></div></div>' : ""}
+      ${PW_BLOCK}
       <div class="mods open"><div class="mods-h"><span>${STUDIO ? "" : "🧩 "}${L("Linh kiện", "Components")}</span><span class="mods-n">${cats.slice(1).reduce((s, c) => s + c[2].length, 0)}</span></div>
       <div class="mods-list">${cats.slice(1).map(([g, ic, ks]) => `<div class="mods-cat${(S.catClosed || []).includes(g) ? " closed" : ""}" data-g="${g}"><div class="mods-ch" title="${g}" role="button" tabindex="0"><span aria-hidden="true">${ic}</span> <span class="mc-t">${g}</span><i class="mc-c" aria-hidden="true">▾</i></div>${rows(ks)}</div>`).join("")}</div></div>
       <p class="pl-note">${L(`Bấm để thêm vào giữa khung. Nguồn, I2C, SPI tự nối vào ${H.name}.`, `Click to add at the centre. Power, I2C and SPI are wired to ${H.name} automatically.`)}</p>`;
-    if (STUDIO) studioBlocks();
+    studioBlocks();   // PCB Maker cũng chia khối như Module PCB: Pinworld · Cơ bản · SMD · Linh kiện
     $$("[data-add]").forEach(b => b.onclick = () => cmd.add(b.dataset.add));
     $$("[data-add]").forEach(b => b.oncontextmenu = e => {   // chuột phải: thêm vào bo / bỏ khỏi "Linh kiện của tôi"
       e.preventDefault(); const k = b.dataset.add, old = ROOT.querySelector("#plListMenu"); if (old) old.remove();
@@ -5994,16 +6108,24 @@
     $$(".mods-ch").forEach(h => { const tg = () => { h.parentElement.classList.toggle("closed"); S.catClosed = [...$$(".mods-cat.closed")].map(x => x.dataset.g); save(); }; h.onclick = tg; h.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tg(); } }; });
     const sq = $("#plSearch"), filt = () => { const v = sq.value.trim().toLowerCase(); ui.q = v; $$(".mods-cat").forEach(c => { let any = false; c.querySelectorAll(".mod-row").forEach(x => { const hit = !v || x.dataset.q.includes(v); x.hidden = !hit; if (hit) any = true; }); c.hidden = !any; c.classList.toggle("sfind", !!v); }); };
     sq.oninput = () => { filt(); _pwInput(); }; sq.value = ui.q || ""; filt();
-    if (STUDIO) pwList();
+    pwList();
     if ($("#plMcu")) $("#plMcu").onchange = e => cmd.setBoard(e.target.value);
     if ($("#plWire")) $("#plWire").onclick = cmd.fromWiring;
   }
 
   /* ---------- PCB Studio: linh kiện Pinworld theo nhóm, bấm để nhập + đặt lên bo ---------- */
   let PWC = null, pwOpen = null;
+  const PW_BLOCK = '<div class="mods open" id="plPw"><div class="mods-h"><span>Pinworld</span><span class="mods-n" id="plPwN"></span></div><div class="mods-list" id="plPwList" style="height:300px;min-height:80px;max-height:80vh;overflow:auto;resize:vertical;flex:none"></div></div>';
   const PW_IC = {"board":"core/breadboard/arduino_Uno_Rev3_breadboard.svg","shield":"core/breadboard/canbus_shield-v12_breadboard.svg","disp":"core/breadboard/sparkfun-displays_lcd-16x2_noholes_breadboard.svg","led":"core/breadboard/LED-5mm-red-leg.svg","sens":"core/breadboard/hc-sr04_bf8299a_002.svg","motor":"contrib/breadboard/Adafruit_Feedback_Servo__small___e29a0e3__breadboard__ba57dddc506c67533722bfe9f9c159ea_E0.svg","power":"core/breadboard/batterypack_4xAAA.svg","input":"core/breadboard/basic_pbutton.svg","conn":"core/breadboard/sparkfun-connectors_stereojack2.5mm_stereojack2.5mm_breadboard.svg","ic":"core/breadboard/555timerbreadboard.svg","other":"core/breadboard/halfBreadboard.svg"};   // ảnh đại diện từng nhóm (Fritzing, jsDelivr)
   const SKCSS_PROP = "\n.pcblab[data-studio] .pl-side{background:#1e1f22!important;border:1px solid #3f4248!important;border-radius:3px!important;padding:6px!important;color:#dcdedf;font-size:11.5px}\n.pcblab[data-studio] .pl-side .steps{margin:0 0 4px!important}\n.pcblab[data-studio] .pl-side .steps li{padding:4px 7px 4px 30px!important;margin-bottom:3px!important;border-radius:3px!important;background:#26282d!important;border:1px solid #3f4248;font:600 11px var(--sans)!important}\n.pcblab[data-studio] .pl-side .steps li::before{left:7px!important;top:5px!important;width:15px!important;height:15px!important;font:700 9.5px/15px var(--sans)!important}\n.pcblab[data-studio] .pl-side .steps li.now{box-shadow:none!important;border-color:var(--accent,#4c8bf5)}\n.pcblab[data-studio] .pl-side .steps small{font-size:10px!important;color:#9aa0a6!important}\n.pcblab[data-studio] .pl-side .stat{gap:3px!important;margin-bottom:4px}\n.pcblab[data-studio] .pl-side .stat div{padding:5px 4px!important;border-radius:3px!important;background:#26282d!important;border:1px solid #3f4248;font-size:10px!important}\n.pcblab[data-studio] .pl-side .stat div.red{background:rgba(255,51,51,.12)!important;border-color:#7a2e2e}\n.pcblab[data-studio] .pl-side .stat b{font-size:15px!important}\n.pcblab[data-studio] .pl-side .box{margin:0 0 4px!important;padding:0!important;border-radius:3px!important;background:#26282d!important;border:1px solid #3f4248!important;overflow:hidden}\n.pcblab[data-studio] .pl-side .box.warn{border-color:#e2ad00!important}\n.pcblab[data-studio] .pl-side .box>h4{margin:0!important;padding:4px 7px!important;background:#35373b;color:#e5e7eb!important;font:600 10.5px var(--sans)!important;letter-spacing:0!important;text-transform:none!important}\n.pcblab[data-studio] .pl-side .box>*:not(h4){margin:0!important;padding:5px 7px!important}\n.pcblab[data-studio] .pl-side .box .mut{font-size:11px!important;color:#9aa0a6!important}\n.pcblab[data-studio] .pl-side>h4{margin:4px 0 0!important;padding:4px 7px!important;background:#35373b;border:1px solid #3f4248;border-radius:3px 3px 0 0;color:#e5e7eb!important;font:600 10.5px var(--sans)!important;letter-spacing:0!important;text-transform:none!important}\n.pcblab[data-studio] .pl-side>h4+.bsz,.pcblab[data-studio] .pl-side>.bsz{background:#26282d;border:1px solid #3f4248;border-top:0;padding:5px 7px;font-size:11px!important;color:#dcdedf}\n.pcblab[data-studio] .pl-side .bszb{background:#26282d;border:1px solid #3f4248;border-top:0;border-radius:0 0 3px 3px;margin:0!important;padding:5px 7px!important;gap:3px!important}\n.pcblab[data-studio] .pl-side .bszb button{padding:3px 6px!important;border-radius:3px!important;background:#1e1f22!important;border-color:#3f4248!important;color:#dcdedf!important;font-size:10.5px!important}\n.pcblab[data-studio] .pl-side .bszb button:hover,.pcblab[data-studio] .pl-side .bszb button.on{border-color:var(--accent,#4c8bf5)!important}\n.pcblab[data-studio] .pl-side .tinfo{font-size:11px!important}\n.pcblab[data-studio] .pl-side .tinfo td{border-bottom:1px solid #31343a!important;padding:2px 3px!important}\n.pcblab[data-studio] .pl-side .tinfo td:first-child{color:#9aa0a6}\n.pcblab[data-studio] .pl-side input,.pcblab[data-studio] .pl-side select{background:#1e1f22!important;color:#e5e7eb!important;border:1px solid #3f4248!important;border-radius:2px!important;font-size:11px!important;padding:2px 4px!important}\n";
   const SKCSS = "\n.pcblab .pl-search{background:#1e1f22!important;color:#e5e7eb!important;border:1px solid #3f4248!important;border-radius:3px!important;font-size:11px!important;padding:4px 7px!important;margin-bottom:4px!important}\n.pcblab .pl-list>.mods{align-self:stretch!important;width:auto!important;min-width:0!important;box-sizing:border-box!important;border:1px solid #3f4248!important;border-radius:3px!important;background:#26282d!important;overflow:hidden!important;margin:0 0 4px!important}\n.pcblab .pl-list>.mods>.mods-h{padding:4px 7px!important;margin:0!important;background:#35373b!important;color:#e5e7eb!important;border:0!important;font-size:10.5px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:6px}\n.pcblab .pl-list>.mods>.mods-h>span:first-child{flex:1}\n.pcblab .pl-list .mods-n{background:#1e1f22!important;color:#9aa0a6!important;padding:1px 5px!important;border-radius:6px!important;font-size:10px!important;font-weight:500!important}\n.pcblab .pl-list .mods-cat>.mods-ch{padding:3px 7px!important;margin:0!important;background:#2b2d31!important;color:#c3c7cc!important;border:0!important;border-top:1px solid #3f4248!important;border-radius:0!important;font-size:10.5px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important}\n.pcblab .pl-list .mods-cat>.mods-ch>span[aria-hidden]:not(.gi){display:none!important}\n.pcblab .pl-list .mods-cat>.mods-ch small{color:#9aa0a6!important;font-size:10px!important}\n.pcblab .pl-list .mod-row{padding:3px 7px!important;border-radius:2px!important;font-size:11px!important;font-weight:500!important;color:#dcdedf!important}\n.pcblab .pl-list .mod-row:hover{background:rgba(255,255,255,.08)!important}\n";
+  const pwCssLite = () => {   // PCB Maker: chỉ kiểu ô lưới của danh sách Pinworld
+    if (document.getElementById("plPwCss")) return;
+    const keep = ROOT.getAttribute("data-studio"), had = !!document.getElementById("plSkCss");
+    pwCss(); if (keep == null) ROOT.removeAttribute("data-studio");
+
+    if (!document.getElementById("plPwLite")) { const st = document.createElement("style"); st.id = "plPwLite"; st.textContent = "#plPw{margin-top:8px}#plPw .mods-ch .gi img{width:18px;height:18px;object-fit:contain;vertical-align:middle}"; document.head.appendChild(st); }
+  };
   const pwCss = () => {
     if (!document.getElementById("plSkCss")) { const st = document.createElement("style"); st.id = "plSkCss"; st.textContent = SKCSS + SKCSS_PROP; document.head.appendChild(st); }
     ROOT.setAttribute("data-studio", "1");   // kiểu gọn như bảng Sketch Props
@@ -6013,16 +6135,17 @@
   const FZ = "https://cdn.jsdelivr.net/gh/fritzing/fritzing-parts@develop/svg/core/";
   const SMD_IMG = { smd_0402: "breadboard/sparkfun-passives_0402-cap_breadboard.svg", smd_0603: "breadboard/sparkfun-passives_0603-cap_breadboard.svg", smd_0805: "breadboard/sparkfun-passives_0805_breadboard.svg", smd_1206: "breadboard/sparkfun-passives_1206_breadboard.svg", smd_sot23: "pcb/SMD_SOT-23.svg", smd_soic8: "breadboard/SO08_breadboard.svg" };
   function studioBlocks() {   // Studio: tách "Cơ bản" và "SMD" thành mục riêng, ngay dưới Pinworld
-    pwCss();
+    STUDIO ? pwCss() : pwCssLite();
     const anchor = $("#plPw"); if (!anchor) return;
     const mk = (id, title) => { const d = document.createElement("div"); d.className = "mods open"; d.id = id; d.innerHTML = `<div class="mods-h"><span>${title}</span></div><div class="mods-list"></div>`; return d; };
     const basic = mk("plBasic", L("Cơ bản", "Basics")), smd = mk("plSmd", "SMD");
-    $$(".mods-cat").forEach(c => { const g = c.dataset.g; if (g === L("Cơ bản", "Basics") || g === L("Công suất", "Power")) basic.querySelector(".mods-list").appendChild(c); else if (g === L("SMD chuẩn", "Standard SMD")) c.hidden = true; });
-    smd.querySelector(".mods-list").innerHTML = `<div class="pw-g">${Object.keys(SMD_IMG).map(k => `<button type="button" class="pw-c" data-add="${k}" title="${attr(NAME[k])}"><span class="pw-i"><img loading="lazy" alt="" src="${FZ + SMD_IMG[k]}" onerror="this.style.visibility='hidden'"></span><span class="pw-n">${attr(NAME[k])}</span></button>`).join("")}</div>`;
+    $$(".mods-cat").forEach(c => { const g = c.dataset.g; if (g === L("Cơ bản", "Basics") || g === L("Công suất", "Power")) basic.querySelector(".mods-list").appendChild(c); else if (g === L("SMD chuẩn", "Standard SMD")) smd.querySelector(".mods-list").appendChild(c); });
+    // SMD: dùng dòng của nhóm "SMD chuẩn" (icon SVG như linh kiện khác)
     anchor.after(basic); basic.after(smd);
     const lst = $("#plList"), bd = document.createElement("div"); bd.id = "plBoardBox"; bd.className = "pl-boardbox";
     ["#plMcu", ".board-card"].forEach(q => { const e = lst.querySelector(q); if (e) bd.appendChild(e); });
     if (bd.children.length) lst.appendChild(bd);
+    if (!STUDIO) { const cm = [...lst.querySelectorAll(":scope > .mods:not([id])")].pop(); if (cm) { cm.after(basic); basic.after(smd); smd.after(anchor); } }
     const closed = new Set(S.blkClosed || []);
     lst.querySelectorAll(":scope > .mods").forEach(b => {
       const h = b.querySelector(":scope > .mods-h"); if (!h) return;
@@ -6034,7 +6157,7 @@
   }
   async function pwList() {
     const box = $("#plPwList"); if (!box) return;
-    pwCss();
+    if (STUDIO) pwCss(); else pwCssLite();
     if (!PWC) {
       box.innerHTML = `<p class="pl-note">${L("Đang tải…", "Loading…")}</p>`;
       try {
@@ -6067,7 +6190,7 @@
       } catch (e) { toast(String(e.message || e)); } finally { b.disabled = false; }
     });
   }
-  const _pwInput = () => { if (STUDIO && $("#plPwList") && PWC) pwList(); };
+  const _pwInput = () => { if ($("#plPwList") && PWC) pwList(); };
 
   /* ---------- bảng bên phải + bộ công cụ ---------- */
   function checkBox() {
@@ -6580,7 +6703,7 @@
   // menu thả của nút Tự đi dây: "Tự đi lại khi sửa linh kiện" mặc định tắt (nhẹ máy, người dùng tự bấm)
   function tools() {
     const ic = { ph: '<rect x="2" y="7" width="20" height="10" rx="2"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/>', snap: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke-dasharray="2 1.5"/><circle cx="12" cy="12" r="3.2"/>', tsaw: '<rect x="14" y="2.5" width="8" height="5" rx="1" transform="rotate(45 18 5)"/><path d="M14.5 9.5L3.5 20.5M6.5 17.5l-2.5-.5M9.5 14.5l-2.5-.5M12.5 11.5l-2.5-.5"/>', space: '<path d="M4 5v14M20 5v14"/><path d="M8 12h8M8 12l2-2M8 12l2 2M16 12l-2-2M16 12l-2 2"/>', draw: '<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M13 8l3 3"/><path d="M3 22c3-1 5 1 8 0"/>', edit: '<path d="M3 21l1.6-4.6 3 3z"/><path d="M6.5 17.5L14 10"/><path d="M12 8l4-4 4 4-4 4z"/><path d="M19 14l2 2M21 11h1M15 18v2" stroke-width="1.6"/>', wid: '<path d="M4 6h16" stroke-width="1"/><path d="M4 12h16" stroke-width="2.5"/><path d="M4 19h16" stroke-width="4.5"/>', tms: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
-    comp: '<rect x="7" y="8.5" width="10" height="7" rx="1.5"/><path d="M2 12h5M17 12h5M10 8.5v7M14 8.5v7"/>', newb: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 9v6M9 12h6"/>', tcs: '<path d="M4 6v12M20 6v12M4 12h16M7 9l-3 3 3 3M17 9l3 3-3 3"/>', check: '<path d="M4 12l5 5L20 6"/>', sch: '<rect x="3" y="4" width="6" height="6" rx="1"/><rect x="15" y="14" width="6" height="6" rx="1"/><path d="M9 7h5v10h1"/><circle cx="14" cy="12" r="1.4"/>', tsel: '<path d="M6 3l12 9-5.5 1.2L15 20l-2.5 1-2.6-6.6L6 18z"/>', tcu: '<path d="M3 19l7-11 4 6 7-10" stroke-width="3.2"/>', tsk: '<path d="M4 18l5-10 6 4 5-8" stroke-width="1.8"/><circle cx="4" cy="18" r="1.8"/><circle cx="9" cy="8" r="1.8"/><circle cx="15" cy="12" r="1.8"/><circle cx="20" cy="4" r="1.8"/>', ttr: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9"/><path d="M14.5 14.5L20 20"/><path d="M8.1 8.1L12 12"/>', ter: '<path d="M9 20h11"/><path d="M4 15l9-9 6 6-8 8H8z"/><path d="M9 10l6 6"/>', ttf: '<path d="M4 17h11V6"/><path d="M15 17h5M15 6V2" stroke-dasharray="2 2" opacity=".55"/><circle cx="15" cy="17" r="2"/>', ttc: '<path d="M4 18h7l7-7V4"/><path d="M11 18h7v-7" stroke-dasharray="2 2" opacity=".55"/><circle cx="11" cy="18" r="1.7"/><circle cx="18" cy="11" r="1.7"/>', wire: '<path d="M4 19c4-1 3-8 8-8s4-7 8-8"/><circle cx="4" cy="19" r="1.6"/><circle cx="20" cy="3" r="1.6"/>', hole: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/>', pour: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12l8-8M4 20L20 4M12 20l8-8"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', jump: '<circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="6" r="2.6"/><path d="M7 16.2L17 7.8"/>', flip: '<path d="M12 3v18"/><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/>', undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>', redo: '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>', del: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', auto: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', clear: '<path d="M4 4l16 16M20 4L4 20"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', rats: '<path d="M4 18L20 6" stroke-dasharray="3 3"/>', ratEdit: '<path d="M4 18L15 7" stroke-dasharray="2.5 2"/><circle cx="4" cy="18" r="1.8"/><circle cx="15" cy="7" r="1.8"/><path d="M14 19l5-5 2 2-5 5-3 1z"/>', zin: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M8 11h6"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', unwire: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1L20 20M8.1 15.9L20 4"/>', re: '<path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/>', arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>', fitB: '<rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2"/><path d="M8 8h8v8H8z"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3"/>', full: '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>' };
+    comp: '<rect x="7" y="8.5" width="10" height="7" rx="1.5"/><path d="M2 12h5M17 12h5M10 8.5v7M14 8.5v7"/>', newb: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 9v6M9 12h6"/>', tcs: '<path d="M4 6v12M20 6v12M4 12h16M7 9l-3 3 3 3M17 9l3 3-3 3"/>', check: '<path d="M4 12l5 5L20 6"/>', sch: '<rect x="2" y="3" width="8" height="6" rx="1.2"/><rect x="14" y="3" width="8" height="6" rx="1.2"/><rect x="8" y="15" width="8" height="6" rx="1.2"/><path d="M6 9v3h12V9M12 12v3"/>', tsel: '<path d="M6 3l12 9-5.5 1.2L15 20l-2.5 1-2.6-6.6L6 18z"/>', tcu: '<path d="M3 19l7-11 4 6 7-10" stroke-width="3.2"/>', tsk: '<path d="M4 18l5-10 6 4 5-8" stroke-width="1.8"/><circle cx="4" cy="18" r="1.8"/><circle cx="9" cy="8" r="1.8"/><circle cx="15" cy="12" r="1.8"/><circle cx="20" cy="4" r="1.8"/>', ttr: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9"/><path d="M14.5 14.5L20 20"/><path d="M8.1 8.1L12 12"/>', ter: '<path d="M9 20h11"/><path d="M4 15l9-9 6 6-8 8H8z"/><path d="M9 10l6 6"/>', ttf: '<path d="M4 17h11V6"/><path d="M15 17h5M15 6V2" stroke-dasharray="2 2" opacity=".55"/><circle cx="15" cy="17" r="2"/>', ttc: '<path d="M4 18h7l7-7V4"/><path d="M11 18h7v-7" stroke-dasharray="2 2" opacity=".55"/><circle cx="11" cy="18" r="1.7"/><circle cx="18" cy="11" r="1.7"/>', wire: '<path d="M4 19c4-1 3-8 8-8s4-7 8-8"/><circle cx="4" cy="19" r="1.6"/><circle cx="20" cy="3" r="1.6"/>', hole: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/>', pour: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12l8-8M4 20L20 4M12 20l8-8"/>', dl: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>', jump: '<circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="6" r="2.6"/><path d="M7 16.2L17 7.8"/>', flip: '<path d="M12 3v18"/><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/>', undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>', redo: '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/>', rot: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>', del: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', auto: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/>', scheme: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', clear: '<path d="M4 4l16 16M20 4L4 20"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', rats: '<path d="M4 18L20 6" stroke-dasharray="3 3"/>', ratEdit: '<path d="M4 18L15 7" stroke-dasharray="2.5 2"/><circle cx="4" cy="18" r="1.8"/><circle cx="15" cy="7" r="1.8"/><path d="M14 19l5-5 2 2-5 5-3 1z"/>', zin: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M8 11h6"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/>', unwire: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1L20 20M8.1 15.9L20 4"/>', re: '<path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/>', arr: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>', fitB: '<rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2"/><path d="M8 8h8v8H8z"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3"/>', full: '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>' };
     // chữ dưới icon: 1–2 từ; tên đầy đủ + giải thích nằm ở title (rê chuột)
     const SHORT = { plSnap: "Snap", plWidth: L("Độ rộng", "Width"), plTjw: STUDIO ? "Jumper pad" : L("Dây nhảy", "Jumper"), plTcs: L("Dim", "Dim"), plAuto: "AutoRoute", plUnwire: L("Gỡ dây", "Unwire"), plClear: L("Xoá hết", "Clear"), plZin: L("Phóng", "Zoom +"), plZout: L("Thu", "Zoom −"),
       plRatEdit: "Edit", plFit: L("Vừa", "Fit"), plFlip: L("Lật", "Flip"), plUndo: L("Hoàn tác", "Undo"), plRedo: L("Làm lại", "Redo"), plArr: L("Sắp xếp", "Arrange"), plReset: L("Làm mới", "Reset"), plPour: L("Mass", "Pour") };
@@ -6600,11 +6723,12 @@
       + b("plFitBoard", "fitB", L("Auto resize to parts", "Auto resize to parts"), L("Auto resize to parts: co / giãn khung PCB vừa khít các linh kiện hiện có", "Auto resize to parts: resize PCB outline to fit current parts"), 1)
       + b("plReset", "reset", L("Làm mới", "Reset"), L("Làm mới: xoá hết, chỉ để lại board", "Reset: clear everything except the board"))
       + b("plTms", "tms", L("Thước", "Ruler"), TOOLS().ms[1]).replace("<button ", '<button data-tool="ms" ')
-      + b("plTcs", "tcs", L("Dim", "Dim"), TOOLS().cs[1]).replace("<button ", '<button data-tool="cs" ') + b("plCheck", "check", L("Kiểm", "Check"), L("Kiểm: so PCB với tab Wiring và datasheet, chỉ ra chỗ khác hoặc nghi ngờ (chỉ báo, không tự sửa)", "Check: compare the PCB with the Wiring tab and datasheets, point out differences and doubts (report only, no auto-fix)"), 1) + b("plSch", "sch", L("Sơ đồ", "Schematic"), L("Sơ đồ khối & Bảng Netlist: kiểm tra nối chân, chân hở và soi mạng trên PCB", "Block Schematic & Netlist: inspect pin connections, open nets, and highlight on PCB"))
+      + b("plCheck", "check", L("Kiểm", "Check"), L("Kiểm: so PCB với tab Wiring và datasheet, chỉ ra chỗ khác hoặc nghi ngờ (chỉ báo, không tự sửa)", "Check: compare the PCB with the Wiring tab and datasheets, point out differences and doubts (report only, no auto-fix)"), 1) + b("plSch", "sch", L("Sơ đồ", "Schematic"), L("Sơ đồ khối & Bảng Netlist: kiểm tra nối chân, chân hở và soi mạng trên PCB", "Block Schematic & Netlist: inspect pin connections, open nets, and highlight on PCB"))
       + `<span style="flex:1"></span><button type="button" class="tb pl-helpbtn" id="plHelpBtn" data-popbtn title="${L("Cách dùng", "How to use")}" aria-label="${L("Cách dùng", "How to use")}">?</button>` + (window.navigator.standalone ? "" : b("plFull", "full", L("Tràn viền", "Fullscreen"), L("Toàn màn hình / tràn viền", "Toggle fullscreen"), 1)) + b("plExport", "dl", "Export", L("Xuất mặt đồng, ký hiệu, mặt linh kiện (SVG / PNG 1:1) hoặc Gerber cho xưởng", "Export copper, silkscreen, component side (1:1 SVG / PNG) or Gerber for fabs"));
     // Fill / Chamfer không nằm trên thanh dọc: nút ◂ cạnh Pen mở menu xổ bên trái (thu / mở, nhớ trạng thái)
     const WELD = ["tr", "tf", "tc", "ex"];
-    $("#plVbar").innerHTML = (STUDIO ? b("plNewBoard", "newb", L("Tạo PCB", "New PCB"), L("Tạo hình & kích thước bo PCB (Chữ nhật / Tròn / Đa giác)", "Create PCB shape & size (Rect / Circle / Polygon)")) : "") + (STUDIO ? "" : b("plAuto", "auto", "AutoRoute", L("AutoRoute: bấm để tự đi dây ngay và mở bảng chọn kiểu (Vuông góc / Kiểu 45° / Ngắn nhất), độ thoáng, độ rộng dây. Phím A = đi dây ngay.", "AutoRoute: click to route immediately and open options (90° / 45° / Shortest, spacing, width). A = route now."))) + `<div class="pl-tools">${Object.entries(TOOLS()).filter(([k]) => ![...WELD, "ms", "cs", "sk", "rat", "pt"].includes(k) || k === "tr").map(([k, [t, tip]]) => (k === "tr" ? (true ? b("plTcomp", "comp", "Component", L("Component: linh kiện 2 chân theo kích thước chuẩn (SMD / chân cắm) hoặc tuỳ chỉnh. Đặt lên đường đồng để tự cắt và nối; chọn linh kiện rồi đổi thông số ở đây", "Component: 2-pin part at standard sizes (SMD / through-hole) or custom. Drop on a trace to splice in; select a part and change its parameters here")) : "") + b("plTph", "ph", "Pin / Pad", L("Pin / Pad: chọn số chân, bước chân, đường kính, tròn/vuông, xoay, SMD rồi click đặt lên bo", "Pin / Pad: set pins, pitch, pad diameter, round/square, rotate, SMD and click to place")) + b("plTsk", "tsk", "Sketch Route", TOOLS().sk[1]).replace("<button ", '<button data-tool="sk" ') + b("plTtr", "edit", L("Sửa dây", "Edit"), L("Trim (T) · Fillet (F) · Chamfer (C) · Extend (E): bấm để mở, bấm lại để tắt", "Trim (T) · Fillet (F) · Chamfer (C) · Extend (E): click to open, click again to close")).replace("<button ", '<button data-tool="tr" ') : b("plT" + k, k === "jw" ? "jump" : k === "dr" ? "draw" : "t" + k, t, tip).replace("<button ", `<button data-tool="${k}" `))).join("")}</div>`
+    const DIMB = b("plTcs", "tcs", L("Dim", "Dim"), TOOLS().cs[1]).replace("<button ", '<button data-tool="cs" ');
+    $("#plVbar").innerHTML = (STUDIO ? b("plNewBoard", "newb", L("Tạo PCB", "New PCB"), L("Tạo hình & kích thước bo PCB (Chữ nhật / Tròn / Đa giác)", "Create PCB shape & size (Rect / Circle / Polygon)")) : "") + (STUDIO ? "" : b("plAuto", "auto", "AutoRoute", L("AutoRoute: bấm để tự đi dây ngay và mở bảng chọn kiểu (Vuông góc / Kiểu 45° / Ngắn nhất), độ thoáng, độ rộng dây. Phím A = đi dây ngay.", "AutoRoute: click to route immediately and open options (90° / 45° / Shortest, spacing, width). A = route now."))) + `<div class="pl-tools">${Object.entries(TOOLS()).filter(([k]) => ![...WELD, "ms", "cs", "sk", "rat", "pt"].includes(k) || k === "tr").map(([k, [t, tip]]) => (k === "tr" ? (true ? b("plTcomp", "comp", "Component", L("Component: linh kiện 2 chân theo kích thước chuẩn (SMD / chân cắm) hoặc tuỳ chỉnh. Đặt lên đường đồng để tự cắt và nối; chọn linh kiện rồi đổi thông số ở đây", "Component: 2-pin part at standard sizes (SMD / through-hole) or custom. Drop on a trace to splice in; select a part and change its parameters here")) : "") + b("plTph", "ph", "Pin / Pad", L("Pin / Pad: chọn số chân, bước chân, đường kính, tròn/vuông, xoay, SMD rồi click đặt lên bo", "Pin / Pad: set pins, pitch, pad diameter, round/square, rotate, SMD and click to place")) + b("plTsk", "tsk", "Sketch Route", TOOLS().sk[1]).replace("<button ", '<button data-tool="sk" ') + b("plTtr", "edit", L("Sửa dây", "Edit"), L("Trim (T) · Fillet (F) · Chamfer (C) · Extend (E): bấm để mở, bấm lại để tắt", "Trim (T) · Fillet (F) · Chamfer (C) · Extend (E): click to open, click again to close")).replace("<button ", '<button data-tool="tr" ') : b("plT" + k, k === "jw" ? "jump" : k === "dr" ? "draw" : "t" + k, t, tip).replace("<button ", `<button data-tool="${k}" `) + (k === "cu" ? DIMB : ""))).join("")}</div>`
       + b("plUnwire", "unwire", L("Gỡ dây", "Unwire"), L("Gỡ dây: đang chọn linh kiện → gỡ dây nối vào linh kiện đó; không chọn linh kiện → xoá hết mọi đường đồng & dây nhảy (Ctrl+Z để lấy lại)", "Unwire: part selected → remove wires on that part; nothing selected → clear all traces & jumpers (Ctrl+Z to undo)")) + b("plPour", "pour", L("Phủ mass", "GND pour"), L("Đổ đồng GND vào chỗ trống (khe chỉnh ở bảng bên phải, nan nhiệt)", "Fill free areas with GND copper (clearance set in the right panel, thermal spokes)"));
     $("#plAlpha").oninput = e => { S.alpha = e.target.value / 100; render(); };
     $("#plTips").innerHTML = tipsHTML(); $("#plHelpBtn").onclick = toggleHelp; $("#plFile").onclick = toggleFileMenu; $("#plLayers").onclick = layerMenu; ensureLayers(); applyLayers();
@@ -6643,7 +6767,7 @@
         renderCsPop();
         setTool("sel");
       } else setTool("cs");
-    }); on("#plCheck", cmd.check); on("#plSch", openSchematicModal); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plFit", fit); on("#plRats", cmd.rats); on("#plRatEdit", () => { if (ui.tool === "rat") setTool("sel"); else { if (!S.rats) S.rats = true; setTool("rat"); render(); } }); on("#plSnap", cmd.snapG); on("#plUnit", () => { S.unit = S.unit === "in" ? "mm" : "in"; const ub = $("#plUnit"); if (ub) { ub.classList.toggle("on", S.unit === "in"); ub.querySelector("span").textContent = S.unit; } save(); drawRulers(); toast(L("Hệ thước: ", "Ruler unit: ") + (S.unit === "in" ? "inch (in)" : "mm")); }); on("#plGrid", () => { S.gridStep = gridStep() < 2 ? G : SN; const gb = $("#plGrid"), is127 = S.gridStep < 2; if (gb) { gb.classList.toggle("on", is127); gb.querySelector("span").textContent = is127 ? "1.27" : "2.54"; } const pat = $("#grid"); if (pat) { pat.setAttribute("width", S.gridStep); pat.setAttribute("height", S.gridStep); } save(); render(); toast(L("Lưới & Snap: ", "Grid & Snap: ") + (is127 ? "1,27 mm" : "2,54 mm")); }); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
+    }); on("#plCheck", cmd.check); on("#plSch", openSchematicModal); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plFit", fit); on("#plRats", cmd.rats); on("#plRatEdit", () => { if (ui.tool === "rat") setTool("sel"); else { if (!S.rats) S.rats = true; setTool("rat"); render(); } }); on("#plSnap", cmd.snapG); on("#plUnit", () => { S.unit = S.unit === "in" ? "mm" : "in"; const ub = $("#plUnit"); if (ub) { ub.classList.toggle("on", S.unit === "in"); ub.querySelector("span").textContent = S.unit; } save(); drawRulers(); render(); if (ui.cs) drawCs(); { for (const q of ["#plFlyCM", "#plFlyPH"]) { const x = $(q); if (x && x.uFix) x.uFix(); } } toast(L("Hệ thước: ", "Ruler unit: ") + (S.unit === "in" ? "inch (in)" : "mm")); }); on("#plGrid", () => { S.gridStep = gridStep() < 2 ? G : SN; const gb = $("#plGrid"), is127 = S.gridStep < 2; if (gb) { gb.classList.toggle("on", is127); gb.querySelector("span").textContent = is127 ? "1.27" : "2.54"; } const pat = $("#grid"); if (pat) { pat.setAttribute("width", S.gridStep); pat.setAttribute("height", S.gridStep); } save(); render(); toast(L("Lưới & Snap: ", "Grid & Snap: ") + (is127 ? "1,27 mm" : "2,54 mm")); }); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
     /* Bố cục: nút xoay vòng 4 kiểu + nút đổi bên trái/phải của 2 bảng (nhớ lại cho lần sau) */
     (() => {
       const LAYS = [["", L("Cân bằng", "Balanced")], ["wide", L("Ưu tiên bản vẽ", "Canvas first")], ["focus", L("Chỉ bản vẽ", "Canvas only")], ["tools", L("Ưu tiên công cụ", "Tools first")]];
@@ -6839,11 +6963,11 @@
       <div class="ph-pm" style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:6px" role="group" aria-label="${L("Bước chân", "Pitch")}"><button type="button" data-pm="2.54" title="0,1 inch">2,54 mm</button><button type="button" data-pm="1.27" class="on" title="0,05 inch">1,27 mm</button></div>
       <div style="display:grid;grid-template-columns:1fr 62px;gap:5px 10px;align-items:center;font-size:12px">
         <span style="white-space:nowrap">${L("Số chân", "Pins")}</span><input id="plPhPins" type="number" min="1" max="40" step="1" value="3" style="width:62px;text-align:right">
-        <span style="white-space:nowrap">${L("Bước (mm)", "Pitch (mm)")}</span><input id="plPhPitch" type="number" min="0.4" max="25.4" step="0.01" value="1.27" style="width:62px;text-align:right">
-        <span class="ph-dia" style="white-space:nowrap">${L("ĐK (mm)", "Pad Ø (mm)")}</span><input class="ph-dia" id="plPhDia" type="number" min="0.4" max="8.0" step="0.1" value="1.1" style="width:62px;text-align:right">
-        <span class="ph-dr" style="white-space:nowrap">${L("Lỗ Ø (mm)", "Drill Ø (mm)")}</span><input class="ph-dr" id="plPhDr" type="number" min="0.3" max="4" step="0.05" value="" placeholder="auto" style="width:62px;text-align:right">
-        <span class="ph-wh" style="white-space:nowrap;display:none">${L("Dài W (mm)", "Len W (mm)")}</span><input class="ph-wh" id="plPhW" type="number" min="0.3" max="10" step="0.05" value="1.2" style="width:62px;text-align:right;display:none">
-        <span class="ph-wh" style="white-space:nowrap;display:none">${L("Rộng H (mm)", "Wid H (mm)")}</span><input class="ph-wh" id="plPhH" type="number" min="0.3" max="10" step="0.05" value="0.8" style="width:62px;text-align:right;display:none">
+        <span style="white-space:nowrap">${L("Bước (<span class=\"uu\">mm</span>)", "Pitch (<span class=\"uu\">mm</span>)")}</span><input id="plPhPitch" type="number" min="0.4" max="25.4" step="0.01" value="1.27" style="width:62px;text-align:right">
+        <span class="ph-dia" style="white-space:nowrap">${L("ĐK (<span class=\"uu\">mm</span>)", "Pad Ø (<span class=\"uu\">mm</span>)")}</span><input class="ph-dia" id="plPhDia" type="number" min="0.4" max="8.0" step="0.1" value="1.1" style="width:62px;text-align:right">
+        <span class="ph-dr" style="white-space:nowrap">${L("Lỗ Ø (<span class=\"uu\">mm</span>)", "Drill Ø (<span class=\"uu\">mm</span>)")}</span><input class="ph-dr" id="plPhDr" type="number" min="0.3" max="4" step="0.05" value="" placeholder="auto" style="width:62px;text-align:right">
+        <span class="ph-wh" style="white-space:nowrap;display:none">${L("Dài W (<span class=\"uu\">mm</span>)", "Len W (<span class=\"uu\">mm</span>)")}</span><input class="ph-wh" id="plPhW" type="number" min="0.3" max="10" step="0.05" value="1.2" style="width:62px;text-align:right;display:none">
+        <span class="ph-wh" style="white-space:nowrap;display:none">${L("Rộng H (<span class=\"uu\">mm</span>)", "Wid H (<span class=\"uu\">mm</span>)")}</span><input class="ph-wh" id="plPhH" type="number" min="0.3" max="10" step="0.05" value="0.8" style="width:62px;text-align:right;display:none">
       </div>
       <hr style="margin:7px 0;border:none;border-top:1px solid rgba(255,255,255,.12)">
       <style>#plFlyPH .ph-row{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 4px}#plFlyPH .ph-chip{display:flex;flex-direction:column;align-items:center;gap:4px;color:#c3c7cc;font-size:11px;line-height:1;cursor:pointer;white-space:nowrap}#plFlyPH .ph-chip input{margin:0;width:13px;height:13px;accent-color:#4c8bf5;cursor:pointer}#plFlyPH .ph-pm button.on{background:var(--accent,#dc8e43);border-color:var(--accent,#dc8e43);color:#111}</style>
@@ -6862,29 +6986,36 @@
     {   // gợi ý chuẩn cho từng ô (vẫn gõ số riêng được)
       const smd = () => !!($("#plPhSmd") && $("#plPhSmd").checked);
       addCombo($("#plPhPins"), () => [2, 3, 4, 6, 8, 10, 16, 20, 40], 62);
-      addCombo($("#plPhPitch"), () => [0.65, 1.0, 1.27, 2.0, 2.54, 3.81, 5.08, 7.62], 62);
-      addCombo($("#plPhDia"), () => smd() ? [0.6, 0.8, 1.0, 1.2, 1.5] : [1.1, 1.4, 1.6, 1.8, 2.0, 2.5], 62);
-      addCombo($("#plPhW"), () => smd() ? [0.55, 0.95, 1.2, 1.6] : [1.6, 2, 2.5, 3], 62);
-      addCombo($("#plPhH"), () => smd() ? [0.6, 1, 1.4, 1.8] : [1.6, 1.8, 2, 2.5], 62);
+      const cU = a => a.map(v => UIN() ? Math.round(v / 25.4 * 1e4) / 1e4 : v);
+      addCombo($("#plPhPitch"), () => cU([0.65, 1.0, 1.27, 2.0, 2.54, 3.81, 5.08, 7.62]), 62);
+      addCombo($("#plPhDia"), () => cU(smd() ? [0.6, 0.8, 1.0, 1.2, 1.5] : [1.1, 1.4, 1.6, 1.8, 2.0, 2.5]), 62);
+      addCombo($("#plPhW"), () => cU(smd() ? [0.55, 0.95, 1.2, 1.6] : [1.6, 2, 2.5, 3]), 62);
+      addCombo($("#plPhH"), () => cU(smd() ? [0.6, 1, 1.4, 1.8] : [1.6, 1.8, 2, 2.5]), 62);
       addCombo($("#plPhGap"), () => [0.3, 0.4, 0.5, 0.6, 0.7, 0.9], 62);
-      addCombo($("#plPhDr"), () => [0.6, 0.8, 1.0, 1.2, 1.5], 62);
+      addCombo($("#plPhDr"), () => cU([0.6, 0.8, 1.0, 1.2, 1.5]), 62);
     }
+    // hệ thước inch: ô số hiện / nhập theo inch, bên trong vẫn tính mm (cách hàng vốn tính bằng inch: giữ nguyên)
+    const PHU = ["plPhPitch", "plPhDia", "plPhDr", "plPhW", "plPhH"];
+    const phFix = () => { const u = UIN() ? "in" : "mm", o = fph.dataset.u || "mm"; pmLbl(fph); fph.querySelectorAll(".uu").forEach(x => x.textContent = u); if (o === u) return; const k = o === "mm" ? 1 / 25.4 : 25.4; for (const id of PHU) { const i = $("#" + id), v = parseFloat(String(i.value).replace(",", ".")); if (isFinite(v)) i.value = u === "in" ? Math.round(v * k * 1e4) / 1e4 : Math.round(v * k * 100) / 100; i.step = "any"; } fph.dataset.u = u; };
+    const phG = id => { phFix(); return parseFloat(String($("#" + id).value).replace(",", ".")) * (UIN() ? 25.4 : 1); };
+    const phS = (id, mm) => { phFix(); $("#" + id).value = UIN() ? Math.round(+mm / 25.4 * 1e4) / 1e4 : mm; };
+    fph.uFix = phFix; fph.dataset.u = "mm"; phFix();
     const getPhFp = () => {
       const n = Math.max(1, Math.min(40, parseInt($("#plPhPins").value) || 3));
-      const p = Math.max(0.4, Math.min(25.4, parseFloat($("#plPhPitch").value) || 1.27));
-      const d = Math.max(0.4, Math.min(8.0, parseFloat($("#plPhDia").value) || 1.1));
+      const p = Math.max(0.4, Math.min(25.4, phG("plPhPitch") || 1.27));
+      const d = Math.max(0.4, Math.min(8.0, phG("plPhDia") || 1.1));
       const rectOn = !!($("#plPhRect") && $("#plPhRect").checked);
       fph.querySelectorAll(".ph-wh").forEach(x => x.style.display = rectOn ? "" : "none");
       fph.querySelectorAll(".ph-dia").forEach(x => x.style.display = rectOn ? "none" : "");
-      const pw = rectOn ? Math.max(0.3, Math.min(10, parseFloat($("#plPhW").value) || 1.2)) : 0;
-      const ph = rectOn ? Math.max(0.3, Math.min(10, parseFloat($("#plPhH").value) || 0.8)) : 0;
+      const pw = rectOn ? Math.max(0.3, Math.min(10, phG("plPhW") || 1.2)) : 0;
+      const ph = rectOn ? Math.max(0.3, Math.min(10, phG("plPhH") || 0.8)) : 0;
       const sq = $("#plPhSq").checked ? 1 : 0;
       const smd = $("#plPhSmd").checked ? 1 : 0, rows = Math.max(1, Math.min(10, parseInt($("#plPhRows").value) || 1));
       const gap = Math.max(.05, Math.min(6, Math.round((parseFloat($("#plPhGap").value) || .7) * 100) / 100));
       { const gi = $("#plPhGap"), gm = $("#plPhGapMm"), mmTxt = String(r3(gap * 25.4)).replace(".", L(",", ".")) + " mm"; gi.disabled = rows < 2; gi.title = gap + " inch = " + mmTxt; if (gm) { gm.textContent = "= " + mmTxt + (rows < 2 ? L(" (dùng khi 2 hàng)", " (used with 2 rows)") : ""); gm.style.opacity = rows < 2 ? ".45" : ".75"; } }
       fph.querySelectorAll("[data-pm]").forEach(b => b.classList.toggle("on", Math.abs(+b.dataset.pm - p) < .005));
       fph.querySelectorAll(".ph-dr").forEach(x => x.style.display = smd ? "none" : "");
-      let dr = smd ? 0 : (parseFloat($("#plPhDr").value) || 0); if (dr > 0) dr = r3(Math.max(0.3, Math.min(dr, (rectOn ? Math.min(pw, ph) : d) - 0.3)));   // lỗ luôn nhỏ hơn pad
+      let dr = smd ? 0 : (phG("plPhDr") || 0); if (dr > 0) dr = r3(Math.max(0.3, Math.min(dr, (rectOn ? Math.min(pw, ph) : d) - 0.3)));   // lỗ luôn nhỏ hơn pad
       return `pinHdr_${n}_${p}_${d}_${sq}_${smd}` + (rows > 1 ? `_r${rows}_${gap}` : "") + (rectOn ? `_x${pw}x${ph}` : "") + (dr > 0 ? `_h${dr}` : "");
     };
     const syncPhGhost = () => {
@@ -6901,10 +7032,10 @@
         return;
       }
       const [p, d] = v.split(",");
-      $("#plPhPins").value = 2; $("#plPhPitch").value = p; $("#plPhDia").value = d; $("#plPhSq").checked = true; $("#plPhSmd").checked = true; $("#plPhRows").value = 1; syncPhGhost(); getPhFp();
+      $("#plPhPins").value = 2; phS("plPhPitch", p); phS("plPhDia", d); $("#plPhSq").checked = true; $("#plPhSmd").checked = true; $("#plPhRows").value = 1; syncPhGhost(); getPhFp();
     };
     fph.querySelectorAll("[data-pm]").forEach(b => b.onclick = () => {
-      const p = +b.dataset.pm; $("#plPhPitch").value = p; $("#plPhDia").value = p < 2 ? "1.1" : "2.0"; syncPhGhost(); getPhFp();
+      const p = +b.dataset.pm; phS("plPhPitch", p); phS("plPhDia", p < 2 ? 1.1 : 2.0); syncPhGhost(); getPhFp();
     });
     ["#plPhPins", "#plPhPitch", "#plPhDia", "#plPhRect", "#plPhW", "#plPhH", "#plPhSq", "#plPh180", "#plPhSmd", "#plPhRows", "#plPhGap", "#plPhDr"].forEach(sel => {
       const inp = $(sel);
@@ -7009,14 +7140,19 @@
         + row(L("Chuẩn", "Standard"), '<select id="cmPre" style="width:96px">' + PRE.map(([k, t]) => '<option value="' + k + '">' + t + '</option>').join("") + '<option value="">' + L("Tuỳ chỉnh", "Custom") + '</option></select>')
         + row(L("Loại", "Kind"), '<select id="cmKind" style="width:96px"><option value="R">R · ' + L("Điện trở", "Resistor") + '</option><option value="C">C · ' + L("Tụ", "Capacitor") + '</option><option value="LED">LED</option><option value="D">D · Diode</option><option value="L">L · ' + L("Cuộn cảm", "Inductor") + '</option><option value="">J · ' + L("Chân / header", "Pins / header") + '</option></select>')
         + row(L("Hình pad", "Pad shape"), '<select id="cmSh" style="width:96px"><option value="round">' + L("Tròn", "Round") + '</option><option value="square">' + L("Vuông", "Square") + '</option><option value="rect">' + L("Chữ nhật", "Rectangle") + '</option></select>')
-        + row(L("ĐK (mm)", "Pad Ø (mm)"), nm("cmD", 1.8, 0.4, 8, 0.1), "cm-d")
-        + row(L("Dài W (mm)", "Len W (mm)"), nm("cmW", 0.95, 0.3, 10, 0.05), "cm-r") + row(L("Rộng H (mm)", "Wid H (mm)"), nm("cmH", 1, 0.3, 10, 0.05), "cm-r")
-        + row(L("Bước (mm)", "Pitch (mm)"), nm("cmP", 10.16, 0.4, 25.4, 0.01))
-        + row(L("Lỗ Ø (mm)", "Drill Ø (mm)"), nm("cmDr", "", 0.3, 4, 0.05), "cm-h")
+        + row(L("ĐK (<span class=\"uu\">mm</span>)", "Pad Ø (<span class=\"uu\">mm</span>)"), nm("cmD", 1.8, 0.4, 8, 0.1), "cm-d")
+        + row(L("Dài W (<span class=\"uu\">mm</span>)", "Len W (<span class=\"uu\">mm</span>)"), nm("cmW", 0.95, 0.3, 10, 0.05), "cm-r") + row(L("Rộng H (<span class=\"uu\">mm</span>)", "Wid H (<span class=\"uu\">mm</span>)"), nm("cmH", 1, 0.3, 10, 0.05), "cm-r")
+        + row(L("Bước (<span class=\"uu\">mm</span>)", "Pitch (<span class=\"uu\">mm</span>)"), nm("cmP", 10.16, 0.4, 25.4, 0.01))
+        + row(L("Lỗ Ø (<span class=\"uu\">mm</span>)", "Drill Ø (<span class=\"uu\">mm</span>)"), nm("cmDr", "", 0.3, 4, 0.05), "cm-h")
         + row("Snap", '<input id="cmSnap" type="checkbox"' + (S.snapG !== false ? " checked" : "") + ' title="' + L("Bắt lưới khi đặt / kéo (dùng chung nút Snap chính)", "Grid snap when placing / dragging (shared with the main Snap button)") + '" style="margin:0;justify-self:end">')
         + row(L("Có lỗ khoan", "Drilled hole"), '<input id="cmHole" type="checkbox" checked style="margin:0;justify-self:end">')
         + '</div><div style="font-size:10.5px;opacity:.65;margin-top:6px;line-height:1.3;width:0;min-width:100%">' + L("R xoay · đặt lên đường đồng để tự cắt & nối", "R rotates · drop on a trace to splice in") + '</div>';
       const q = id => fc.querySelector("#" + id);
+      // hệ thước inch: ô số hiện / nhập theo inch, bên trong vẫn tính mm
+      const UU = () => UIN() ? "in" : "mm", KU = () => UIN() ? 25.4 : 1;
+      const uFix = () => { const u = UU(), o = fc.dataset.u || "mm"; pmLbl(fc); if (o === u) return; const k = o === "mm" ? 1 / 25.4 : 25.4; for (const id of ["cmD", "cmW", "cmH", "cmP", "cmDr"]) { const i = q(id), v = parseFloat(String(i.value).replace(",", ".")); if (isFinite(v)) i.value = u === "in" ? Math.round(v * k * 1e4) / 1e4 : Math.round(v * k * 100) / 100; i.step = "any"; } fc.querySelectorAll(".uu").forEach(x => x.textContent = u); fc.dataset.u = u; }; fc.uFix = uFix; fc.dataset.u = "mm"; uFix();
+      const gv = id => { uFix(); return parseFloat(String(q(id).value).replace(",", ".")) * KU(); };
+      const sv = (id, mm) => { uFix(); q(id).value = mm === "" || mm == null || !isFinite(+mm) ? "" : UIN() ? Math.round(+mm / 25.4 * 1e4) / 1e4 : r3(+mm); };
       const SMDS = ["smd_0402", "smd_0603", "smd_0805", "smd_1206"].map(k => FP[k].pads), uq = a => [...new Set(a.map(v => r3(v)))].sort((x, y) => x - y);
       const STD = id => {   // 3–5 giá trị chuẩn theo loại (SMD hoặc chân cắm)
         const th = q("cmHole").checked;
@@ -7027,19 +7163,19 @@
         return th ? [1.6, 1.8, 2, 2.5] : uq(SMDS.map(p => p[0].h));
       };
       const IDS = ["cmD", "cmW", "cmH", "cmP", "cmDr"], selSync = () => {};
-      IDS.forEach(id => addCombo(q(id), () => STD(id), 96));   // cùng kiểu ô số + ▾ với bảng Pin / Pad
+      IDS.forEach(id => addCombo(q(id), () => STD(id).map(v => UIN() ? Math.round(v / 25.4 * 1e4) / 1e4 : v), 96));   // cùng kiểu ô số + ▾ với bảng Pin / Pad
       const vis = () => { const r = q("cmSh").value === "rect"; fc.querySelectorAll(".cm-d").forEach(x => x.style.display = r ? "none" : ""); fc.querySelectorAll(".cm-r").forEach(x => x.style.display = r ? "" : "none"); fc.querySelectorAll(".cm-h").forEach(x => x.style.display = q("cmHole").checked ? "" : "none");
-        fc.querySelectorAll("[data-cpm]").forEach(b => { const on = Math.abs(+b.dataset.cpm - parseFloat(q("cmP").value)) < .005; b.classList.toggle("on", on); }); selSync(); };
+        fc.querySelectorAll("[data-cpm]").forEach(b => { const on = Math.abs(+b.dataset.cpm - gv("cmP")) < .005; b.classList.toggle("on", on); }); selSync(); };
       const fill = k => {   // nạp thông số chuẩn vào các ô
-        if (k.startsWith("smd_")) { const f = FP[k], a = f.pads[0], b = f.pads[1]; q("cmSh").value = "rect"; q("cmW").value = a.w; q("cmH").value = a.h; q("cmP").value = r3(Math.abs(b.x - a.x)); q("cmHole").checked = false; }
-        else if (k.startsWith("t:")) { const [, p, d] = k.split(":"); q("cmSh").value = "round"; q("cmD").value = d; q("cmP").value = p; q("cmHole").checked = true; }
+        if (k.startsWith("smd_")) { const f = FP[k], a = f.pads[0], b = f.pads[1]; q("cmSh").value = "rect"; sv("cmW", a.w); sv("cmH", a.h); sv("cmP", r3(Math.abs(b.x - a.x))); q("cmHole").checked = false; }
+        else if (k.startsWith("t:")) { const [, p, d] = k.split(":"); q("cmSh").value = "round"; sv("cmD", d); sv("cmP", p); q("cmHole").checked = true; }
         vis();
       };
       const keyNow = () => {   // chuẩn → dùng footprint chuẩn; khác chuẩn → footprint tuỳ chỉnh
         const k = q("cmPre").value; if (k.startsWith("smd_")) return k;
-        const n = (id, d, lo, hi) => Math.max(lo, Math.min(hi, parseFloat(q(id).value) || d)), sh = q("cmSh").value, rc = sh === "rect";
+        const n = (id, d, lo, hi) => Math.max(lo, Math.min(hi, gv(id) || d)), sh = q("cmSh").value, rc = sh === "rect";
         const w = rc ? n("cmW", 1, 0.3, 10) : 0, h = rc ? n("cmH", 1, 0.3, 10) : 0, d = rc ? Math.max(w, h) : n("cmD", 1.8, 0.4, 8);
-        let dr = q("cmHole").checked ? (parseFloat(q("cmDr").value) || 0) : 0; if (dr > 0) dr = r3(Math.max(0.3, Math.min(dr, (rc ? Math.min(w, h) : d) - 0.3)));
+        let dr = q("cmHole").checked ? (gv("cmDr") || 0) : 0; if (dr > 0) dr = r3(Math.max(0.3, Math.min(dr, (rc ? Math.min(w, h) : d) - 0.3)));
         return pinHdrKey(2, r3(n("cmP", 2.54, 0.4, 25.4)), r3(d), sh === "square", !q("cmHole").checked, 1, .7, r3(w), r3(h), dr);
       };
       const selC = () => ui.sel && ui.sel.t === "c" ? S.comps.find(c => c.id === ui.sel.id && FP[c.fp] && FP[c.fp].pads.length === 2) : null;
@@ -7058,7 +7194,7 @@
       q("cmSnap").onchange = () => { if ((S.snapG !== false) !== q("cmSnap").checked) cmd.snapG(); };
       q("cmPre").onchange = () => { const k = q("cmPre").value, hit = PRE.find(x => x[0] === k); if (hit) q("cmKind").value = hit[2]; fill(k); apply(); };
       q("cmKind").onchange = apply;
-      fc.querySelectorAll("[data-cpm]").forEach(b => b.onclick = () => { const p = +b.dataset.cpm; q("cmSh").value = "round"; q("cmP").value = p; q("cmD").value = p < 2 ? 1.1 : 2; q("cmHole").checked = true; q("cmPre").value = ""; vis(); apply(); });
+      fc.querySelectorAll("[data-cpm]").forEach(b => b.onclick = () => { const p = +b.dataset.cpm; q("cmSh").value = "round"; sv("cmP", p); sv("cmD", p < 2 ? 1.1 : 2); q("cmHole").checked = true; q("cmPre").value = ""; vis(); apply(); });
       fc.querySelectorAll("#cmSh,#cmD,#cmW,#cmH,#cmP,#cmHole,#cmDr").forEach(x => x.oninput = x.onchange = () => { vis(); q("cmPre").value = ""; apply(); });   // sửa tay → Tuỳ chỉnh
       fill(q("cmPre").value = "t:2.54:2"); q("cmKind").value = "R";   // mặc định hệ 2,54
       $("#plTcomp").onclick = () => {
@@ -7066,9 +7202,9 @@
         if (fc.classList.contains("on")) { fc.classList.remove("on"); if (ui.mode === "place") cancel(); return; }
         const c = selC();
         if (!c) { startPlaceComp(keyNow(), 0); ui.place.sym = q("cmKind").value || undefined; ui.place.pre = preOf(q("cmKind").value); }   // đặt trước: startPlaceComp đóng mọi popout
-        closeAllPopouts("plFlyCM"); fc.classList.add("on"); fc.style.top = Math.max(6, Math.min(top, st.clientHeight - fc.offsetHeight - 6)) + "px";
+        uFix(); closeAllPopouts("plFlyCM"); fc.classList.add("on"); fc.style.top = Math.max(6, Math.min(top, st.clientHeight - fc.offsetHeight - 6)) + "px";
         if (c) { const f = FP[c.fp], a = f.pads[0], b = f.pads[1], hit = PRE.find(([k]) => k === c.fp); q("cmPre").value = hit ? c.fp : "";
-          q("cmSh").value = a.w ? "rect" : a.sq ? "square" : "round"; q("cmW").value = a.w || 1; q("cmH").value = a.h || 1; q("cmD").value = r3((a.r || PAD_R) * 2); q("cmP").value = r3(Math.hypot(b.x - a.x, b.y - a.y)); q("cmHole").checked = !a.smd; q("cmDr").value = a.drill || ""; q("cmKind").value = c.sym || ""; vis(); }
+          q("cmSh").value = a.w ? "rect" : a.sq ? "square" : "round"; sv("cmW", a.w || 1); sv("cmH", a.h || 1); sv("cmD", r3((a.r || PAD_R) * 2)); sv("cmP", r3(Math.hypot(b.x - a.x, b.y - a.y))); q("cmHole").checked = !a.smd; sv("cmDr", a.drill || ""); q("cmKind").value = c.sym || ""; vis(); }
       };
     }
     $("#plTph").onclick = () => {
@@ -7562,144 +7698,253 @@
       }
       return warns;
     };
+    const READ_ONLY = new Set(["get_state", "get_bom", "list_parts", "pinworld_search", "get_drc", "get_geometry", "export_pdi", "get_rules", "get_image", "check_current"]);
+    const fail = (msg, hint) => { const e = new Error(msg); if (hint) e.hint = hint; throw e; };
+    const normRot = r => { const v = ((Math.round(+r || 0) % 360) + 360) % 360; if (v % 90) fail("Góc xoay phải là 0, 90, 180 hoặc 270 (nhận " + r + ")", "Chỉ hỗ trợ bội của 90°."); return v; };
+    const findComp = id => S.comps.find(c => c.id === id) || fail("Không có linh kiện " + id, "Xem id trong get_state. Có: " + S.comps.map(c => c.id).join(", "));
+    const refresh = () => { save(); list(); render(); };
+    const pinOf = p => p.c.id + "." + p.name;
+    const area = () => r3(S.board.w * S.board.h);
+    const summary = () => { analyze(); return { board: { w: S.board.w, h: S.board.h }, comps: S.comps.length, traces: S.traces.length, jumpers: S.jumpers.length, drcCount: A.drc.length, unroutedCount: A.rats.length, unroutedNets: [...new Set(A.rats.map(r => r.net))], pour: !!S.pour }; };
+    const score = s => s.unroutedCount * 1000 + s.drcCount * 100 + s.jumpers * 20 + .02 * s.board.w * s.board.h;
+    const compNets = c => new Set(analyze().P.filter(p => p.c === c && p.net).map(p => p.net));
+    const unrouteNets = nets => { S.traces = S.traces.filter(t => t.lock || !nets.has(t.net)); S.jumpers = S.jumpers.filter(j => !j.auto || !nets.has(j.net)); };
+    const pinCheck = (fp, nets) => { const f = FP[fp]; if (!f) return; const valid = f.pads.map(p => p.name), bad = Object.keys(nets || {}).filter(k => !valid.includes(k)); if (bad.length) fail(`${fp}: không có chân ${bad.join(", ")}`, "Chân hợp lệ: " + valid.join(", ")); };
+    const routeReport = only => {
+      const s = summary(), inS = n => !only || only.has(n);
+      const failed = A.rats.filter(r => inS(r.net)).map(r => ({ net: r.net, from: pinOf(r.a), to: pinOf(r.b), a: [r.a.x, r.a.y], b: [r.b.x, r.b.y], len: r3(Math.hypot(r.a.x - r.b.x, r.a.y - r.b.y)) }));
+      const jumpers = S.jumpers.filter(j => inS(j.net)).map(j => ({ id: j.id, net: j.net, a: j.a, b: j.b, len: r3(Math.hypot(j.a[0] - j.b[0], j.a[1] - j.b[1])), auto: !!j.auto }));
+      const hints = [];
+      if (failed.length) hints.push("Còn kết nối hỏng: thử arrange {tries:3, autoroute:true}, nới bo (fit_board {roomy:true}/resize_board), cho dây nhảy (bỏ no_jumpers / tăng max_jumpers), giảm độ rộng mạng, hoặc add_jumper/add_trace tay ở vùng giữa a và b.");
+      if (s.drcCount) hints.push("Có lỗi DRC: get_drc xem toạ độ; thường do linh kiện sát nhau/sát mép → move_part hoặc nới bo rồi autoroute lại.");
+      return { ...s, score: Math.round(score(s)), failed, jumpersNeeded: jumpers, hints };
+    };
+    const doRoute = (a = {}) => {
+      const only = Array.isArray(a.nets) && a.nets.length ? new Set(a.nets.map(String)) : null;
+      if (a.net_widths) for (const [n, w] of Object.entries(a.net_widths)) (S.netW = S.netW || {})[n] = r3(Math.max(.2, Math.min(5, +w)));
+      if (a.pour_gnd != null) S.pour = !!a.pour_gnd;
+      const tc = OPT.timeCap; if (a.time_limit) OPT.timeCap = Math.max(1000, Math.min(60000, +a.time_limit * 1000));
+      RT.only = only; RT.maxJ = a.no_jumpers ? 0 : a.max_jumpers != null ? Math.max(0, parseInt(a.max_jumpers) || 0) : null;
+      try { cmd.auto(true); } finally { RT.only = null; RT.maxJ = null; OPT.timeCap = tc; }
+      return routeReport(only);
+    };
+    const addComp = p => {
+      if (!FP[p.fp]) { const q = String(p.fp || "").toLowerCase().split(/[_:]/)[0], sug = Object.keys(FP0).filter(k => k.toLowerCase().includes(q)).slice(0, 8); fail("Không có footprint " + p.fp, "Dùng list_parts {q} để tra mã." + (sug.length ? " Gần giống: " + sug.join(", ") : "")); }
+      pinCheck(p.fp, p.nets);
+      const ref = p.ref && !S.comps.some(c => c.id === p.ref) ? String(p.ref) : agentId(p.fp);
+      const c = { id: ref, fp: p.fp, x: r3(+p.x || 0), y: r3(+p.y || 0), rot: normRot(p.rot), ...(p.val ? { val: String(p.val) } : {}), ...(p.nets ? { nets: { ...p.nets } } : {}), ...(p.lock ? { lock: true } : {}) };
+      S.comps.push(c); return c;
+    };
+    const arrangeTry = (seed, a) => { S.arrSeed = Math.max(0, (parseInt(seed) || 1) - 1); const ar = S.autoRe; S.autoRe = false; cmd.arrange(); S.autoRe = ar; if (a.autoroute) return doRoute(a); return summary(); };
+    const arrangeBest = a => {
+      const seeds = Array.isArray(a.seeds) && a.seeds.length ? a.seeds.map(n => parseInt(n) || 1) : a.seed != null ? [parseInt(a.seed) || 1] : Array.from({ length: Math.max(1, Math.min(8, parseInt(a.tries) || 1)) }, (_, i) => (parseInt(a.start_seed) || 1) + i);
+      const aa = { ...a, time_limit: a.time_limit || (seeds.length > 1 ? 4 : 0) };
+      let best = null; const tried = [];
+      for (const sd of seeds) { const r = arrangeTry(sd, aa), sc = score(r.board ? r : summary()); tried.push({ seed: sd, score: Math.round(sc), unrouted: r.unroutedCount, drc: r.drcCount, jumpers: r.jumpers, board: r.board }); if (!best || sc < best.sc) best = { sc, sd, st: JSON.stringify(S), r }; }
+      if (seeds.length > 1) { S = JSON.parse(best.st); refresh(); fit(); }
+      return { bestSeed: best.sd, tried, ...(a.autoroute ? routeReport(null) : summary()) };
+    };
+    const exec = async (action, args = {}) => {
+      if (action === "get_state") {
+        analyze();
+        return { studio: STUDIO, noBoard: !!S.noBoard, board: S.board, wSig: W_SIG, wPwr: W_PWR, netWidths: S.netW || {}, pour: !!S.pour, comps: S.comps.map(c => ({ id: c.id, fp: c.fp, x: c.x, y: c.y, rot: c.rot || 0, val: c.val, nets: c.nets, ...(c.lock ? { lock: true } : {}) })), traces: S.traces.length, jumpers: S.jumpers.length, drcCount: A.drc.length, unroutedCount: A.rats.length, unroutedNets: [...new Set(A.rats.map(r => r.net))] };
+      }
+      if (action === "get_rules") return {
+        units: "mm, gốc toạ độ ở góc trên-trái bo, x sang phải, y xuống dưới", grid: G, clearance: CLR, edgeClearance: EDGE, padDefault: { d: 2 * PAD_R, drill: 2 * DRILL_R },
+        jumper: { pad: 2 * JP_R, drill: JP_DRILL, minLen: JP_MIN, maxLen: JP_MAX, note: "dây trần hàn ở mặt linh kiện; autoroute tự đặt khi bo 1 mặt bị kẹt" },
+        widths: { signal: W_SIG, power: W_PWR, powerNets: [...PWR], perNet: S.netW || {} }, pour: { on: !!S.pour, clearance: S.pourClr ?? POUR_CLR, edge: POUR_EDGE, spoke: SPOKE },
+        rotation: "rot 0/90/180/270; 90 = xoay theo chiều kim đồng hồ nhìn mặt trước; chân cục bộ (x,y) → (−y, x) rồi cộng (comp.x, comp.y). Toạ độ thật của chân: get_geometry.",
+        headers: "pinHdr_N: 1 hàng chân 1..N bước 2,54. Header 2 hàng (_r2_): hàng 1 chân 1..N trái→phải, hàng 2 chân N+1..2N phải→trái (kiểu DIP). HDR:A,B,C: tên chân = tên mạng.",
+        autorouteTimeCapMs: OPT.timeCap
+      };
+      if (action === "get_geometry") {
+        analyze(); const nf = Array.isArray(args.nets) && args.nets.length ? new Set(args.nets) : null, pf = Array.isArray(args.parts) && args.parts.length ? new Set(args.parts) : null;
+        const ok = n => !nf || nf.has(n);
+        return {
+          board: S.board,
+          pins: A.P.filter(p => S.comps.includes(p.c) && ok(p.net) && (!pf || pf.has(p.c.id))).map(p => ({ ref: p.c.id, pin: p.name, net: p.net || null, x: p.x, y: p.y, ...(p.pw ? { w: p.pw, h: p.ph } : { r: p.r || PAD_R }), ...(p.smd ? { smd: true } : {}), ...(p.drill ? { drill: p.drill } : {}) })),
+          bodies: S.comps.filter(c => !pf || pf.has(c.id)).map(c => ({ ref: c.id, ...Object.fromEntries(Object.entries(compBox(c)).map(([k, v]) => [k, r3(v)])) })),
+          traces: S.traces.filter(t => ok(t.net)).map(t => ({ id: t.id, net: t.net, w: traceW(t), pts: t.pts, ...(t.lock ? { lock: true } : {}) })),
+          jumpers: S.jumpers.filter(j => ok(j.net)).map(j => ({ id: j.id, net: j.net, a: j.a, b: j.b, ...(j.auto ? { auto: true } : {}) })),
+          holes: (S.holes || []).filter(h => ok(h.net)).map(h => ({ id: h.id, net: h.net, x: h.x, y: h.y }))
+        };
+      }
+      if (action === "export_pdi") return projectDoc();
+      if (action === "load_pdi") {
+        const txt = typeof args.doc === "string" ? args.doc : JSON.stringify(args.doc || {});
+        const e = loadProjectText(txt); if (e) fail(e, "doc phải là object .pdi đầy đủ như export_pdi trả về: {format:'pindexio-pdi', version, data:{board, comps, traces, jumpers, ...}}.");
+        const warnings = checkNets(S.comps); return { comps: S.comps.length, ...(warnings.length ? { warnings } : {}), ...summary() };
+      }
+      if (action === "create_board") {
+        S.noBoard = false; S.autoB = false; const sh = args.shape || "rect";
+        if (sh === "rect") S.board = { w: r3(Math.max(10, +args.w || 50)), h: r3(Math.max(10, +args.h || 30)), rx: r3(Math.max(0, args.rx != null ? +args.rx : 1.5)) };
+        else { const d = Math.max(10, +args.d || 40), rad = d / 2, n = sh === "circle" ? 48 : Math.max(3, Math.min(24, parseInt(args.n) || 6)), poly = []; for (let i = 0; i < n; i++) { const a = (i * 2 * Math.PI / n) - Math.PI / 2; poly.push([r3(rad + rad * Math.cos(a)), r3(rad + rad * Math.sin(a))]); } S.board = { w: r3(d), h: r3(d), poly }; }
+        save(); render(); fit(); return { board: S.board };
+      }
+      if (action === "resize_board") {
+        S.noBoard = false; S.autoB = false; const b = S.board || { w: 50, h: 30, rx: 1.5 };
+        const nw = args.w != null ? r3(Math.max(10, +args.w)) : b.w, nh = args.h != null ? r3(Math.max(10, +args.h)) : b.h, nrx = args.rx != null ? r3(Math.max(0, +args.rx)) : (b.rx != null ? b.rx : 1.5);
+        if (b.poly && b.poly.length && b.w > 0 && b.h > 0) { const sx = nw / b.w, sy = nh / b.h; S.board = { w: nw, h: nh, poly: b.poly.map(p => [r3(p[0] * sx), r3(p[1] * sy)]) }; } else S.board = { w: nw, h: nh, rx: nrx };
+        save(); render(); fit(); return { board: S.board };
+      }
+      if (action === "fit_board") {
+        if (!S.comps.length) fail("Bo chưa có linh kiện", "add_part trước.");
+        S.noBoard = false; S.autoB = false; const m = args.roomy ? roomy() : (args.margin != null ? Math.max(1, Math.min(30, +args.margin)) : BMARGIN);
+        const sh = fitBoardTo(m) || [0, 0]; save(); render(); fit(); return { margin: m, shift: sh, ...summary() };
+      }
+      if (action === "auto_board") { const on = args.on != null ? !!args.on : !S.autoB; if (on !== !!S.autoB) cmd.autoBoard(); else render(); save(); return { autoBoard: !!S.autoB, board: S.board }; }
+      if (action === "set_route_config") {
+        if (args.w_sig != null) S.wSig = r3(Math.max(.2, Math.min(3, +args.w_sig)));
+        if (args.w_pwr != null) S.wPwr = r3(Math.max(.2, Math.min(3, +args.w_pwr)));
+        syncW(); if (args.apply_existing) for (const t of S.traces) delete t.w;
+        save(); render(); return { wSig: W_SIG, wPwr: W_PWR, netWidths: S.netW || {} };
+      }
+      if (action === "set_net_width") {
+        const m = args.widths && typeof args.widths === "object" ? args.widths : args.net ? { [args.net]: args.w } : fail("Thiếu net / w", "Ví dụ {net:'VM', w:1.5} hoặc {widths:{VM:1.5, GND:1.2}}");
+        S.netW = S.netW || {}; let n = 0;
+        for (const [net, w0] of Object.entries(m)) { if (w0 == null || w0 === 0) { delete S.netW[net]; continue; } const w = r3(Math.max(.2, Math.min(5, +w0))); if (!(w > 0)) fail("Độ rộng không hợp lệ: " + w0); S.netW[net] = w; for (const t of S.traces) if (t.net === net && t.w) { t.w = w; n++; } }
+        refresh(); return { netWidths: S.netW, updatedTraces: n, note: "Đường tự đi dây dùng độ rộng mới ngay; chạy autoroute lại để né theo độ rộng mới." };
+      }
+      if (action === "get_bom") {
+        const map = new Map();
+        for (const c of S.comps) { const f = FP[c.fp], key = c.fp + "|" + (c.val || ""); if (!map.has(key)) map.set(key, { fp: c.fp, label: (f && f.label) || c.fp, val: c.val || "", count: 0, refs: [] }); const row = map.get(key); row.count++; row.refs.push(c.id); }
+        return { total: S.comps.length, items: [...map.values()] };
+      }
+      if (action === "list_parts") {
+        const q = String(args.q || "").trim().toLowerCase(), lim = Math.max(1, Math.min(200, parseInt(args.limit) || 40));
+        const all = Object.entries(FP).map(([fp, f]) => ({ fp, label: f.label || fp, smd: !!f.smd, mine: !!f.mine, pins: (f.pads || []).map(p => p.name) })).filter(it => !q || it.fp.toLowerCase().includes(q) || it.label.toLowerCase().includes(q));
+        return { total: all.length, shown: Math.min(all.length, lim), parts: all.slice(0, lim), note: "Header tuỳ biến: pinHdr_N (1 hàng 2,54) hoặc pinHdr_N_pitch_padD_sq_noHole_r2_gapInch (2 hàng)." };
+      }
+      if (action === "pinworld_search" || action === "pinworld_import") {
+        if (!window.PINWORLD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/pinworld.js"; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
+        const cat = await window.PINWORLD.catalog();
+        if (action === "pinworld_search") { const q = String(args.q || "").trim().toLowerCase(), lim = Math.max(1, Math.min(50, parseInt(args.limit) || 15)); const hits = cat.parts.filter(p => !q || String(p[0]).toLowerCase().includes(q) || String(p[2]).toLowerCase().includes(q)); return { total: hits.length, items: hits.slice(0, lim).map(p => ({ title: p[0], src: p[1], fzp: p[2], pins: p[5] || 0 })) }; }
+        const p = cat.parts.find(x => x[2] === args.fzp); if (!p) fail("PinWorld part not found: " + args.fzp, "Dùng pinworld_search lấy fzp.");
+        const built = await window.PINWORLD.build(p); if (built.blocked) fail("Part blocked: " + (built.warn || []).join("; "));
+        const o = window.PINWORLD.mine.get(); o.parts[built.part.id] = { ...built.part, verified: false }; window.PINWORLD.mine.put(o); loadMine(); list();
+        let placed = null; if (args.x != null && args.y != null && FP[built.part.id]) { placed = addComp({ fp: built.part.id, x: args.x, y: args.y, rot: args.rot }); refresh(); }
+        return { fp: built.part.id, title: built.part.title, pins: (built.part.pads || []).map(q => q.name), warn: built.warn || [], placed };
+      }
+      if (action === "edit_mypart") {
+        const raw = localStorage.getItem("pindexio-myparts"), store = raw ? JSON.parse(raw) : { parts: {} }, part = store.parts && store.parts[args.fp];
+        if (!part) fail("MyPart not found: " + args.fp, "Chỉ sửa được linh kiện trong kho của người dùng (pinworld_import).");
+        if (args.title != null) part.title = String(args.title); if (args.w != null) part.w = r3(Math.max(1, +args.w)); if (args.h != null) part.h = r3(Math.max(1, +args.h)); if (args.verified != null) part.verified = !!args.verified;
+        if (Array.isArray(args.pads) && Array.isArray(part.pads)) for (const pe of args.pads) { const pad = pe.index != null && part.pads[pe.index] ? part.pads[pe.index] : pe.match_name != null ? part.pads.find(q => q.name === pe.match_name) : null; if (!pad) continue; if (pe.name != null) pad.name = String(pe.name); if (pe.role != null) { pad.role = String(pe.role); pad.conf = 1; } if (pe.x != null) pad.x = r3(+pe.x); if (pe.y != null) pad.y = r3(+pe.y); }
+        localStorage.setItem("pindexio-myparts", JSON.stringify(store)); loadMine(); list(); render();
+        return { fp: part.id, title: part.title, w: part.w, h: part.h, verified: !!part.verified, pads: (part.pads || []).map((q, i) => ({ index: i, name: q.name, role: q.role, x: q.x, y: q.y })) };
+      }
+      if (action === "add_part") { const c = addComp(args); refresh(); const warnings = checkNets([c]); return warnings.length ? { ...c, warnings } : c; }
+      if (action === "add_parts_batch") {
+        const out = []; for (const [i, p] of (args.parts || []).entries()) { try { out.push({ i, ok: true, id: addComp(p).id }); } catch (e) { out.push({ i, ok: false, error: e.message, hint: e.hint }); } }
+        refresh(); return { added: out.filter(x => x.ok).length, results: out, ...(args.autoroute ? doRoute(args) : summary()) };
+      }
+      if (action === "move_part" || action === "rotate_part") {
+        const c = findComp(args.id), nets = compNets(c);
+        if (action === "move_part") { if (args.x != null) c.x = r3(+args.x); if (args.y != null) c.y = r3(+args.y); if (args.dx) c.x = r3(c.x + +args.dx); if (args.dy) c.y = r3(c.y + +args.dy); if (args.rot != null) c.rot = normRot(args.rot); }
+        else c.rot = args.rot != null ? normRot(args.rot) : normRot((c.rot || 0) + (args.by != null ? +args.by : 90));
+        if (!args.keep_traces) unrouteNets(nets); refresh();
+        return { id: c.id, x: c.x, y: c.y, rot: c.rot, ...(args.autoroute ? doRoute(args) : summary()) };
+      }
+      if (action === "remove_part") {
+        const ids = Array.isArray(args.ids) ? args.ids : [args.id]; const gone = [];
+        for (const id of ids) { const c = findComp(id), nets = compNets(c); S.comps = S.comps.filter(x => x !== c); unrouteNets(nets); gone.push(id); }
+        refresh(); return { removed: gone, ...summary() };
+      }
+      if (action === "set_nets") {
+        const c = findComp(args.id); if (!args.nets || typeof args.nets !== "object") fail("Thiếu nets", "Ví dụ {id:'R1', nets:{'1':'LED_A','2':'GND'}}; giá trị null để bỏ nối.");
+        pinCheck(c.fp, args.nets); const old = compNets(c);
+        c.nets = args.replace ? {} : { ...(c.nets || {}) }; for (const [k, v] of Object.entries(args.nets)) c.nets[k] = v == null || v === "" ? null : String(v);
+        unrouteNets(new Set([...old, ...compNets(c)])); refresh(); return { id: c.id, nets: c.nets, ...summary() };
+      }
+      if (action === "clear_board") {
+        S.traces = []; S.jumpers = []; S.holes = []; S.routed = false; ui.sel = null;
+        if (!args.keep_parts) S.comps = args.remove_host ? [] : S.comps.filter(isHost);
+        if (args.reset_widths) delete S.netW; refresh(); return summary();
+      }
+      if (action === "add_trace") {
+        const pts = Array.isArray(args.pts) ? args.pts.map(p => [r3(+p[0]), r3(+p[1])]) : [];
+        if (pts.length < 2 || pts.some(p => !isFinite(p[0]) || !isFinite(p[1]))) fail("pts cần ≥ 2 điểm [x,y]", "Ví dụ {net:'SDA', pts:[[10,5],[20,5],[20,12]]}; đầu/cuối đặt đúng toạ độ chân (get_geometry).");
+        if (!args.net) fail("Thiếu net", "Đặt đúng tên mạng của 2 chân cần nối.");
+        const t = { id: S.uid++, net: String(args.net), pts, lock: true, ...(args.w ? { w: r3(Math.max(.2, Math.min(5, +args.w))) } : {}) };
+        S.traces.push(t); refresh(); return { id: t.id, ...summary() };
+      }
+      if (action === "add_jumper") {
+        const a = args.a, b = args.b; if (!Array.isArray(a) || !Array.isArray(b)) fail("Thiếu a/b [x,y]");
+        const L0 = Math.hypot(a[0] - b[0], a[1] - b[1]); if (L0 < JP_MIN - 1e-6 || L0 > JP_MAX + 1e-6) fail(`Dây nhảy dài ${r3(L0)} mm, phải trong ${JP_MIN}–${JP_MAX} mm`, "Dời một đầu, hoặc nối 2 dây nhảy qua add_trace ở giữa.");
+        if (!args.net) fail("Thiếu net");
+        const j = { id: S.uid++, net: String(args.net), a: [r3(+a[0]), r3(+a[1])], b: [r3(+b[0]), r3(+b[1])] }; S.jumpers.push(j); refresh(); return { id: j.id, ...summary() };
+      }
+      if (action === "delete_trace") {
+        const ids = new Set((args.ids || (args.id != null ? [args.id] : [])).map(Number)), jids = new Set((args.jumper_ids || []).map(Number)); const n0 = S.traces.length + S.jumpers.length;
+        S.traces = S.traces.filter(t => !ids.has(t.id) && !(args.net && t.net === args.net) && !(args.all_unlocked && !t.lock));
+        S.jumpers = S.jumpers.filter(j => !jids.has(j.id) && !ids.has(j.id) && !(args.net && j.net === args.net) && !(args.all_unlocked && j.auto));
+        gcHoles(); refresh(); return { deleted: n0 - S.traces.length - S.jumpers.length, ...summary() };
+      }
+      if (action === "pour_gnd") {
+        S.pour = args.on !== false; if (args.clearance != null) S.pourClr = r3(Math.max(.3, Math.min(3, +args.clearance)));
+        if (args.reroute !== false && S.comps.length > 1) return doRoute(args);
+        refresh(); return summary();
+      }
+      if (action === "autoroute") return doRoute(args);
+      if (action === "arrange") { if (S.comps.length < 2) fail("Cần ≥ 2 linh kiện để sắp xếp"); return arrangeBest(args); }
+      if (action === "get_image") {
+        analyze(); const kind = { copper: "cu", silk: "mark", parts: "parts" }[args.layer || "copper"] || "cu";
+        let svg = exportSVG(kind, !!args.mirror);
+        if (args.rats !== false && A.rats.length) svg = svg.replace(/<\/g><\/svg>$/, A.rats.map(r => `<line x1="${r.a.x}" y1="${r.a.y}" x2="${r.b.x}" y2="${r.b.y}" stroke="#e00" stroke-width=".3" stroke-dasharray="1 .6"/>`).join("") + "</g></svg>");
+        if (args.format === "svg") return { layer: args.layer || "copper", svg };
+        const W = Math.max(200, Math.min(1600, parseInt(args.width) || 700)), H = Math.round(W * S.board.h / S.board.w);
+        const img = new Image(); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); await img.decode();
+        const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, W, H); g.drawImage(img, 0, 0, W, H);
+        return { layer: args.layer || "copper", px: [W, H], mmPerPx: r3(S.board.w / W), unrouted: A.rats.length, image: { mimeType: "image/png", data: cv.toDataURL("image/png").split(",")[1] } };
+      }
+      if (action === "check_current") {   // IPC-2221 lớp ngoài: I = 0,048 · ΔT^0,44 · A^0,725 (A: mil²)
+        const cur = args.currents && typeof args.currents === "object" ? args.currents : fail("Thiếu currents", "Ví dụ {currents:{VM:5, GND:5}, dT:10, copper_um:35}");
+        const dT = Math.max(1, +args.dT || 10), tUm = Math.max(5, +args.copper_um || 35), tMil = tUm / 25.4, rho = 1.72e-8;
+        const needW = I => r3(Math.pow(I / (.048 * Math.pow(dT, .44)), 1 / .725) / tMil * .0254);
+        const nets = Object.entries(cur).map(([net, I0]) => {
+          const I = +I0, req = needW(I), ts = S.traces.filter(t => t.net === net); let len = 0, R = 0; const narrow = [];
+          for (const t of ts) { const w = traceW(t), l = t.pts.reduce((a, p, k) => k ? a + Math.hypot(p[0] - t.pts[k - 1][0], p[1] - t.pts[k - 1][1]) : a, 0); len += l; R += rho * (l / 1000) / ((w / 1000) * (tUm / 1e6)); if (w < req - 1e-6) narrow.push({ id: t.id, w, len: r3(l) }); }
+          return { net, I, needWidth: req, minWidth: ts.length ? Math.min(...ts.map(traceW)) : null, traces: ts.length, length: r3(len), resistanceMilliOhm: r3(R * 1000), dropMilliV: r3(R * I * 1000), ok: !narrow.length, narrow, ...(S.pour && net === GND ? { note: "GND có đổ đồng: dòng chủ yếu đi qua mass" } : {}) };
+        });
+        return { dT, copper_um: tUm, nets, hint: nets.some(n => !n.ok) ? "Tăng độ rộng: set_net_width {widths:{<net>: needWidth}} rồi autoroute lại (dời linh kiện nếu không đủ chỗ)." : "" };
+      }
+      if (action === "get_drc") { analyze(); return { count: A.drc.length, errors: A.drc.map(v => ({ x: v.x, y: v.y, msg: v.msg })) }; }
+      if (action === "build_from_netlist") {
+        if (!Array.isArray(args.parts) || !args.parts.length) fail("Thiếu parts", "parts:[{fp, ref?, val?, nets:{chân:mạng}, x?, y?, rot?}]");
+        S.traces = []; S.jumpers = []; S.holes = []; S.comps = args.keep_host === false ? [] : S.comps.filter(isHost); S.noBoard = false; S.autoB = false;
+        if (args.board) S.board = { w: r3(Math.max(10, +args.board.w || 60)), h: r3(Math.max(10, +args.board.h || 40)), rx: 1.5 };
+        if (args.net_widths) S.netW = { ...(S.netW || {}), ...args.net_widths };
+        S.pour = args.pour_gnd !== false;
+        const errs = []; for (const [i, p] of args.parts.entries()) { try { addComp(p); } catch (e) { errs.push({ i, fp: p.fp, error: e.message, hint: e.hint }); } }
+        const placed = args.parts.every(p => p.x != null && p.y != null);
+        const rep = placed || S.comps.length < 2 ? doRoute(args) : arrangeBest({ ...args, autoroute: true, tries: args.tries || 3 });
+        if (args.fit !== false && placed && !args.board) { fitBoardTo(roomy()); refresh(); fit(); }
+        return { partErrors: errs, parts: S.comps.map(c => ({ id: c.id, fp: c.fp, x: c.x, y: c.y, rot: c.rot || 0 })), ...rep };
+      }
+      if (action === "batch") {
+        const ops = Array.isArray(args.ops) ? args.ops : fail("Thiếu ops", "ops:[{action:'add_part', args:{...}}, ...]");
+        const results = [];
+        for (const [i, op] of ops.entries()) {
+          if (!op || op.action === "batch") { results.push({ i, ok: false, error: "batch lồng nhau không được" }); continue; }
+          try { results.push({ i, action: op.action, ok: true, data: await exec(op.action, op.args || {}) }); }
+          catch (e) { results.push({ i, action: op.action, ok: false, error: String(e && e.message || e), ...(e && e.hint ? { hint: e.hint } : {}) }); if (args.stop_on_error) break; }
+        }
+        return { results, okCount: results.filter(r => r.ok).length, ...summary() };
+      }
+      fail("Unknown action: " + action, "Gọi tools/list để xem lệnh.");
+    };
     const runAgentCmd = async ({ id, action, args = {} }, reply) => {
       let res = { id, ok: true };
-      try {
-        if (action === "get_state") {
-          analyze();
-          const unroutedNets = [...new Set(A.rats.map(r => r.net))];
-          res.data = { studio: STUDIO, noBoard: !!S.noBoard, board: S.board, wSig: W_SIG, wPwr: W_PWR, comps: S.comps.map(c => ({ id: c.id, fp: c.fp, x: c.x, y: c.y, rot: c.rot, val: c.val, nets: c.nets })), traces: S.traces.length, jumpers: S.jumpers.length, drcCount: A.drc.length, unroutedCount: A.rats.length, unroutedNets };
-        } else if (action === "create_board") {
-          checkpoint(); S.noBoard = false; S.autoB = false;
-          const sh = args.shape || "rect";
-          if (sh === "rect") {
-            S.board = { w: r3(Math.max(10, +args.w || 50)), h: r3(Math.max(10, +args.h || 30)), rx: r3(Math.max(0, args.rx != null ? +args.rx : 1.5)) };
-          } else {
-            const d = Math.max(10, +args.d || 40), rad = d / 2, n = sh === "circle" ? 48 : Math.max(3, Math.min(24, parseInt(args.n) || 6)), poly = [];
-            for (let i = 0; i < n; i++) { const a = (i * 2 * Math.PI / n) - Math.PI / 2; poly.push([r3(rad + rad * Math.cos(a)), r3(rad + rad * Math.sin(a))]); }
-            S.board = { w: r3(d), h: r3(d), poly };
-          }
-          save(); render(); fit(); res.data = { board: S.board };
-        } else if (action === "resize_board") {
-          checkpoint(); S.noBoard = false; S.autoB = false;
-          const b = S.board || { w: 50, h: 30, rx: 1.5 };
-          const nw = args.w != null ? r3(Math.max(10, +args.w)) : b.w;
-          const nh = args.h != null ? r3(Math.max(10, +args.h)) : b.h;
-          const nrx = args.rx != null ? r3(Math.max(0, +args.rx)) : (b.rx != null ? b.rx : 1.5);
-          if (b.poly && b.poly.length && b.w > 0 && b.h > 0) {
-            const sx = nw / b.w, sy = nh / b.h;
-            S.board = { w: nw, h: nh, poly: b.poly.map(p => [r3(p[0] * sx), r3(p[1] * sy)]) };
-          } else {
-            S.board = { w: nw, h: nh, rx: nrx };
-          }
-          save(); render(); fit(); res.data = { board: S.board };
-        } else if (action === "fit_board") {   // = nút "Vừa khít mạch": thu bo sát linh kiện + đường đồng (dời cả mạch theo lưới 2,54)
-          if (!S.comps.length) throw new Error("Bo chưa có linh kiện");
-          checkpoint(); S.noBoard = false; S.autoB = false;
-          const m = args.roomy ? roomy() : (args.margin != null ? Math.max(1, Math.min(30, +args.margin)) : BMARGIN);
-          const sh = fitBoardTo(m) || [0, 0];
-          save(); render(); fit(); analyze();
-          res.data = { board: S.board, margin: m, shift: sh, drcCount: A.drc.length, unroutedCount: A.rats.length };
-        } else if (action === "auto_board") {   // = ô "Tự co giãn theo linh kiện"
-          const on = args.on != null ? !!args.on : !S.autoB;
-          if (on !== !!S.autoB) cmd.autoBoard(); else render();
-          save(); res.data = { autoBoard: !!S.autoB, board: S.board };
-        } else if (action === "set_route_config") {
-          checkpoint();
-          if (args.w_sig != null) S.wSig = r3(Math.max(.2, Math.min(3, +args.w_sig)));
-          if (args.w_pwr != null) S.wPwr = r3(Math.max(.2, Math.min(3, +args.w_pwr)));
-          syncW();
-          if (args.apply_existing) {
-            for (const t of S.traces) t.w = PWR.has(t.net) ? W_PWR : W_SIG;
-          }
-          save(); render(); res.data = { wSig: W_SIG, wPwr: W_PWR, updatedTraces: args.apply_existing ? S.traces.length : 0 };
-        } else if (action === "get_bom") {
-          const map = new Map();
-          for (const c of S.comps) {
-            const f = FP[c.fp];
-            const key = c.fp + "|" + (c.val || "");
-            if (!map.has(key)) map.set(key, { fp: c.fp, label: (f && f.label) || c.fp, val: c.val || "", count: 0, refs: [] });
-            const row = map.get(key); row.count++; row.refs.push(c.id);
-          }
-          res.data = { total: S.comps.length, items: [...map.values()] };
-        } else if (action === "list_parts") {
-          const q = String(args.q || "").trim().toLowerCase();
-          const lim = Math.max(1, Math.min(200, parseInt(args.limit) || 40));
-          const all = Object.entries(FP).map(([fp, f]) => ({
-            fp, label: f.label || fp, smd: !!f.smd, mine: !!f.mine,
-            pins: (f.pads || []).map(p => p.name)
-          })).filter(it => !q || it.fp.toLowerCase().includes(q) || it.label.toLowerCase().includes(q));
-          res.data = { total: all.length, shown: Math.min(all.length, lim), parts: all.slice(0, lim) };
-        } else if (action === "pinworld_search") {
-          if (!window.PINWORLD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/pinworld.js"; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
-          const cat = await window.PINWORLD.catalog();
-          const q = String(args.q || "").trim().toLowerCase();
-          const lim = Math.max(1, Math.min(50, parseInt(args.limit) || 15));
-          const hits = cat.parts.filter(p => !q || String(p[0]).toLowerCase().includes(q) || String(p[2]).toLowerCase().includes(q));
-          res.data = { total: hits.length, items: hits.slice(0, lim).map(p => ({ title: p[0], src: p[1], fzp: p[2], pins: p[5] || 0 })) };
-        } else if (action === "pinworld_import") {
-          if (!window.PINWORLD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/pinworld.js"; sc.onload = ok; sc.onerror = no; document.body.appendChild(sc); });
-          const cat = await window.PINWORLD.catalog();
-          const p = cat.parts.find(x => x[2] === args.fzp);
-          if (!p) throw new Error("PinWorld part not found: " + args.fzp);
-          const built = await window.PINWORLD.build(p);
-          if (built.blocked) throw new Error("Part blocked: " + (built.warn || []).join("; "));
-          const o = window.PINWORLD.mine.get();
-          o.parts[built.part.id] = { ...built.part, verified: false };
-          window.PINWORLD.mine.put(o);
-          loadMine(); list();
-          let placed = null;
-          if (args.x != null && args.y != null && FP[built.part.id]) {
-            checkpoint();
-            placed = { id: agentId(built.part.id), fp: built.part.id, x: r3(+args.x), y: r3(+args.y), rot: (+args.rot || 0) % 360 };
-            S.comps.push(placed); save(); render();
-          }
-          res.data = { fp: built.part.id, title: built.part.title, pins: (built.part.pads || []).map(q => q.name), warn: built.warn || [], placed };
-        } else if (action === "edit_mypart") {
-          const raw = localStorage.getItem("pindexio-myparts");
-          const store = raw ? JSON.parse(raw) : { parts: {} };
-          const part = store.parts && store.parts[args.fp];
-          if (!part) throw new Error("MyPart not found in pindexio-myparts: " + args.fp);
-          if (args.title != null) part.title = String(args.title);
-          if (args.w != null) part.w = r3(Math.max(1, +args.w));
-          if (args.h != null) part.h = r3(Math.max(1, +args.h));
-          if (args.verified != null) part.verified = !!args.verified;
-          if (Array.isArray(args.pads) && Array.isArray(part.pads)) {
-            for (const pe of args.pads) {
-              let pad = null;
-              if (pe.index != null && part.pads[pe.index]) pad = part.pads[pe.index];
-              else if (pe.match_name != null) pad = part.pads.find(q => q.name === pe.match_name);
-              if (!pad) continue;
-              if (pe.name != null) pad.name = String(pe.name);
-              if (pe.role != null) { pad.role = String(pe.role); pad.conf = 1; }
-              if (pe.x != null) pad.x = r3(+pe.x);
-              if (pe.y != null) pad.y = r3(+pe.y);
-            }
-          }
-          localStorage.setItem("pindexio-myparts", JSON.stringify(store));
-          loadMine(); list(); render();
-          res.data = { fp: part.id, title: part.title, w: part.w, h: part.h, verified: !!part.verified, pads: (part.pads || []).map((q, i) => ({ index: i, name: q.name, role: q.role, x: q.x, y: q.y })) };
-        } else if (action === "add_part") {
-          if (!FP[args.fp]) throw new Error("Unknown footprint: " + args.fp);
-          checkpoint();
-          const c = { id: agentId(args.fp), fp: args.fp, x: r3(+args.x || 0), y: r3(+args.y || 0), rot: (+args.rot || 0) % 360, ...(args.val ? { val: String(args.val) } : {}), ...(args.nets ? { nets: args.nets } : {}) };
-          S.comps.push(c); save(); list(); render();
-          const warnings = checkNets([c]);
-          res.data = warnings.length ? { ...c, warnings } : c;
-        } else if (action === "autoroute") {
-          cmd.auto(false); analyze();
-          const unroutedNets = [...new Set(A.rats.map(r => r.net))];
-          res.data = { traces: S.traces.length, jumpers: S.jumpers.length, drcCount: A.drc.length, unroutedCount: A.rats.length, unroutedNets };
-        } else if (action === "get_drc") {
-          analyze(); res.data = { count: A.drc.length, errors: A.drc.map(v => ({ x: v.x, y: v.y, msg: v.msg })) };
-        } else if (action === "load_pdi") {
-          loadProjectText(JSON.stringify(args.doc || {}));
-          const warnings = checkNets(S.comps);
-          res.data = warnings.length ? { ok: true, comps: S.comps.length, warnings } : { ok: true, comps: S.comps.length };
-        } else {
-          res = { id, ok: false, error: "Unknown action: " + action };
-        }
-      } catch (e) { res = { id, ok: false, error: String(e && e.message || e) }; }
+      const ro = READ_ONLY.has(action), u0 = undo.length, snap = ro ? null : JSON.stringify(S);
+      try { res.data = await exec(action, args || {}); }
+      catch (e) {
+        res = { id, ok: false, error: String(e && e.message || e), ...(e && e.hint ? { hint: e.hint } : {}) };
+        if (snap && action !== "batch") { S = JSON.parse(snap); try { syncW(); render(); list(); } catch (x) { } }
+      }
+      if (snap) {   // mỗi lệnh agent = đúng 1 bước Hoàn tác
+        undo.length = Math.min(undo.length, u0);
+        if (JSON.stringify(S) !== snap) { undo.push(snap); if (undo.length > 100) undo.shift(); redo.length = 0; save(); }
+      }
       if (reply) reply(res); else fetch("/__agent_done", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(res) }).catch(() => { });
     };
     if (AGENT_LOCAL) setInterval(() => {
@@ -7707,20 +7952,30 @@
     }, 400);
     // Kết nối AI từ xa: tab nối WebSocket tới mcp.pindexio.com theo mã phòng; AI dán URL https://mcp.pindexio.com/mcp?room=MÃ
     const MCP_HOST = "mcp.pindexio.com", RK = "pindexio-ai-room";
+    const MCP_LOC = (() => { const q = (location.search.match(/[?&]mcp=(\w+)/) || [])[1]; try { if (q === "local") localStorage.setItem("pindexio-mcp", "local"); else if (q) localStorage.removeItem("pindexio-mcp"); return localStorage.getItem("pindexio-mcp") === "local" && AGENT_LOCAL; } catch (e) { return q === "local"; } })(), MCP_WS = MCP_LOC ? "ws://127.0.0.1:8787" : "wss://" + MCP_HOST, MCP_HTTP = MCP_LOC ? "http://127.0.0.1:8787" : "https://" + MCP_HOST;   // ?mcp=local: thử với bưu điện chạy wrangler dev
     let aiWs = null, aiOn = false, aiTimer = null, aiRoom = null;
     const newRoom = () => { const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint8Array(6)); let t = ""; for (const b of r) t += A[b % A.length]; return "PCB-" + t; };
     const roomGet = () => { if (aiRoom) return aiRoom; try { aiRoom = sessionStorage.getItem(RK); } catch (e) { } if (!aiRoom) { aiRoom = newRoom(); try { sessionStorage.setItem(RK, aiRoom); } catch (e) { } } return aiRoom; };
     const aiConnect = () => {
       if (!aiOn || (aiWs && aiWs.readyState <= 1)) return;
-      const ws = aiWs = new WebSocket(`wss://${MCP_HOST}/ws?room=${roomGet()}`);
+      const ws = aiWs = new WebSocket(`${MCP_WS}/ws?room=${roomGet()}`);
       ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } if (m.type === "cmd" && m.cmd) runAgentCmd(m.cmd, res => { try { ws.send(JSON.stringify(res)); } catch (x) { } }); };
       ws.onopen = () => { clearInterval(aiTimer); aiTimer = setInterval(() => { try { ws.send('{"type":"ping"}'); } catch (x) { } }, 30000); };
       ws.onclose = ev => { clearInterval(aiTimer); if (aiWs === ws) aiWs = null; if (aiOn && ev.code !== 4000) setTimeout(aiConnect, 3000); else if (ev.code === 4000) aiOn = false; };   // 4000: tab khác cùng mã đã nối
     };
+    let aiBadge = null;
+    const badge = () => {
+      const st = aiOn ? (aiWs && aiWs.readyState === 1 ? "on" : "wait") : "off";
+      if (st === "off") { if (aiBadge) aiBadge.remove(); aiBadge = null; return; }
+      if (!aiBadge) { aiBadge = document.createElement("button"); aiBadge.type = "button"; aiBadge.className = "pl-ai-badge"; aiBadge.style.cssText = "position:absolute;right:10px;bottom:10px;z-index:30;font:600 11px/1 sans-serif;padding:5px 8px;border-radius:10px;border:1px solid #2b7a4b;background:#e9f6ee;color:#1d5c37;cursor:pointer;opacity:.85"; aiBadge.onclick = () => aiDialog(); }
+      if (ROOT && aiBadge.parentNode !== ROOT) { if (getComputedStyle(ROOT).position === "static") ROOT.style.position = "relative"; ROOT.appendChild(aiBadge); }
+      aiBadge.textContent = "AI: " + roomGet() + (st === "wait" ? " …" : ""); aiBadge.style.opacity = st === "on" ? ".85" : ".55";
+    };
+    setInterval(badge, 1500);
     window.PINDEXIO_AI = {
       on() { aiOn = true; aiConnect(); }, off() { aiOn = false; clearInterval(aiTimer); if (aiWs) { try { aiWs.close(); } catch (e) { } aiWs = null; } },
       renew() { const was = aiOn; this.off(); aiRoom = newRoom(); try { sessionStorage.setItem(RK, aiRoom); } catch (e) { } if (was) this.on(); },
-      room: roomGet, url: () => `https://${MCP_HOST}/mcp?room=${roomGet()}`, state: () => aiOn ? (aiWs && aiWs.readyState === 1 ? "on" : "wait") : "off"
+      room: roomGet, url: () => `${MCP_HTTP}/mcp?room=${roomGet()}`, state: () => aiOn ? (aiWs && aiWs.readyState === 1 ? "on" : "wait") : "off"
     };
   }
 })();
