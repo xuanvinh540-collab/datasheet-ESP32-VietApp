@@ -17,6 +17,25 @@
     return w <= 640 ? 'mobile' : w <= 1024 ? 'tablet' : 'desktop';
   }
 
+  // phân tích hành vi ẩn danh: gom sự kiện, gửi 1 lô mỗi 30 s hoặc khi rời trang; mã phiên ngẫu nhiên, không IP / tên / nội dung mạch
+  const SID = (() => { try { let s = sessionStorage.getItem('pindex-sid'); if (!s) { s = Math.random().toString(36).slice(2, 10); sessionStorage.setItem('pindex-sid', s); } return s; } catch (e) { return 'x'; } })();
+  const EVQ = []; let evT = null;
+  const EV_OFF = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  function flushEv() {
+    clearTimeout(evT); evT = null; if (!EVQ.length) return;
+    const body = JSON.stringify({ kind: 'events', sid: SID, lang: document.documentElement.lang || 'vi', device: getDevice(), events: EVQ.splice(0, 50) });
+    try { if (!(navigator.sendBeacon && navigator.sendBeacon('/api/telemetry', body))) fetch('/api/telemetry', { method: 'POST', body, keepalive: true }).catch(() => { }); } catch (e) { }
+    if (EVQ.length) evT = setTimeout(flushEv, 1000);
+  }
+  window.PX_TRACK = (n, d) => {
+    if (EV_OFF) return;
+    EVQ.push({ n: String(n).slice(0, 40), d: d == null ? '' : String(d).slice(0, 160), t: Date.now() });
+    if (EVQ.length >= 40) flushEv(); else if (!evT) evT = setTimeout(flushEv, 30000);
+  };
+  addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushEv(); });
+  addEventListener('pagehide', flushEv);
+  addEventListener('error', e => { const m = (e && e.message) || ''; if (m && !/ResizeObserver|Script error/.test(m)) window.PX_TRACK('js_error', m + ' @' + String(e.filename || '').split('/').pop() + ':' + (e.lineno || '')); });
+
   async function postTelemetry(payload) {
     const customUrl = (() => {
       try { return localStorage.getItem('pindex-gsheet') || ''; } catch (e) { return ''; }

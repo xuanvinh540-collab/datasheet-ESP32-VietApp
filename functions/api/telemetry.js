@@ -25,7 +25,7 @@ export async function onRequestPost(context) {
   }
 
   const kind = body && body.kind;
-  if (!['feedback', 'visit', 'buy_click'].includes(kind)) {
+  if (!['feedback', 'visit', 'buy_click', 'events'].includes(kind)) {
     return new Response(JSON.stringify({ ok: false, error: 'invalid_kind' }), {
       status: 400,
       headers: { 'content-type': 'application/json' }
@@ -50,6 +50,11 @@ export async function onRequestPost(context) {
     message: body.message || '',
     contact: body.contact || ''
   };
+  if (kind === 'events') {   // lô sự kiện hành vi (ẩn danh): tối đa 50 / lần
+    const ev = Array.isArray(body.events) ? body.events.slice(0, 50).map(x => ({ n: String((x && x.n) || '').slice(0, 40), d: String((x && x.d) || '').slice(0, 160), t: +(x && x.t) || 0 })).filter(x => x.n) : [];
+    if (!ev.length) return new Response(JSON.stringify({ ok: false, error: 'empty_events' }), { status: 400, headers: { 'content-type': 'application/json' } });
+    payload.sid = String(body.sid || '').slice(0, 16); payload.events = ev;
+  }
 
   try {
     const r = await fetch(webhook, {

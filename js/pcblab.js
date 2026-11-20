@@ -44,6 +44,7 @@
   const SPREAD0 = 3;   // mặc định chừa đủ 1 làn: sau này chỗ kẹt vẫn nhét thêm được 1 đường   // chân chưa đi dây: đường khác mạng chừa thêm khoảng này, để chân còn lối thoát (đặt lỗ, kéo đồng ra)   // tự đi dây: đường khác mạng chừa thêm khoảng này quanh chân, để chỗ sát chân còn đặt lỗ và hàn được   // JP_OVER: dây trần ở mặt trên cách chân khác mạng (ngoài mép pad)
   const snap = (v, s) => Math.round(v / s) * s;
   const r3 = v => Math.round(v * 1000) / 1000;
+  const TRK = (n, d) => { try { if (window.PX_TRACK) window.PX_TRACK(n, d); } catch (e) { } };   // phân tích hành vi ẩn danh (feedback.js)
   // hiển thị độ dài theo hệ thước đang chọn (S.unit); dữ liệu luôn lưu mm
   const pmLbl = root => root.querySelectorAll("[data-pm],[data-cpm]").forEach(b => { const v = +(b.dataset.pm || b.dataset.cpm); b.textContent = UIN() ? String(+(v / 25.4).toFixed(3)).replace(".", L(",", ".")) + " in" : String(v).replace(".", L(",", ".")) + " mm"; });
   const UIN = () => !!(S && S.unit === "in"), nU = v => UIN() ? (v / 25.4).toFixed(3) : v.toFixed(2), fU = v => nU(v) + (UIN() ? " in" : " mm");
@@ -2164,7 +2165,7 @@
     async function go(forceBrowser) {
       const dirEl = d.querySelector("#plExpDir"); if (dirEl) setSaveDir(dirEl.value);
       const base = (o.name || "pindexio-pcb").trim().replace(/[\\/:*?"<>|]+/g, "-");
-      try { localStorage.setItem("pcbmaker-exp", JSON.stringify(o)); } catch (e) { }
+      try { localStorage.setItem("pcbmaker-exp", JSON.stringify(o)); } catch (e) { } TRK("export", o.fmt);
       d.remove();
       if (o.fmt === "gbr") { const r = await download(await zip(gerber()), base + "-gerber.zip", forceBrowser); if (r && r.aborted) return; const finalName = (r && r.name) || (base + "-gerber.zip"); return buyPopup(), toast(r && r.dir ? L(`Đã lưu ${finalName} vào thư mục: ${r.dir}.`, `Saved ${finalName} to ${r.dir}.`) : L(`Đã tải ${finalName} về trình duyệt.`, `Downloaded ${finalName} (bottom copper, mask, silkscreen, outline, drill).`)); }
       if (o.fmt === "pdf") {
@@ -4999,6 +5000,7 @@
       if (v && !PWR.has(v) && !isSig(v)) toast(L(`Chân ${pin} vào mạng riêng ${v}: chọn ${v} cho chân bên kia (điện trở, tụ…).`, `Pin ${pin} is on private net ${v}: pick ${v} for the other side (resistor, capacitor…).`));
     },
     add(fp, atPt) {
+      TRK("part_add", fp);
       if (fp === "S3" && (!hostInfo().s3 || S.comps.some(c => c.fp === "S3"))) return toast(L("Bo chỉ dùng 1 board ESP32-S3.", "The PCB uses a single ESP32-S3 board."));
       if (PASSIVE_FPS.has(fp)) {
         startPlaceComp(fp);
@@ -5061,7 +5063,7 @@
         for (let k = 0; k < 3 && r.fl && performance.now() - t0 < OPT.timeCap; k++) { r.failed.forEach(x => prio.add(x)); r = tryRun(r0.si, prio, r0.ga); }
       }
       [S.traces, S.jumpers] = JSON.parse(best.st); S.scheme = best.si; if (re !== true && !S.flip) { S.flip = true; fit(); }   /* bấm Tự đi dây: chuyển sang mặt Back (mặt đồng) để xem kết quả */
-      cmd.autoMsg(best.fl, t0);
+      cmd.autoMsg(best.fl, t0); TRK("autoroute", (best.fl ? "con " + best.fl + " day" : "xong") + " · " + S.jumpers.length + " jumper · " + S.comps.length + " lk");
     },
     autoMsg(f, t0) { dedupe(); render(); const nj = S.jumpers.filter(j => j.auto).length, ne = 0; toast(L(`Tự đi dây (${SCHEMES[S.scheme].name}): ${f ? "còn " + f + " đường chưa đi được" : "xong hết"}${nj + ne ? " · " + (nj + ne) + " dây nhảy" : ""}`, `Autoroute (${SCHEMES[S.scheme].name}): ${f ? f + " connections left unrouted" : "all done"}${nj + ne ? " · " + (nj + ne) + " jumpers" : ""}`) + ` · ${Math.round(performance.now() - t0)} ms`); },
     scheme() { S.scheme = (S.scheme + 1) % SCHEMES.length; cmd.auto(false, S.scheme); },
@@ -5318,7 +5320,7 @@
       const s = ui.sel, t = s && s.t === "t" && S.traces.find(x => x.id === s.id); if (!t || i <= 0 || i >= t.pts.length - 1) return;
       checkpoint(); t.pts.splice(i, 1); t.lock = true; render();
     },
-    pour() { checkpoint(); S.pour = !S.pour; render(); toast(S.pour ? L("Đã phủ mass GND vào chỗ trống. Bấm Tự đi dây lại để bỏ bớt đường GND thừa.", "GND pour added to free areas. Autoroute again to drop extra GND traces.") : L("Đã bỏ phủ mass.", "GND pour removed.")); },
+    pour() { checkpoint(); S.pour = !S.pour; TRK("pour", S.pour ? "on" : "off"); render(); toast(S.pour ? L("Đã phủ mass GND vào chỗ trống. Bấm Tự đi dây lại để bỏ bớt đường GND thừa.", "GND pour added to free areas. Autoroute again to drop extra GND traces.") : L("Đã bỏ phủ mass.", "GND pour removed.")); },
     jump() { const s = ui.sel; if (!s || s.t !== "t") return toast(L("Chọn một đường đồng rồi bấm J (hoặc chuột phải lên đường).", "Select a trace, then press J (or right-click the trace).")); startJump(S.traces.find(t => t.id === s.id)); },
     fill() { triggerWeldCmd("fill"); },
     chamfer() { triggerWeldCmd("chamfer"); },
@@ -5791,6 +5793,7 @@
   const RKEY = "pindexio-recent"; let FH = null;   // FH: file đang làm việc (Chrome / Edge cho ghi đè trực tiếp)
   const recents = () => { try { const a = JSON.parse(localStorage.getItem(RKEY) || "[]"); return Array.isArray(a) ? a.filter(r => r && typeof r.name === "string" && typeof r.text === "string").slice(0, 5) : []; } catch (e) { return []; } };
   function remember(doc) {
+    TRK("open_pdi");
     const text = JSON.stringify(doc); if (text.length > 800000) return;
     let a = recents().filter(r => r.name !== doc.name); a.unshift({ name: doc.name, saved: doc.saved || new Date().toISOString(), text }); a = a.slice(0, 5);
     for (; ;) { try { localStorage.setItem(RKEY, JSON.stringify(a)); return; } catch (e) { if (a.length <= 1) return; a.pop(); } }
@@ -5960,7 +5963,7 @@
     confirmAuto(id, pin) { const c = S.comps.find(x => x.id === id); if (!c || !c.auto) return; checkpoint(); delete c.auto[pin]; if (!Object.keys(c.auto).length) delete c.auto; render(); },
     dropAuto(id, pin) { const c = S.comps.find(x => x.id === id); if (!c) return; cmd.setNet(id, pin, ""); const c2 = S.comps.find(x => x.id === id); if (c2 && c2.auto) { delete c2.auto[pin]; if (!Object.keys(c2.auto).length) delete c2.auto; render(); } },
     confirmAll() { if (!pendingAuto().length) return; checkpoint(); for (const c of S.comps) delete c.auto; render(); toast(L("Đã xác nhận tất cả chân tự nối. Hãy chắc là bạn đã đối chiếu datasheet.", "All auto-wired pins confirmed. Make sure you compared them with the datasheet.")); },
-    saveProject(asNew) { return saveProjectImpl(!!asNew); },
+    saveProject(asNew) { TRK("save", asNew ? "as" : ""); return saveProjectImpl(!!asNew); },
     openProject(file) { return file ? openFile(file) : openProjectImpl(); },
     boardSize(w, h) {
       w = Math.round(+w); h = Math.round(+h);
@@ -6029,6 +6032,7 @@
     // đổi board: bo mới cho board đó (hoàn tác được), Wiring có mạch cho board này thì lấy luôn
     setBoard(id, quiet) {
       if (!id || id === S.mcu) return;
+      TRK("board", id);
       checkpoint(); const keep = { alpha: S.alpha, autoRe: S.autoRe, pour: S.pour, rats: S.rats };
       S = Object.assign(fresh(id), keep); ui.sel = null; ui.cs = null; if (LY.cs) LY.cs.innerHTML = ""; cancel();
       render(); fit();
@@ -6767,7 +6771,7 @@
         renderCsPop();
         setTool("sel");
       } else setTool("cs");
-    }); on("#plCheck", cmd.check); on("#plSch", openSchematicModal); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plFit", fit); on("#plRats", cmd.rats); on("#plRatEdit", () => { if (ui.tool === "rat") setTool("sel"); else { if (!S.rats) S.rats = true; setTool("rat"); render(); } }); on("#plSnap", cmd.snapG); on("#plUnit", () => { S.unit = S.unit === "in" ? "mm" : "in"; const ub = $("#plUnit"); if (ub) { ub.classList.toggle("on", S.unit === "in"); ub.querySelector("span").textContent = S.unit; } save(); drawRulers(); render(); if (ui.cs) drawCs(); { for (const q of ["#plFlyCM", "#plFlyPH"]) { const x = $(q); if (x && x.uFix) x.uFix(); } } toast(L("Hệ thước: ", "Ruler unit: ") + (S.unit === "in" ? "inch (in)" : "mm")); }); on("#plGrid", () => { S.gridStep = gridStep() < 2 ? G : SN; const gb = $("#plGrid"), is127 = S.gridStep < 2; if (gb) { gb.classList.toggle("on", is127); gb.querySelector("span").textContent = is127 ? "1.27" : "2.54"; } const pat = $("#grid"); if (pat) { pat.setAttribute("width", S.gridStep); pat.setAttribute("height", S.gridStep); } save(); render(); toast(L("Lưới & Snap: ", "Grid & Snap: ") + (is127 ? "1,27 mm" : "2,54 mm")); }); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
+    }); on("#plCheck", cmd.check); on("#plSch", openSchematicModal); on("#plUndo", cmd.undo); on("#plRedo", cmd.redo); on("#plFit", fit); on("#plRats", cmd.rats); on("#plRatEdit", () => { if (ui.tool === "rat") setTool("sel"); else { if (!S.rats) S.rats = true; setTool("rat"); render(); } }); on("#plSnap", cmd.snapG); on("#plUnit", () => { S.unit = S.unit === "in" ? "mm" : "in"; TRK("unit", S.unit); const ub = $("#plUnit"); if (ub) { ub.classList.toggle("on", S.unit === "in"); ub.querySelector("span").textContent = S.unit; } save(); drawRulers(); render(); if (ui.cs) drawCs(); { for (const q of ["#plFlyCM", "#plFlyPH"]) { const x = $(q); if (x && x.uFix) x.uFix(); } } toast(L("Hệ thước: ", "Ruler unit: ") + (S.unit === "in" ? "inch (in)" : "mm")); }); on("#plGrid", () => { S.gridStep = gridStep() < 2 ? G : SN; const gb = $("#plGrid"), is127 = S.gridStep < 2; if (gb) { gb.classList.toggle("on", is127); gb.querySelector("span").textContent = is127 ? "1.27" : "2.54"; } const pat = $("#grid"); if (pat) { pat.setAttribute("width", S.gridStep); pat.setAttribute("height", S.gridStep); } save(); render(); toast(L("Lưới & Snap: ", "Grid & Snap: ") + (is127 ? "1,27 mm" : "2,54 mm")); }); on("#plReset", () => cmd.reset()); on("#plFlip", cmd.flip);
     /* Bố cục: nút xoay vòng 4 kiểu + nút đổi bên trái/phải của 2 bảng (nhớ lại cho lần sau) */
     (() => {
       const LAYS = [["", L("Cân bằng", "Balanced")], ["wide", L("Ưu tiên bản vẽ", "Canvas first")], ["focus", L("Chỉ bản vẽ", "Canvas only")], ["tools", L("Ưu tiên công cụ", "Tools first")]];
@@ -7582,6 +7586,7 @@
     report: xreport, plan: wiringPlan,
     // o.fromWiring: mở từ tab Wiring → lấy mạch. Bo trống (chỉ có ESP32-S3) và Wiring có mạch → tự lấy.
     open(o) {
+      TRK("pcb_open", o && o.studio ? "studio" : "maker");
       const nextStudio = !!(o && o.studio);
       if (nextStudio !== STUDIO) {
         save();
@@ -7973,7 +7978,7 @@
     };
     setInterval(badge, 1500);
     window.PINDEXIO_AI = {
-      on() { aiOn = true; aiConnect(); }, off() { aiOn = false; clearInterval(aiTimer); if (aiWs) { try { aiWs.close(); } catch (e) { } aiWs = null; } },
+      on() { aiOn = true; aiConnect(); TRK("ai_on"); }, off() { aiOn = false; clearInterval(aiTimer); if (aiWs) { try { aiWs.close(); } catch (e) { } aiWs = null; } },
       renew() { const was = aiOn; this.off(); aiRoom = newRoom(); try { sessionStorage.setItem(RK, aiRoom); } catch (e) { } if (was) this.on(); },
       room: roomGet, url: () => `${MCP_HTTP}/mcp?room=${roomGet()}`, state: () => aiOn ? (aiWs && aiWs.readyState === 1 ? "on" : "wait") : "off"
     };
