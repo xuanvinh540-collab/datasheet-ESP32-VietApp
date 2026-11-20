@@ -1115,3 +1115,7 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 #plSetBox .st-t { font-size: 12px; font-weight: 600; margin-bottom: 3px }
 #plSetBox .st-v { font-size: 12px; opacity: .75; margin-bottom: 6px; word-break: break-all }
 #plSetBox .st-b { display: flex; gap: 6px; flex-wrap: wrap }
+
+/* hộp Kết nối AI */
+#plAiBox .ai-cp { display: flex; gap: 6px }
+#plAiBox .ai-cp input { flex: 1; min-width: 0; font: 12px monospace; padding: 4px 6px }

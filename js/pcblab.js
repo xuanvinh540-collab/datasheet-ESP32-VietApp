@@ -5788,6 +5788,29 @@
     });
     onOutside(sp, ev => { if (!(menu && menu.contains(ev && ev.target))) sp.remove(); });
   }
+  // Kết nối AI (Remote MCP): bật thì tab nối tới mcp.pindexio.com; AI (Claude, Antigravity, Cursor…) dán URL có mã phòng của tab này
+  function aiDialog() {
+    const A = window.PINDEXIO_AI; if (!A) return;
+    const old = ROOT.querySelector("#plAiBox"); if (old) old.remove();
+    const d = document.createElement("div"); d.id = "plAiBox"; d.className = "pl-beta"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+    d.innerHTML = `<div class="pl-beta-box" style="width:min(480px,94vw)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">${L("Kết nối AI (MCP)", "Connect AI (MCP)")}</h3><button type="button" id="aiX">✕</button></div>
+      <div class="st-row"><div class="st-t">${L("Trạng thái", "Status")}</div><div class="st-v" id="aiSt"></div><div class="st-b"><button type="button" id="aiTg"></button><button type="button" id="aiNew">${L("Đổi mã", "New code")}</button></div></div>
+      <div class="st-row"><div class="st-t">${L("URL MCP – dán vào Claude / Antigravity / Cursor", "MCP URL – paste into Claude / Antigravity / Cursor")}</div><div class="ai-cp"><input id="aiUrl" readonly><button type="button" data-cp="aiUrl">${L("Chép", "Copy")}</button></div></div>
+      <div class="st-row"><div class="st-t">Claude Code</div><div class="ai-cp"><input id="aiCmd" readonly><button type="button" data-cp="aiCmd">${L("Chép", "Copy")}</button></div></div></div>`;
+    ROOT.appendChild(d);
+    const paint = () => {
+      const st = A.state(); d.querySelector("#aiSt").textContent = st === "on" ? L("Đã nối – AI dùng được tab này", "Connected – AI can use this tab") : st === "wait" ? L("Đang nối…", "Connecting…") : L("Chưa bật", "Off");
+      d.querySelector("#aiTg").textContent = st === "off" ? L("Bật", "Turn on") : L("Tắt", "Turn off");
+      d.querySelector("#aiUrl").value = A.url(); d.querySelector("#aiCmd").value = "claude mcp add --transport http pindexio " + A.url();
+    };
+    const tm = setInterval(() => { if (!d.isConnected) return clearInterval(tm); paint(); }, 500);
+    const shut = () => { clearInterval(tm); d.remove(); }; d.querySelector("#aiX").onclick = shut; d.addEventListener("pointerdown", e => { if (e.target === d) shut(); });
+    d.querySelector("#aiTg").onclick = () => { A.state() === "off" ? A.on() : A.off(); paint(); };
+    d.querySelector("#aiNew").onclick = () => { A.renew(); paint(); };
+    d.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => { const i = d.querySelector("#" + b.dataset.cp); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand("copy"); } b.textContent = L("Đã chép", "Copied"); setTimeout(() => b.textContent = L("Chép", "Copy"), 1200); });
+    paint();
+  }
   // Cài đặt: thư mục lưu file (Export, Lưu dự án) và thư mục thư viện Pinworld mặc định
   function settingsDialog() {
     const old = ROOT.querySelector("#plSetBox"); if (old) old.remove();
@@ -5819,11 +5842,12 @@
       <div class="fm-h">Template</div><button type="button" data-fm="tpl">${L("Chọn template…", "Browse templates…")}</button><button type="button" data-fm="tplsave">${L("Lưu bo thành template…", "Save as template…")}</button>
       <div class="fm-h">${L("Linh kiện đang chọn", "Selected part")}</div><button type="button" data-fm="pset">${L("Lưu linh kiện", "Save selected")}</button><button type="button" data-fm="passet">${L("Lưu linh kiện thành bản mới…", "Save selected as…")}</button>
       <div class="fm-h">${L("Xuất & trợ giúp", "Export & help")}</div><button type="button" data-fm="exp">Export… <kbd>SVG · PDF · Gerber</kbd></button><button type="button" data-fm="help">${L("Cách dùng…", "How to use…")}</button>
-      <button type="button" data-fm="set">${L("Cài đặt…", "Settings…")}</button>`, $("#plFile"), 270);
+      <button type="button" data-fm="ai">${L("Kết nối AI…", "Connect AI…")}</button><button type="button" data-fm="set">${L("Cài đặt…", "Settings…")}</button>`, $("#plFile"), 270);
     if (!m) return;
     m.querySelectorAll("[data-fm]").forEach(b => b.onclick = () => {
       const k = b.dataset.fm; if (k === "rc") return recentPop(b, m); m.remove(); { const sp = ROOT.querySelector("#plRecentPop"); if (sp) sp.remove(); }
       if (k === "set") return settingsDialog();
+      if (k === "ai") return aiDialog();
       if (k === "save") saveProjectImpl(false); else if (k === "saveas") saveProjectImpl(true); else if (k === "open") openProjectImpl();
       else if (k === "tpl") templatesDialog(); else if (k === "tplsave") saveTemplate(); else if (k === "pset") savePart(false); else if (k === "passet") savePart(true); else if (k === "exp") exportDialog(); else if (k === "help") toggleHelp(); else if (k === "clr") { try { localStorage.removeItem(RKEY); } catch (e) { } toast(L("Đã xoá danh sách gần đây.", "Recent list cleared.")); } else openRecent(+k.slice(1));
     });
@@ -7523,7 +7547,9 @@
     relang
   };
   // Cầu nối MCP local (chỉ chạy ở 127.0.0.1 / localhost khi bật tools/serve.py)
-  if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
+  {
+    const agentId = fp => { const k = String(fp || ""), pre = PRE[k] || PRE[k.split("_")[0]] || (/^smd_(0402|0603|0805|1206)/.test(k) ? "R" : /^smd_sot/.test(k) ? "Q" : "U"); let n = 1; while (S.comps.some(c => c.id === pre + n)) n++; return pre + n; };
+    const AGENT_LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
     const checkNets = (comps) => {
       const warns = [];
       for (const c of comps) {
@@ -7536,7 +7562,7 @@
       }
       return warns;
     };
-    const runAgentCmd = async ({ id, action, args = {} }) => {
+    const runAgentCmd = async ({ id, action, args = {} }, reply) => {
       let res = { id, ok: true };
       try {
         if (action === "get_state") {
@@ -7625,7 +7651,7 @@
           let placed = null;
           if (args.x != null && args.y != null && FP[built.part.id]) {
             checkpoint();
-            placed = { id: "U" + (S.uid++), fp: built.part.id, x: r3(+args.x), y: r3(+args.y), rot: (+args.rot || 0) % 360 };
+            placed = { id: agentId(built.part.id), fp: built.part.id, x: r3(+args.x), y: r3(+args.y), rot: (+args.rot || 0) % 360 };
             S.comps.push(placed); save(); render();
           }
           res.data = { fp: built.part.id, title: built.part.title, pins: (built.part.pads || []).map(q => q.name), warn: built.warn || [], placed };
@@ -7656,7 +7682,7 @@
         } else if (action === "add_part") {
           if (!FP[args.fp]) throw new Error("Unknown footprint: " + args.fp);
           checkpoint();
-          const c = { id: "U" + (S.uid++), fp: args.fp, x: r3(+args.x || 0), y: r3(+args.y || 0), rot: (+args.rot || 0) % 360, ...(args.val ? { val: String(args.val) } : {}), ...(args.nets ? { nets: args.nets } : {}) };
+          const c = { id: agentId(args.fp), fp: args.fp, x: r3(+args.x || 0), y: r3(+args.y || 0), rot: (+args.rot || 0) % 360, ...(args.val ? { val: String(args.val) } : {}), ...(args.nets ? { nets: args.nets } : {}) };
           S.comps.push(c); save(); list(); render();
           const warnings = checkNets([c]);
           res.data = warnings.length ? { ...c, warnings } : c;
@@ -7674,10 +7700,27 @@
           res = { id, ok: false, error: "Unknown action: " + action };
         }
       } catch (e) { res = { id, ok: false, error: String(e && e.message || e) }; }
-      fetch("/__agent_done", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(res) }).catch(() => { });
+      if (reply) reply(res); else fetch("/__agent_done", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(res) }).catch(() => { });
     };
-    setInterval(() => {
+    if (AGENT_LOCAL) setInterval(() => {
       fetch("/__agent_poll", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.cmd) runAgentCmd(j.cmd); }).catch(() => { });
     }, 400);
+    // Kết nối AI từ xa: tab nối WebSocket tới mcp.pindexio.com theo mã phòng; AI dán URL https://mcp.pindexio.com/mcp?room=MÃ
+    const MCP_HOST = "mcp.pindexio.com", RK = "pindexio-ai-room";
+    let aiWs = null, aiOn = false, aiTimer = null, aiRoom = null;
+    const newRoom = () => { const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint8Array(6)); let t = ""; for (const b of r) t += A[b % A.length]; return "PCB-" + t; };
+    const roomGet = () => { if (aiRoom) return aiRoom; try { aiRoom = sessionStorage.getItem(RK); } catch (e) { } if (!aiRoom) { aiRoom = newRoom(); try { sessionStorage.setItem(RK, aiRoom); } catch (e) { } } return aiRoom; };
+    const aiConnect = () => {
+      if (!aiOn || (aiWs && aiWs.readyState <= 1)) return;
+      const ws = aiWs = new WebSocket(`wss://${MCP_HOST}/ws?room=${roomGet()}`);
+      ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } if (m.type === "cmd" && m.cmd) runAgentCmd(m.cmd, res => { try { ws.send(JSON.stringify(res)); } catch (x) { } }); };
+      ws.onopen = () => { clearInterval(aiTimer); aiTimer = setInterval(() => { try { ws.send('{"type":"ping"}'); } catch (x) { } }, 30000); };
+      ws.onclose = ev => { clearInterval(aiTimer); if (aiWs === ws) aiWs = null; if (aiOn && ev.code !== 4000) setTimeout(aiConnect, 3000); else if (ev.code === 4000) aiOn = false; };   // 4000: tab khác cùng mã đã nối
+    };
+    window.PINDEXIO_AI = {
+      on() { aiOn = true; aiConnect(); }, off() { aiOn = false; clearInterval(aiTimer); if (aiWs) { try { aiWs.close(); } catch (e) { } aiWs = null; } },
+      renew() { const was = aiOn; this.off(); aiRoom = newRoom(); try { sessionStorage.setItem(RK, aiRoom); } catch (e) { } if (was) this.on(); },
+      room: roomGet, url: () => `https://${MCP_HOST}/mcp?room=${roomGet()}`, state: () => aiOn ? (aiWs && aiWs.readyState === 1 ? "on" : "wait") : "off"
+    };
   }
 })();
