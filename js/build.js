@@ -937,7 +937,7 @@
         $("#bmwire").onclick = () => { if (B.bb.on) { B.bb.on = false; B.cam = null; save(); refresh(); } };
         $("#bbtog").onclick = () => toggleBB();
         $("#bxchk").onclick = () => xrToggle(); $("#bsync").onclick = () => xSync();
-        $("#bmpcb").onclick = () => A.openPcbLab(true); $("#bmpcb span").insertAdjacentHTML("beforeend", ' <sup class="beta">beta</sup>');
+        $("#bmpcb").onclick = () => A.openPcbLab(true);
         $("#bbspread").oninput = e => setSpread(+e.target.value);
         $("#bbstyle").onclick = () => { cycleStyle(); A.toast("Dây: " + STYLE_NAMES[B.style]); };
         $("#bbop").oninput = e => { B.bb.op = +e.target.value; $("#bbopv").textContent = Math.round(B.bb.op * 100) + "%"; svg().querySelectorAll(".bbmod > g[opacity], .bbmcu[opacity]").forEach(g => g.setAttribute("opacity", B.bb.op)); };
@@ -1012,7 +1012,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=1794559997"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=1794568401"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();

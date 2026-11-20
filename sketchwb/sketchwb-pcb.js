@@ -85,22 +85,22 @@
       <div class="swb-grip" title="Drag to move • Double-click to dock right side"></div>
       <button class="swb-btn" data-tool="select" title="Select (Esc)"><span style="color:#e5e7eb;font-size:15px">↖</span></button>
       <button class="swb-btn active" data-tool="polyline" title="Polyline (M)"><img src="${iconPath('icons-kicad/lines_any.svg')}"/></button>
-      <button class="swb-btn" data-tool="line" title="Line (L)"><img src="${iconPath('icons-kicad/add_line.svg')}"/></button>
-      <button class="swb-btn" data-tool="circle" title="Circle (C)"><img src="${iconPath('icons-kicad/add_circle.svg')}"/></button>
-      <button class="swb-btn" data-tool="rectangle" title="Rectangle (R)"><img src="${iconPath('icons-kicad/add_rectangle.svg')}"/></button>
       <div class="swb-split">
-        <button class="swb-btn" id="swb-btn-poly" data-tool="polygon" title="Polygon / Slot (G / S)"><img src="${iconPath('icons/Sketcher_CreateHexagon.svg')}"/></button>
-        <button class="swb-arrow" data-menu="swb-m-poly" title="Shapes &amp; Slot">▾</button>
+        <button class="swb-btn" id="swb-btn-poly" data-tool="line" title="Shape: Line (L) / Circle / Rectangle (R) / Polygon (G) / Slot"><img src="${iconPath('icons-kicad/add_line.svg')}"/></button>
+        <button class="swb-arrow" data-menu="swb-m-poly" title="Shape">▾</button>
         <div class="swb-menu" id="swb-m-poly">
+          <button data-tool="line" data-poly-icon="${iconPath('icons-kicad/add_line.svg')}"><span><img src="${iconPath('icons-kicad/add_line.svg')}"/>Line</span><kbd>L</kbd></button>
+          <button data-tool="circle" data-poly-icon="${iconPath('icons-kicad/add_circle.svg')}"><span><img src="${iconPath('icons-kicad/add_circle.svg')}"/>Hình tròn</span></button>
+          <button data-tool="rectangle" data-poly-icon="${iconPath('icons-kicad/add_rectangle.svg')}"><span><img src="${iconPath('icons-kicad/add_rectangle.svg')}"/>Hình chữ nhật</span><kbd>R</kbd></button>
           <button data-tool="polygon" data-sides="3" data-poly-icon="${iconPath('icons/Sketcher_CreateTriangle.svg')}"><span><img src="${iconPath('icons/Sketcher_CreateTriangle.svg')}"/>Tam giác (3)</span><kbd>G</kbd></button>
           <button data-tool="polygon" data-sides="4" data-poly-icon="${iconPath('icons/Sketcher_CreateSquare.svg')}"><span><img src="${iconPath('icons/Sketcher_CreateSquare.svg')}"/>Hình vuông (4)</span></button>
           <button data-tool="polygon" data-sides="5" data-poly-icon="${iconPath('icons/Sketcher_CreatePentagon.svg')}"><span><img src="${iconPath('icons/Sketcher_CreatePentagon.svg')}"/>Ngũ giác (5)</span></button>
           <button data-tool="polygon" data-sides="6" data-poly-icon="${iconPath('icons/Sketcher_CreateHexagon.svg')}"><span><img src="${iconPath('icons/Sketcher_CreateHexagon.svg')}"/>Lục giác (6)</span></button>
           <button data-tool="polygon" data-sides="8" data-poly-icon="${iconPath('icons/Sketcher_CreateOctagon.svg')}"><span><img src="${iconPath('icons/Sketcher_CreateOctagon.svg')}"/>Bát giác (8)</span></button>
-          <button data-tool="slot" data-poly-icon="${iconPath('icons/Sketcher_CreateSlot.svg')}"><span><img src="${iconPath('icons/Sketcher_CreateSlot.svg')}"/>Slot</span><kbd>S</kbd></button>
+          <button data-tool="slot" data-poly-icon="${iconPath('icons/Sketcher_CreateSlot.svg')}"><span><img src="${iconPath('icons/Sketcher_CreateSlot.svg')}"/>Slot</span></button>
         </div>
       </div>
-      <button class="swb-btn" id="swb-btn-const" data-action="const" title="Construction (X)"><img src="${iconPath('icons-kicad/add_dashed_line.svg')}"/></button>
+      <button class="swb-btn" id="swb-btn-const" data-action="const" title="Construction (N)"><img src="${iconPath('icons-kicad/add_dashed_line.svg')}"/></button>
       <div class="swb-sep"></div>
       <div class="swb-split">
         <button class="swb-btn" data-dim="smart" title="Dimension (D)"><img src="${iconPath('icons-kicad/add_aligned_dimension.svg')}"/></button>
@@ -131,14 +131,15 @@
       <div class="swb-sep"></div>
       <button class="swb-btn" data-tool="offset" title="Offset"><img src="${iconPath('icons/Sketcher_Offset.svg')}"/></button>
       <div class="swb-split">
-        <button class="swb-btn" id="swb-btn-fc" data-tool="fillet" title="Fillet (F) / Chamfer"><img src="${iconPath('icons-kicad/fillet.svg')}"/></button>
+        <button class="swb-btn" id="swb-btn-fc" data-tool="fillet" title="Fillet (F) / Chamfer (C)"><img src="${iconPath('icons-kicad/fillet.svg')}"/></button>
         <button class="swb-arrow" data-menu="swb-m-fc" title="Fillet / Chamfer">▾</button>
         <div class="swb-menu" id="swb-m-fc">
           <button data-tool="fillet" data-fc-icon="${iconPath('icons-kicad/fillet.svg')}"><span><img src="${iconPath('icons-kicad/fillet.svg')}"/>Fillet</span><kbd>F</kbd></button>
-          <button data-tool="chamfer" data-fc-icon="${iconPath('icons-kicad/chamfer.svg')}"><span><img src="${iconPath('icons-kicad/chamfer.svg')}"/>Chamfer</span></button>
+          <button data-tool="chamfer" data-fc-icon="${iconPath('icons-kicad/chamfer.svg')}"><span><img src="${iconPath('icons-kicad/chamfer.svg')}"/>Chamfer</span><kbd>C</kbd></button>
         </div>
       </div>
-      <button class="swb-btn" data-tool="trim" title="Trim (T)"><img src="${iconPath('icons-kicad/slice_line.svg')}"/></button>
+      <button class="swb-btn" data-tool="point" title="Point (X): click a line to add a point, click a joint to remove it"><img src="${iconPath('icons-kicad/slice_line.svg')}"/></button>
+      <button class="swb-btn" data-tool="trim" title="Trim (T)"><img src="${iconPath('icons/Sketcher_Trimming.svg')}"/></button>
       <div class="swb-sep"></div>
       <button class="swb-btn" data-tool="symmetry" title="Mirror"><img src="${iconPath('icons-kicad/mirror_h.svg')}"/></button>
       <button class="swb-btn" data-tool="scale" title="Scale"><img src="${iconPath('icons/Sketcher_Scale.svg')}"/></button>
@@ -163,6 +164,12 @@
         <span id="swb-dlg-unit">mm</span>
       </div>
       <div class="swb-dlg-row"><label><input type="checkbox" id="swb-dlg-chk"/> <span>Option</span></label></div>
+      <div class="swb-dlg-row" id="swb-dlg-out" style="display:none;flex-wrap:wrap;gap:8px">
+        <span>Xuất ra:</span>
+        <label><input type="radio" name="swb-out" value="cu" checked/> Dây đồng</label>
+        <label><input type="radio" name="swb-out" value="paint"/> Lớp paint</label>
+        <label title="Tô kín các hình khép kín (chỉ khi xuất ra lớp paint)"><input type="checkbox" id="swb-dlg-solid" disabled/> Solid</label>
+      </div>
       <div class="swb-dlg-btns"><button id="swb-dlg-ok" class="primary">OK</button><button id="swb-dlg-cancel">Cancel</button></div>
     `;
     document.body.appendChild(dlg);
@@ -269,7 +276,24 @@
         return `M ${sx} ${sy} A ${g.r} ${g.r} 0 ${sp > Math.PI ? 1 : 0} 1 ${ex} ${ey}`;
       },
       clearPreview() { lPrev.innerHTML = ''; },
-      drawPreview(fn) { ensureOverlay(); lPrev.innerHTML = ''; fn(lPrev, el); },
+      drawPreview(fn) { ensureOverlay(); lPrev.innerHTML = ''; fn(lPrev, el); try { this.drawHint(); } catch (e) {} },
+      // gợi ý: 2 đỉnh gần con trỏ nhất (đỉnh Sketch + đỉnh đường đồng), nét đứt mờ theo trục lệch ít hơn. Chỉ để nhìn, không bắt điểm.
+      drawHint() {
+        if (!this.snapEnabled || !this._lw) return;
+        const x = this._lw.x, y = this._lw.y, cand = [], add = (rx, ry) => { const d = Math.hypot(rx - x, ry - y); if (d > 0.2 && d < 12) cand.push([d, rx, ry]); };
+        for (const g of model.geometries) for (const p of model.getPointsOfGeo(g)) add(p.x, p.y);
+        for (const l of (bridge.getTraceLines ? bridge.getTraceLines() : [])) { if (l.x1 != null) { add(l.x1, l.y1); add(l.x2, l.y2); } }
+        cand.sort((a, b) => a[0] - b[0]);
+        const seen = [];
+        for (const c of cand) {
+          if (seen.length >= 2) break;
+          if (seen.some(q => Math.hypot(q[1] - c[1], q[2] - c[2]) < 0.05)) continue;
+          seen.push(c);
+          const rx = c[1], ry = c[2], dx = Math.abs(rx - x), dy = Math.abs(ry - y);
+          if (Math.min(dx, dy) < 3) { if (dy <= dx) el('line', { x1: rx, y1: ry, x2: x, y2: ry, class: 'swb-hint' }, lPrev); else el('line', { x1: rx, y1: ry, x2: rx, y2: y, class: 'swb-hint' }, lPrev); }
+          el('circle', { cx: rx, cy: ry, r: 0.5, class: 'swb-hintpt' }, lPrev);
+        }
+      },
       textTransform(tx, ty) {
         const invS = 1 / Math.max(0.5, this.scale);
         const rootNode = (bridge.getRoot && bridge.getRoot()) || bridge.getSvg();
@@ -527,6 +551,21 @@
     tools = global.SketchTools.createTools({
       model, vp, solve, updateUI, notify, openInlineDim, openValuePopup,
       getExtraGeos: () => (bridge.getTraceLines ? bridge.getTraceLines() : []),
+      // Dim: bắt chân linh kiện, đỉnh đường đồng, mép bo PCB (khi không trúng hình Sketch)
+      getPcbDimSnap: (x, y, tol) => {
+        const pad = bridge.findPadNear ? bridge.findPadNear(x, y, Math.max(tol, 1.35)) : null;
+        if (pad) return { kind: 'pt', x: pad.x, y: pad.y };
+        const tv = bridge.findTraceVertexNear ? bridge.findTraceVertexNear(x, y, tol) : null;
+        if (tv) return { kind: 'pt', x: tv.x, y: tv.y };
+        let best = null, bd = tol;
+        for (const [a, b] of (bridge.getBoardEdges ? bridge.getBoardEdges() : [])) {
+          const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2));
+          const px = a[0] + t * dx, py = a[1] + t * dy, d = Math.hypot(x - px, y - py);
+          if (Math.hypot(x - a[0], y - a[1]) < tol * 0.6) return { kind: 'pt', x: a[0], y: a[1] };   // góc bo
+          if (d < bd) { bd = d; best = { kind: 'edge', x: px, y: py, x1: a[0], y1: a[1], x2: b[0], y2: b[1] }; }
+        }
+        return best;
+      },
       isConstruction: () => constructionMode,
       autoConst: () => document.getElementById('swb-auto').checked,
       isShiftLock: () => !!(bridge.isShiftLock && bridge.isShiftLock()),
@@ -541,7 +580,7 @@
       tb.querySelectorAll('.swb-btn[data-tool]').forEach((b) => b.classList.toggle('active', b.dataset.tool === name));
       tb.querySelectorAll('.swb-btn[data-dim]').forEach((b) => b.classList.toggle('active', name === 'dimension'));
       const pBtn = document.getElementById('swb-btn-poly');
-      if (pBtn) pBtn.classList.toggle('active', name === 'polygon' || name === 'slot');
+      if (pBtn) pBtn.classList.toggle('active', ['polygon', 'slot', 'line', 'circle', 'rectangle'].includes(name));
       const oBtn = document.getElementById('swb-btn-coincident');
       if (oBtn) oBtn.classList.toggle('active', name === 'coincident');
       if (name === 'coincident' && !arg) notify('Coincident: chọn 2 điểm, hoặc điểm + cạnh, hoặc 2 đường tròn', 'info');
@@ -719,11 +758,11 @@
       else if (k === 't') { e.stopImmediatePropagation(); setSwbTool('trim'); }
       else if (k === 'm') { e.stopImmediatePropagation(); setSwbTool('polyline'); }
       else if (k === 'l') { e.stopImmediatePropagation(); setSwbTool('line'); }
-      else if (k === 'c') { e.stopImmediatePropagation(); setSwbTool('circle'); }
+      else if (k === 'c') { e.stopImmediatePropagation(); setSwbTool('chamfer'); }
       else if (k === 'r') { e.stopImmediatePropagation(); setSwbTool('rectangle'); }
       else if (k === 'g') { e.stopImmediatePropagation(); setSwbTool('polygon'); }
-      else if (k === 's') { e.stopImmediatePropagation(); setSwbTool('slot'); }
-      else if (k === 'x') { e.stopImmediatePropagation(); document.getElementById('swb-btn-const').click(); }
+      else if (k === 'n') { e.stopImmediatePropagation(); document.getElementById('swb-btn-const').click(); }
+      else if (k === 'x') { e.stopImmediatePropagation(); setSwbTool('point'); }
       else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.stopImmediatePropagation();
         if (vp.selectedPoints.length === 1 && !vp.selectedGeos.size && !vp.selectedConstraints.size) {
@@ -806,7 +845,7 @@
       if (!rDownPos && e.buttons === 0) e.stopImmediatePropagation();
       vp.syncScale();
       const w = bridge.toMM(e);
-      lastWorldPt = w;
+      lastWorldPt = w; vp._lw = w;
       tools[activeToolName]?.onMove?.(e, w);
     }, true);
     stageEl.addEventListener('pointerup', (e) => {
@@ -870,6 +909,12 @@
     document.getElementById('swb-dlg-slider-row').style.display = 'flex';
     document.getElementById('swb-dlg-rng').value = '0.8';
     document.getElementById('swb-dlg-chk').parentElement.style.display = 'none';
+    const outRow = document.getElementById('swb-dlg-out'), solidChk = document.getElementById('swb-dlg-solid');
+    outRow.style.display = 'flex';
+    outRow.querySelector('input[name="swb-out"][value="cu"]').checked = true; solidChk.checked = false;   // mỗi lần mở: mặc định Dây đồng
+    const outMode = () => (outRow.querySelector('input[name="swb-out"]:checked') || {}).value || 'cu';
+    outRow.querySelectorAll('input[name="swb-out"]').forEach((r) => { r.onchange = () => { solidChk.disabled = outMode() !== 'paint'; if (solidChk.disabled) solidChk.checked = false; }; });
+    solidChk.disabled = outMode() !== 'paint';
     const inp = document.getElementById('swb-dlg-inp');
     inp.value = '0.80';
     dlg.style.left = `${Math.max(8, Math.min(window.innerWidth - 240, cx - 60))}px`;
@@ -878,7 +923,13 @@
 
     const commit = () => {
       const w = Math.max(0.2, Number(inp.value) || 0.8);
-      dlg.style.display = 'none';
+      const toPaint = outMode() === 'paint' && !!bridge.addArt, solid = toPaint && solidChk.checked;
+      dlg.style.display = 'none'; outRow.style.display = 'none';
+      const emit = (pts, net) => {
+        if (!toPaint) return bridge.addTrace(pts, w, net);
+        const closed = pts.length > 2 && nearPt(pts[0], pts[pts.length - 1]);
+        bridge.addArt(closed ? pts.slice(0, -1) : pts, w, closed, solid && closed);
+      };
       solveFn?.();
       const nearPt = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.05;
       const toPts = (gg) => {
@@ -928,7 +979,7 @@
           const gg = model.getGeo(id);
           const pts = toPts(gg);
           if (!pts || pts.length < 2) continue;
-          if (gg.type === 'circle') bridge.addTrace(pts, w, chainNet);
+          if (gg.type === 'circle') emit(pts, chainNet);
           else pool.push(pts);
         }
         while (pool.length) {
@@ -954,7 +1005,7 @@
               extended = true;
             }
           }
-          bridge.addTrace(poly, w, chainNet);
+          emit(poly, chainNet);
         }
       }
       model.clear();
@@ -963,7 +1014,7 @@
       bridge.setTool('sel');
     };
     document.getElementById('swb-dlg-ok').onclick = commit;
-    document.getElementById('swb-dlg-cancel').onclick = () => { dlg.style.display = 'none'; };
+    document.getElementById('swb-dlg-cancel').onclick = () => { dlg.style.display = 'none'; outRow.style.display = 'none'; };
   }
 
   function openPlugin() {

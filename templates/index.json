@@ -1,0 +1,56 @@
+{
+ "version": 1,
+ "templates": [
+  {
+   "id": "soic8-breakout",
+   "file": "soic8-breakout.pdi",
+   "title": "Breakout SOIC-8 → header 2,54",
+   "title_en": "SOIC-8 breakout → 2.54 header",
+   "desc": "IC dán SOIC-8 (bước 1,27 mm) ra hai hàng header 4 chân để cắm breadboard. Dây 0,4 mm, một lớp.",
+   "desc_en": "SOIC-8 IC (1.27 mm pitch) fanned out to two 4-pin headers for a breadboard. 0.4 mm traces, single layer.",
+   "tags": [
+    "SMD",
+    "SOIC-8",
+    "breakout"
+   ],
+   "size": "30×26 mm",
+   "author": "Pindexio",
+   "license": "CC0",
+   "verified": false
+  },
+  {
+   "id": "led-0603",
+   "file": "led-0603.pdi",
+   "title": "Đèn LED + điện trở 0603",
+   "title_en": "LED + 0603 resistor",
+   "desc": "Mạch LED nhỏ nhất: điện trở và LED cỡ 0603, cấp nguồn qua header 2 chân. Dây 0,6 mm.",
+   "desc_en": "Smallest LED circuit: 0603 resistor and LED, powered through a 2-pin header. 0.6 mm traces.",
+   "tags": [
+    "SMD",
+    "0603",
+    "LED"
+   ],
+   "size": "30×22 mm",
+   "author": "Pindexio",
+   "license": "CC0",
+   "verified": false
+  },
+  {
+   "id": "adapter-254-127",
+   "file": "adapter-254-127.pdi",
+   "title": "Chuyển bước chân 2,54 → 1,27 (8 chân)",
+   "title_en": "Pitch adapter 2.54 → 1.27 (8 pins)",
+   "desc": "Hàng header 2,54 mm nối thẳng sang hàng 1,27 mm. Dùng khi module có chân nhỏ cần cắm breadboard.",
+   "desc_en": "2.54 mm header row wired straight to a 1.27 mm row. For small-pitch modules that need a breadboard.",
+   "tags": [
+    "header",
+    "1.27",
+    "adapter"
+   ],
+   "size": "34×24 mm",
+   "author": "Pindexio",
+   "license": "CC0",
+   "verified": false
+  }
+ ]
+}

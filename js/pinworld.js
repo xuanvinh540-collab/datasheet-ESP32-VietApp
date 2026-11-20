@@ -19,6 +19,15 @@
   #pinworld .pw-count { color: var(--muted); font-size: 12.5px; margin-left: auto; }
   #pinworld .pw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
   #pinworld .pw-card { display: grid; grid-template-rows: 96px auto; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); text-align: center; cursor: pointer; font: 11.5px/1.25 inherit; position: relative; }
+  #pinworld .pw-cats { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+  #pinworld .pw-cats button { padding: 5px 11px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--fg); font: 600 12px inherit; cursor: pointer; }
+  #pinworld .pw-cats button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: #111; }
+  #pinworld .pw-cats button small { opacity: .65; margin-left: 4px; font-weight: 500; }
+  #pinworld .pw-card b.nv { position: absolute; top: 8px; right: 8px; padding: 1px 6px; border-radius: 99px; background: var(--accent); color: #111; font: 700 10.5px inherit; }
+  #pinworld .pw-vars { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  #pinworld .pw-vars button { width: 56px; height: 44px; padding: 2px; border: 2px solid var(--line); border-radius: 7px; background: #fff; cursor: pointer; }
+  #pinworld .pw-vars button[aria-pressed=true] { border-color: var(--accent); }
+  #pinworld .pw-vars img { max-width: 100%; max-height: 100%; object-fit: contain; }
   #pinworld .pw-card:hover, #pinworld .pw-card[aria-pressed=true] { border-color: var(--accent); }
   #pinworld .pw-card .im { display: grid; place-items: center; background: #fff; border-radius: 7px; overflow: hidden; }
   #pinworld .pw-card img { max-width: 100%; max-height: 96px; object-fit: contain; }
@@ -37,7 +46,7 @@
   @media (max-width: 900px) { #pinworld { grid-template-columns: 1fr; } #pinworld .pw-side { position: static; max-height: none; } }`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
 
-  const S = { parts: null, mode: "store", view: "breadboard", mount: "tht", src: "", q: "", shown: PAGE, sel: null, prev: null, busy: false };
+  const S = { parts: null, mode: "store", view: "breadboard", mount: "tht", src: "", q: "", shown: PAGE, sel: null, prev: null, busy: false, cat: "all" };
   const enc = p => p.split("/").map(encodeURIComponent).join("/");
   const BASE = "https://cdn.jsdelivr.net/gh/fritzing/fritzing-parts@develop/", RAW = "https://raw.githubusercontent.com/fritzing/fritzing-parts/develop/";   // jsDelivr chặn vài file lẻ (403): lấy trực tiếp từ GitHub
   document.addEventListener("error", e => { const t = e.target; if (t && t.tagName === "IMG" && t.src.startsWith(BASE) && !t.dataset.f) { t.dataset.f = 1; t.src = RAW + t.src.slice(BASE.length); } }, true);   // ảnh bị jsDelivr chặn: thử lại từ GitHub
@@ -50,7 +59,7 @@
   /* ---------- kho "Linh kiện của tôi" (trong trình duyệt) ---------- */
   const mine = {
     get() { try { const o = JSON.parse(localStorage.getItem(KEY) || "null"); return o && o.parts ? o : { version: 1, parts: {} }; } catch (e) { return { version: 1, parts: {} }; } },
-    put(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); return true; } catch (e) { return false; } },
+    put(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); if (window.APP && APP.libChanged) APP.libChanged(); return true; } catch (e) { return false; } },
     count() { return Object.keys(this.get().parts).length; }
   };
 
@@ -90,6 +99,7 @@
       const ps = [...c.querySelectorAll("views > pcbView > p")], p0 = ps.find(q => q.getAttribute("layer") === "copper0") || ps[0];
       return { id: c.getAttribute("id") || "", name: (c.getAttribute("name") || c.getAttribute("id") || "?").replace(/[\u0000-\u001f]/g, "").slice(0, 16), desc: (c.querySelector("description") || {}).textContent || "", svgId: p0 ? p0.getAttribute("svgId") : null, bbId: (c.querySelector("views > breadboardView > p") || { getAttribute: () => null }).getAttribute("svgId"), tht: ps.some(q => q.getAttribute("layer") === "copper0") };
     }).sort((a, b) => (parseInt(a.id.replace(/\D/g, "")) || 0) - (parseInt(b.id.replace(/\D/g, "")) || 0));
+    const busOf = {}; fz.querySelectorAll("buses > bus").forEach(b => b.querySelectorAll("nodeMember").forEach(m => { busOf[m.getAttribute("connectorId")] = b.getAttribute("id"); }));
     const doc = new DOMParser().parseFromString(pcbT, "image/svg+xml"), root = doc.documentElement;
     if (root.nodeName.toLowerCase() !== "svg" || doc.querySelector("parsererror")) throw new Error(L("SVG PCB không đọc được.", "The PCB SVG cannot be read."));
     sanitize(root);
@@ -103,7 +113,27 @@
     const pads = [], missing = [];
     for (const c of conns) {
       const e = c.svgId && byId[c.svgId]; if (!e) { missing.push(c.name); continue; }
-      const r = e.getBoundingClientRect(); pads.push({ name: c.name, desc: c.desc, x: (r.left + r.width / 2 - base.left) / k, y: (r.top + r.height / 2 - base.top) / k, dia: Math.min(r.width, r.height) / k, tht: c.tht });
+      const r = e.getBoundingClientRect(), m = e.getScreenCTM ? e.getScreenCTM() : null, sw = (parseFloat(getComputedStyle(e).strokeWidth) || 0) * (m ? Math.hypot(m.a, m.b) : 1) / k, d0 = Math.min(r.width, r.height) / k;
+      // Fritzing vẽ pad xuyên lỗ là vòng tròn có nét: đường kính ngoài = hình + nét, lỗ = hình − nét
+      pads.push({ name: c.name, desc: c.desc, x: (r.left + r.width / 2 - base.left) / k, y: (r.top + r.height / 2 - base.top) / k, dia: d0 + (e.tagName.toLowerCase() === "circle" ? sw : 0), hole: e.tagName.toLowerCase() === "circle" && sw > 0 ? d0 - sw : 0, tht: c.tht, bus: busOf[c.id] || null });
+    }
+    // Gộp pad cùng bus: pad cách nhau < 2 mm là 1 chân (giữ pad xuyên lỗ gần tâm bo nhất, thường nằm đúng lưới 2,54);
+    // pad phụ nhỏ hơn hẳn pad chính của bus (pad dán mặt dưới, pad thử) thì bỏ; cùng bus mà ở xa nhau (2 vị trí thật) thì giữ cả hai.
+    let mergedPads = 0;
+    {
+      const cx = pads.reduce((a, q) => a + q.x, 0) / (pads.length || 1), cy = pads.reduce((a, q) => a + q.y, 0) / (pads.length || 1), drop = new Set(), groups = {};
+      for (const q of pads) if (q.bus) (groups[q.bus] = groups[q.bus] || []).push(q);
+      for (const g of Object.values(groups)) {
+        if (g.length < 2) continue;
+        const cl = []; for (const q of g) { const c = cl.find(c => c.some(o => Math.hypot(o.x - q.x, o.y - q.y) < 2)); if (c) c.push(q); else cl.push([q]); }
+        const dc = q => Math.hypot(q.x - cx, q.y - cy), maxDia = Math.max(...g.map(q => q.dia || 0));
+        for (const c of cl) {
+          const keep = c.slice().sort((a, b) => (b.tht - a.tht) || (dc(a) - dc(b)))[0];
+          for (const q of c) if (q !== keep) drop.add(q);
+          if (cl.length > 1 && maxDia > 0 && keep.dia < maxDia * .7) drop.add(keep);
+        }
+      }
+      mergedPads = drop.size; for (let i = pads.length - 1; i >= 0; i--) if (drop.has(pads[i])) pads.splice(i, 1);
     }
     // hình ký hiệu (silkscreen) làm hình thân trên bo
     let art = ""; const clone = svg.cloneNode(true); let kept = 0;
@@ -151,14 +181,21 @@
     const smd = pads.filter(q => !q.tht).length, small = pads.filter(q => q.dia < 1.6).length;
     let minD = 1e9; for (let i = 0; i < pads.length; i++) for (let j = i + 1; j < pads.length; j++) minD = Math.min(minD, Math.hypot(pads[i].x - pads[j].x, pads[i].y - pads[j].y));
     if (smd) warn.push(L(`${smd} chân là kiểu dán (SMD), PCB Maker chỉ làm chân xuyên lỗ.`, `${smd} pins are SMD; PCB Maker only supports through-hole pins.`));
-    if (small) warn.push(L(`${small} chân có pad gốc nhỏ hơn 1,6 mm; PCB Maker dùng pad chuẩn Ø2 mm.`, `${small} pins have an original pad under 1.6 mm; PCB Maker uses the standard Ø2 mm pad.`));
-    if (minD < 2.5) warn.push(L(`Hai chân gần nhau nhất cách ${minD.toFixed(2)} mm: dưới 2,5 mm thì pad Ø2 sẽ sát hoặc chạm nhau và khó đi dây giữa các chân.`, `The two closest pins are ${minD.toFixed(2)} mm apart: under 2.5 mm the Ø2 pads touch or nearly touch and routing between pins is hard.`));
+    if (false && small) warn.push(L(`${small} chân có pad gốc nhỏ hơn 1,6 mm; PCB Maker dùng pad chuẩn Ø2 mm.`, `${small} pins have an original pad under 1.6 mm; PCB Maker uses the standard Ø2 mm pad.`));
+    if (false && minD < 2.5) warn.push(L(`Hai chân gần nhau nhất cách ${minD.toFixed(2)} mm: dưới 2,5 mm thì pad Ø2 sẽ sát hoặc chạm nhau và khó đi dây giữa các chân.`, `The two closest pins are ${minD.toFixed(2)} mm apart: under 2.5 mm the Ø2 pads touch or nearly touch and routing between pins is hard.`));
+    if (false && mergedPads) warn.push(L(`Đã gộp ${mergedPads} pad trùng (cùng chân điện theo Fritzing: lỗ khuyết mép, pad dán mặt dưới…) → còn ${pads.length} chân.`, `Merged ${mergedPads} duplicate pads (same electrical pin in Fritzing: castellated edge, bottom SMD pads…) → ${pads.length} pins.`));
     if (missing.length) warn.push(L(`Không tìm thấy vị trí của ${missing.length} chân (${missing.slice(0, 4).join(", ")}…): chân đó bị bỏ.`, `Could not locate ${missing.length} pins (${missing.slice(0, 4).join(", ")}…): they were skipped.`));
     if (W > 150 || H > 150) warn.push(L(`Kích thước bất thường (${W.toFixed(0)} × ${H.toFixed(0)} mm): có thể sai đơn vị trong SVG.`, `Unusual size (${W.toFixed(0)} × ${H.toFixed(0)} mm): the SVG units may be wrong.`));
     if (p[6] === "?") warn.push(L("Chưa xác định được đây là linh kiện xuyên lỗ hay dán.", "Could not tell whether this part is through-hole or SMD."));
     const part = {
       id: slug(p[0]) + "-" + hash(p[1] + "/" + p[2]), title: p[0], src: p[1], fzp: p[2], family: p[7] || "", license: LIC, url: ghUrl(p), verified: false, added: new Date().toISOString(),
-      pads: pads.map(q => { const [role, conf] = guess(q.name, q.desc); return { name: q.name, x: r2(q.x - x0), y: r2(q.y - y0), role, conf }; }),
+      pads: pads.map(q => {
+        const [role, conf] = guess(q.name, q.desc), o = { name: q.name, x: r2(q.x - x0), y: r2(q.y - y0), role, conf };
+        let near = 1e9; for (const z of pads) if (z !== q) near = Math.min(near, Math.hypot(z.x - q.x, z.y - q.y));
+        const want = q.dia > .3 && q.dia < 1.95 ? q.dia : 2, fit = Math.min(want, near - .25);   // chừa khe ≥ 0,25 mm với pad bên cạnh
+        if (q.tht && fit < 1.95) { o.r = r2(Math.max(.4, fit / 2)); o.drill = r2(Math.max(.4, Math.min(1, q.hole > .2 ? q.hole : fit - .5, 2 * o.r - .3))); }
+        return o;
+      }),
       body: { x: r2(-x0), y: r2(-y0), w: r2(W), h: r2(H) }, art, icon,
       bbm,
       bb: bbFit ? { rot: bbFit.rot, s: Math.round(bbFit.s * 1e4) / 1e4, x: r2(bbFit.tx - x0), y: r2(bbFit.ty - y0), w: r2(bbFit.w), h: r2(bbFit.h) } : null
@@ -168,14 +205,36 @@
   const roleName = r => ({ g: "GND", d: "SDA", c: "SCL", k: "SCK", m: "MOSI", s: L("GPIO trống", "free GPIO"), n: "—" }[r] || "—");
   function previewSvg(pt) {
     const b = pt.body, pad = 4, w = b.w + 2 * pad, h = b.h + 2 * pad;
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x - pad} ${b.y - pad} ${w} ${h}" width="100%" style="background:#1e5a3c;border-radius:6px"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="none" stroke="#ffd400" stroke-width=".25"/>${pt.art ? `<image href="${pt.art}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}"/>` : ""}${pt.pads.map((q, i) => `<circle cx="${q.x}" cy="${q.y}" r="1" fill="#d9a84a"${i === 0 ? ' stroke="#fff" stroke-width=".25"' : ""}/><circle cx="${q.x}" cy="${q.y}" r=".5" fill="#232b3a"/><text x="${q.x}" y="${q.y - 1.5}" font-size="1.3" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">${esc(q.name)}</text>`).join("")}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x - pad} ${b.y - pad} ${w} ${h}" width="100%" style="background:#1e5a3c;border-radius:6px"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="none" stroke="#ffd400" stroke-width=".25"/>${pt.art ? `<image href="${pt.art}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}"/>` : ""}${pt.pads.map((q, i) => `<circle cx="${q.x}" cy="${q.y}" r="${q.r || 1}" fill="#d9a84a"${i === 0 ? ' stroke="#fff" stroke-width=".25"' : ""}/><circle cx="${q.x}" cy="${q.y}" r="${q.drill ? q.drill / 2 : .5}" fill="#232b3a"/><text x="${q.x}" y="${q.y - 1.5}" font-size="1.3" font-weight="700" fill="#fff" text-anchor="middle" font-family="sans-serif">${esc(q.name)}</text>`).join("")}</svg>`;
   }
 
-  /* ---------- giao diện ---------- */
-  const filtered = () => {
+  /* ---------- nhóm loại + gộp biến thể (cùng tên, chỉ khác màu) ---------- */
+  const CATS = [
+    ["board", L("Boards", "Boards"), /microcontroller board|cpu board|\barduino (uno|nano|mega|mini|micro|pro|leonardo|due|yun|fio|bt|board|esplora)|esp32|esp8266|raspberry pi|\bpico\b|teensy|\bfeather\b(?!wing)|wemos d1 mini(?! shield)|lilypad|qt py|nodemcu|huzzah|microbit|micro:bit/],
+    ["shield", L("Shield / mở rộng", "Shields / add-ons"), /shield|featherwing|picowbell|\bbff\b|\bhat\b|add-on|bonnet/],
+    ["disp", L("Hiển thị", "Displays"), /display|\blcd\b|oled|\btft\b|segment|matrix|e-?ink|e-?paper|charlieplex/],
+    ["led", "LED", /\bled\b|neopixel|ws28|dotstar|\brgb\b/],
+    ["sens", L("Cảm biến", "Sensors"), /sensor|\bimu\b|accel|gyro|\bdof\b|temperat|humid|\bdht|ultrason|\bldr\b|photo|\bpir\b|\bgps\b|hall|pressure|baro|magnet|compass|microphone|\bmic\b/],
+    ["motor", L("Động cơ & relay", "Motors & relays"), /motor|servo|stepper|relay|\bpwm\b|solenoid/],
+    ["power", L("Nguồn & pin", "Power"), /battery|regulator|voltage|power|charger|lipo|dc jack|boost|buck/],
+    ["input", L("Nút, công tắc, biến trở", "Buttons & pots"), /button|switch|potentiometer|trimmer|encoder|joystick|keypad/],
+    ["conn", L("Kết nối & không dây", "Connectors & wireless"), /connector|header|\busb\b|jack|terminal|socket|\bdb\b|\brj|stemma|grove|wireless|bluetooth|wifi|radio|xbee|\brfid|\bnfc/],
+    ["ic", L("IC & linh kiện rời", "ICs & passives"), /resistor|capacitor|diode|transistor|\bic\b|gate|40xx|\b74|buffer|mosfet|crystal|inductor|op-?amp|timer|eeprom|shift register/]
+  ];
+  const catOf = p => { if (p._c) return p._c; const t = (p[0] + " " + (p[7] || "")).toLowerCase(); const c = CATS.find(c => c[2].test(t)); return p._c = c ? c[0] : "other"; };
+  const COLORS = /\b(red|green|blue|yellow|white|orange|amber|pink|purple|warm white|cool white|black|emerald|aqua)\b/g;
+  const gkey = p => p._g || (p._g = p[0].toLowerCase().replace(COLORS, "").replace(/\([^)]*\)/g, "").replace(/[^a-z0-9.]+/g, " ").trim());
+  const filtered = (ignoreCat) => {
     const q = S.q.trim().toLowerCase();
-    return S.parts.filter(p => (S.mount === "all" || p[6] === S.mount) && (!S.src || p[1] === S.src) && (!q || p[0].toLowerCase().includes(q) || (p[7] || "").toLowerCase().includes(q)));
+    return S.parts.filter(p => (S.mount === "all" || p[6] === S.mount) && (!S.src || p[1] === S.src) && (ignoreCat || S.cat === "all" || catOf(p) === S.cat) && (!q || p[0].toLowerCase().includes(q) || (p[7] || "").toLowerCase().includes(q)));
   };
+  const groups = list => {   // [{k, items}] giữ thứ tự; Boards lên đầu khi xem Tất cả
+    const m = new Map(); for (const p of list) { const k = gkey(p); if (!m.has(k)) m.set(k, []); m.get(k).push(p); }
+    const g = [...m].map(([k, items]) => ({ k, items }));
+    if (S.cat === "all") g.sort((a, b) => (catOf(b.items[0]) === "board") - (catOf(a.items[0]) === "board"));
+    return g;
+  };
+  /* ---------- giao diện ---------- */
   function draw() {
     const n = mine.count();
     ROOT.innerHTML = `<div class="pw-bar"><h2>Pinworld<small>${L("kho linh kiện Fritzing (bản thử)", "Fritzing parts library (preview)")}</small></h2>
@@ -185,6 +244,7 @@
       <select id="pwMount"><option value="tht"${S.mount === "tht" ? " selected" : ""}>${L("Xuyên lỗ (dùng được cho PCB Maker)", "Through-hole (works in PCB Maker)")}</option><option value="smd"${S.mount === "smd" ? " selected" : ""}>${L("Dán SMD", "SMD")}</option><option value="all"${S.mount === "all" ? " selected" : ""}>${L("Tất cả", "All")}</option></select>
       <select id="pwSrc"><option value="">${L("Chính thức + cộng đồng", "Core + community")}</option><option value="core"${S.src === "core" ? " selected" : ""}>core</option><option value="contrib"${S.src === "contrib" ? " selected" : ""}>contrib</option></select>` : ""}
       <span class="pw-count" id="pwCount"></span></div>
+      ${S.mode === "store" ? `<div class="pw-cats" id="pwCats"></div>` : ""}
       <div class="pw-grid" id="pwGrid"></div><aside class="pw-side" id="pwSide"></aside>
       <p class="pw-foot">${L("Hình và dữ liệu linh kiện thuộc dự án", "Part graphics and data belong to the")} <a href="https://fritzing.org" target="_blank" rel="noopener">Fritzing</a> (<a href="https://github.com/fritzing/fritzing-parts" target="_blank" rel="noopener">fritzing/fritzing-parts</a>), ${L("theo giấy phép", "licensed under")} <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>: ${L("khi dùng lại phải ghi nguồn Fritzing và chia sẻ tác phẩm của bạn theo cùng giấy phép. Một số linh kiện do cộng đồng đóng góp có thể có điều kiện riêng, hãy kiểm tra trên kho gốc. Hình tải trực tiếp từ jsDelivr khi bạn xem; Pindexio không lưu bản sao. Linh kiện bạn thêm chỉ lưu trong trình duyệt này.", "when you reuse them, credit Fritzing and share your work under the same license. Some community-contributed parts may carry their own terms, check the original repository. Images load directly from jsDelivr when you view them; Pindexio keeps no copy. Parts you add are stored only in this browser.")}</p>`;
     ROOT.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { S.mode = b.dataset.m; S.sel = null; S.prev = null; S.shown = PAGE; draw(); });
@@ -205,22 +265,30 @@
       g.querySelectorAll(".pw-card").forEach(b => b.onclick = () => { S.sel = mine.get().parts[b.dataset.id]; S.prev = null; grid(); side(); });
       return;
     }
-    const list = filtered(); cnt.textContent = list.length + " " + L("kết quả", "results");
-    g.innerHTML = list.slice(0, S.shown).map((p, i) => `<button type="button" class="pw-card" data-i="${i}" aria-pressed="${S.sel === p}" title="${esc(p[0])}"><div class="im"><img decoding="async" alt="" src="${imgUrl(p, S.view)}"></div><span>${esc(p[0])}</span>${p[6] === "smd" ? "<i>SMD</i>" : ""}</button>`).join("")
-      + (list.length > S.shown ? `<button type="button" class="pw-more" id="pwMore">${L("Xem thêm", "Show more")} (${list.length - S.shown})</button>` : "");
-    g.querySelectorAll(".pw-card").forEach(b => b.onclick = () => { S.sel = list[+b.dataset.i]; S.prev = null; grid(); side(); });
+    const cats = ROOT.querySelector("#pwCats");
+    if (cats) {
+      const base = filtered(true), cnt0 = {}; for (const p of base) { const c = catOf(p); cnt0[c] = (cnt0[c] || 0) + 1; }
+      const all = [["all", L("Tất cả", "All")], ...CATS.map(c => [c[0], c[1]]), ["other", L("Khác", "Other")]].filter(([k]) => k === "all" || cnt0[k]);
+      cats.innerHTML = all.map(([k, t]) => `<button type="button" data-cat="${k}" aria-pressed="${S.cat === k}">${t}<small>${k === "all" ? base.length : cnt0[k]}</small></button>`).join("");
+      cats.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { S.cat = b.dataset.cat; S.shown = PAGE; grid(); });
+    }
+    const list = filtered(), gs = groups(list); cnt.textContent = gs.length + " " + L("loại", "types") + " · " + list.length + " " + L("biến thể", "variants");
+    g.innerHTML = gs.slice(0, S.shown).map(({ items }, i) => { const p = items.includes(S.sel) ? S.sel : items[0]; return `<button type="button" class="pw-card" data-i="${i}" aria-pressed="${items.includes(S.sel)}" title="${esc(p[0])}"><div class="im"><img decoding="async" alt="" src="${imgUrl(p, S.view)}"></div><span>${esc(p[0])}</span>${p[6] === "smd" ? "<i>SMD</i>" : ""}${items.length > 1 ? `<b class="nv">×${items.length}</b>` : ""}</button>`; }).join("")
+      + (gs.length > S.shown ? `<button type="button" class="pw-more" id="pwMore">${L("Xem thêm", "Show more")} (${gs.length - S.shown})</button>` : "");
+    g.querySelectorAll(".pw-card").forEach(b => b.onclick = () => { const it = gs[+b.dataset.i].items; S.sel = it[0]; S.vars = it; S.prev = null; grid(); side(); });
     const more = g.querySelector("#pwMore"); if (more) more.onclick = () => { S.shown += PAGE; grid(); };
   }
   function side() {
     const box = ROOT.querySelector("#pwSide"), it = S.sel;
     if (!it) { box.innerHTML = `<p class="mut">${L("Bấm một linh kiện để xem lớn, xem chân và thêm vào linh kiện của bạn.", "Click a part to enlarge it, check its pins and add it to your parts.")}</p>`; return; }
     if (S.mode === "mine") return sideMine(box, it);
-    const p = it, can = p[6] !== "smd";
-    box.innerHTML = `<div class="pw-two"><div class="pw-pv"><img alt="" src="${imgUrl(p, "breadboard")}"></div><div class="pw-pv"><img alt="" src="${imgUrl(p, "pcb")}"></div></div>
+    const p = it, can = p[6] !== "smd", vars = S.vars && S.vars.includes(p) && S.vars.length > 1 ? S.vars : null;
+    box.innerHTML = `${vars ? `<div class="mut">${vars.length} ${L("biến thể – chọn một:", "variants – pick one:")}</div><div class="pw-vars">${vars.map((v, i) => `<button type="button" data-vi="${i}" aria-pressed="${v === p}" title="${esc(v[0])}"><img alt="" src="${imgUrl(v, "breadboard")}"></button>`).join("")}</div>` : ""}<div class="pw-two"><div class="pw-pv"><img alt="" src="${imgUrl(p, "breadboard")}"></div><div class="pw-pv"><img alt="" src="${imgUrl(p, "pcb")}"></div></div>
       <h3>${esc(p[0])}</h3><div class="mut">${p[1]} · ${p[5]} ${L("chân", "pins")} · ${p[6] === "tht" ? L("xuyên lỗ", "through-hole") : p[6] === "smd" ? "SMD" : "?"}${p[7] ? " · " + esc(p[7]) : ""}</div>
       ${can ? "" : `<div class="pw-warn pw-bad">${L("Linh kiện dán (SMD): PCB Maker chỉ làm chân xuyên lỗ nên không thêm được.", "SMD part: PCB Maker only supports through-hole pins, so it cannot be added.")}</div>`}
       <div class="pw-act"><button type="button" class="pri" id="pwPrev"${can ? "" : " disabled"}>${L("Xem chân và thêm…", "Check pins and add…")}</button><a href="${ghUrl(p)}" target="_blank" rel="noopener">GitHub</a></div><div id="pwPv"></div>`;
     const pv = box.querySelector("#pwPv");
+    box.querySelectorAll("[data-vi]").forEach(b => b.onclick = () => { S.sel = vars[+b.dataset.vi]; S.prev = null; grid(); side(); });
     box.querySelector("#pwPrev").onclick = async () => {
       if (S.busy) return; S.busy = true; pv.innerHTML = `<p class="mut">${L("Đang đọc linh kiện…", "Reading the part…")}</p>`;
       try { S.prev = await build(p); showPrev(pv); } catch (e) { pv.innerHTML = `<div class="pw-warn pw-bad">${esc(e.message)}</div>`; } finally { S.busy = false; }
@@ -253,6 +321,11 @@
 
   window.PINWORLD = {
     guess, build, mine,
+    // danh mục cho PCB Studio: danh sách + nhóm loại (không cần mở tab Pinworld)
+    async catalog() {
+      if (!S.parts) S.parts = (await (await fetch("data/fritzing-parts.json")).json()).parts;
+      return { parts: S.parts, cats: [...CATS.map(c => [c[0], c[1]]), ["other", L("Khác", "Other")]], catOf, gkey, imgUrl };
+    },
     async open() {
       if (S.parts) return draw();
       ROOT.innerHTML = `<p>${L("Đang tải danh sách linh kiện…", "Loading the parts list…")}</p>`;

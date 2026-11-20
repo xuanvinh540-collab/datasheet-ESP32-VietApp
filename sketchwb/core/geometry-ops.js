@@ -1104,8 +1104,42 @@
     return { ok: true, line: newL };
   }
 
+  // Thêm điểm vào giữa 1 đường: tách đường thành 2 nửa nối nhau (coincident + parallel nên vẫn thẳng hàng, điểm mới trượt được dọc đường).
+  // Giữ: ràng buộc ở 2 đầu mút (coincident / pointOnObject / lock), ngang / dọc / song song / vuông góc của cả đường (áp cho cả 2 nửa). Bỏ: kích thước, equal, symmetric... (báo số lượng).
+  function splitLineAt(model, lineId, x, y) {
+    const g = model.geometries.find((q) => q.id === lineId && q.type === 'line');
+    if (!g) return { ok: false, msg: 'Not a line' };
+    const dx = g.x2 - g.x1, dy = g.y2 - g.y1, l2 = dx * dx + dy * dy;
+    if (l2 < 1e-9) return { ok: false, msg: 'Line too short' };
+    const t = ((x - g.x1) * dx + (y - g.y1) * dy) / l2;
+    if (t < 0.03 || t > 0.97) return { ok: false, msg: 'Too close to an end point' };
+    const px = Number((g.x1 + t * dx).toFixed(3)), py = Number((g.y1 + t * dy).toFixed(3));
+    const a = model.addLine(g.x1, g.y1, px, py, g.construction), b = model.addLine(px, py, g.x2, g.y2, g.construction);
+    const keep = [];
+    let dropped = 0;
+    for (const c of model.constraints) {
+      if (!c.refs.some((r) => r.geoId === g.id)) continue;
+      const extra = {};
+      if (c.value !== undefined) extra.value = c.value;
+      if (c.x !== undefined) { extra.x = c.x; extra.y = c.y; }
+      const onEnd = c.refs.every((r) => r.geoId !== g.id || r.pos === 'start' || r.pos === 'end');
+      if (onEnd && (c.type === 'coincident' || c.type === 'pointOnObject' || c.type === 'lock')) {
+        keep.push({ type: c.type, extra, refs: c.refs.map((r) => (r.geoId !== g.id ? { ...r } : r.pos === 'start' ? { geoId: a.id, pos: 'start' } : { geoId: b.id, pos: 'end' })) });
+      } else if (c.type === 'horizontal' || c.type === 'vertical' || c.type === 'parallel' || c.type === 'perpendicular') {
+        for (const half of [a, b]) keep.push({ type: c.type, extra, refs: c.refs.map((r) => (r.geoId === g.id ? { geoId: half.id } : { ...r })) });
+      } else dropped++;
+    }
+    model.removeGeo(g.id);
+    for (const k of keep) model.addConstraint(k.type, k.refs, k.extra);
+    model.addConstraint('coincident', [{ geoId: a.id, pos: 'end' }, { geoId: b.id, pos: 'start' }]);
+    // parallel chỉ thêm khi 2 nửa chưa bị buộc cùng hướng (ngang / dọc / song song / vuông góc với đường khác) – tránh ràng buộc dư
+    if (!keep.some((k) => k.type === 'horizontal' || k.type === 'vertical' || k.type === 'parallel' || k.type === 'perpendicular')) model.addConstraint('parallel', [{ geoId: a.id }, { geoId: b.id }]);
+    return { ok: true, a, b, dropped, x: px, y: py };
+  }
+
   global.SketchOps = {
     trimAt,
+    splitLineAt,
     previewTrimAt,
     filletLines,
     chamferLines,

@@ -1,0 +1,62 @@
+/* PCB Maker – giao diện "Studio" (phương án A trong mockup-ui.html).
+   Chồng lên pcb-ui2.css, chỉ áp khi <html> có class ui-studio. KHÔNG dời vị trí thanh:
+   popout của thanh dọc (Route, Pin/Pad, Mass…) đặt theo toạ độ nút, dời thanh sẽ lệch.
+   Tắt: ?ui=ui2 (bản trước) hoặc ?ui=old (bản gốc). Bỏ hẳn: xoá dòng <link> pcb-studio.css trong index.html. */
+html.ui-studio .pcblab {
+  --surface: #151a21; --surface2: #1d242e; --line: #262e3a; --line2: #34404f;
+  --fg: #e6edf3; --muted: #8b98a8; --canvas: #0a0e13;
+  --accent: #ff9f1c; --accent-fg: #1a1100; --accent-soft: rgba(255,159,28,.13); --accent-line: rgba(255,159,28,.5);
+  --ok: #3fb950; gap: 10px;
+}
+
+/* khung: phẳng hơn, viền mảnh, bóng sâu nhẹ – kiểu ứng dụng thiết kế */
+html.ui-studio .pcblab :is(.pl-bar, .pl-vbar, .pl-side, .pl-list) {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+}
+/* bản vẽ: lưới chấm như Figma, sáng nhẹ ở giữa để mắt tập trung vào bo */
+html.ui-studio .pcblab .pl-stage {
+  border: 1px solid var(--line); border-radius: 12px;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.07) 1px, transparent 1.2px) 0 0 / 20px 20px,
+    radial-gradient(90% 80% at 50% 45%, #121922 0%, #0a0e13 70%);
+}
+
+/* nút */
+html.ui-studio .pcblab .tb { color: #b9c3cf; border-radius: 9px; }
+html.ui-studio .pcblab .tb:hover:not(:disabled) { background: var(--surface2); border-color: var(--line2); color: var(--fg); }
+html.ui-studio .pcblab .tb.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+html.ui-studio .pcblab .pl-vbar .tb.on { box-shadow: inset 3px 0 0 var(--accent); }
+html.ui-studio .pcblab :is(#plAuto, #plExport, .tb.primary) {
+  background: var(--accent); color: var(--accent-fg); border-color: transparent; font-weight: 700;
+  box-shadow: 0 6px 18px rgba(255,159,28,.25);
+}
+html.ui-studio .pcblab :is(#plAuto, #plExport, .tb.primary):hover:not(:disabled) { background: #ffb347; color: var(--accent-fg); }
+
+/* thanh dọc: như bảng công cụ nổi */
+html.ui-studio .pcblab .pl-vbar { padding: 8px 6px; gap: 4px; background: rgba(21,26,33,.92); backdrop-filter: blur(10px); }
+
+/* chế độ Nối dây / Breadboard / PCB */
+html.ui-studio .pcblab .pl-modes { background: var(--canvas); border-color: var(--line); }
+html.ui-studio .pcblab .pl-modes .tb.on { background: var(--surface2); color: var(--fg); border-color: var(--line2); }
+
+/* bảng phải: tiêu đề nhãn, thẻ bước dạng tiến độ */
+html.ui-studio .pcblab .pl-side h4 { color: var(--muted); letter-spacing: .12em; }
+html.ui-studio .pcblab .steps li { border: 1px solid var(--line); background: var(--canvas); border-radius: 10px; }
+html.ui-studio .pcblab .steps li.now { border-color: var(--accent-line); background: var(--accent-soft); }
+html.ui-studio .pcblab .steps li.now::before { background: var(--accent); color: var(--accent-fg); }
+html.ui-studio .pcblab .steps li.ok { border-color: rgba(63,185,80,.35); }
+html.ui-studio .pcblab .steps li.ok::before { background: var(--ok); }
+html.ui-studio .pcblab .stat div { background: var(--canvas); border-color: var(--line); border-radius: 10px; }
+html.ui-studio .pcblab .stat .red { border-color: rgba(255,90,90,.5); background: rgba(255,90,90,.1); }
+
+/* ô nhập */
+html.ui-studio .pcblab .pl-side :is(input[type=number], input[type=text], select) { background: var(--canvas); border-color: var(--line); }
+html.ui-studio .pcblab .pl-side :is(input, select):focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* dòng phím tắt dưới: dịu đi, không chiếm sự chú ý */
+html.ui-studio .pcblab .pl-tips { color: var(--muted); opacity: .85; }
+
+/* nút Mua & tay kéo cùng tông cam */
+html.ui-studio .pcblab #buyBtnP { background: rgba(21,26,33,.9); border: 1px solid var(--accent-line); color: var(--accent); }
+html.ui-studio .pcblab .mob-handle { background: var(--surface); border-color: var(--accent-line); color: var(--accent); }

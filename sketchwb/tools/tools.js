@@ -294,14 +294,23 @@
       startPt: null,
       lastPt: null,
       lastGeoId: null,
-      activate() { this.startPt = null; this.lastPt = null; this.lastGeoId = null; },
+      firstGeoId: null,
+      count: 0,
+      // điểm bấm trong 1,1 mm quanh đỉnh đầu chuỗi (đã có ≥ 2 đoạn): đóng đa giác, nối với đỉnh đầu kể cả khi giữ Shift
+      closeTarget(s) {
+        if (!this.startPt || !this.firstGeoId || this.count < 2) return s;
+        if (Math.hypot(s.x - this.startPt.x, s.y - this.startPt.y) > 1.1) return s;
+        return { x: this.startPt.x, y: this.startPt.y, snapRef: { geoId: this.firstGeoId, pos: 'start' }, snapKind: 'vertex', closing: true };
+      },
+      reset() { this.startPt = null; this.lastPt = null; this.lastGeoId = null; this.firstGeoId = null; this.count = 0; },
+      activate() { this.reset(); },
       onDown(e, w) {
         if (e.button === 2) {
-          this.startPt = null; this.lastPt = null; this.lastGeoId = null; ctx.vp.clearPreview(); ctx.vp.render();
+          this.reset(); ctx.vp.clearPreview(); ctx.vp.render();
           ctx.syncCtxBar?.();
           return;
         }
-        const s = snapLineTarget(this.lastPt, w, e);
+        const s = this.closeTarget(snapLineTarget(this.lastPt, w, e));
         if (!this.lastPt) {
           this.startPt = s;
           this.lastPt = s;
@@ -318,8 +327,9 @@
           }
           snapCoincident(l.id, 'end', s);
           applyAutoHV(l, ctx.autoConst() || !!(e && e.shiftKey) || !!(ctx.isShiftLock && ctx.isShiftLock()));
-          this.lastPt = s;
-          this.lastGeoId = l.id;
+          if (!this.firstGeoId) this.firstGeoId = l.id;
+          this.count++;
+          if (s.closing) { this.reset(); ctx.vp.clearPreview(); } else { this.lastPt = s; this.lastGeoId = l.id; }
           ctx.solve();
           ctx.vp.render();
           ctx.updateUI();
@@ -327,9 +337,11 @@
         }
       },
       onMove(e, w) {
-        const s = snapLineTarget(this.lastPt, w, e);
+        const s = this.closeTarget(snapLineTarget(this.lastPt, w, e));
         ctx.vp.drawPreview((g, el) => {
-          if (s.snapRef || s.snapKind) el('circle', { cx: s.x, cy: s.y, r: 5 / ctx.vp.scale, class: 'snap-ring' }, g);
+          // điểm đầu chuỗi luôn có vòng đánh dấu (sau 2 đoạn): rê tới gần là vòng sáng lên và bấm sẽ đóng đa giác
+          if (this.startPt && this.lastPt && this.count >= 2) el('circle', { cx: this.startPt.x, cy: this.startPt.y, r: 7 / ctx.vp.scale, class: s.closing ? 'close-start on' : 'close-start' }, g);
+          if (s.snapRef || s.snapKind) el('circle', { cx: s.x, cy: s.y, r: (s.closing ? 8 : 5) / ctx.vp.scale, class: 'snap-ring' }, g);
           if (this.lastPt) {
             el('line', { x1: this.lastPt.x, y1: this.lastPt.y, x2: s.x, y2: s.y, class: 'preview-shape' }, g);
             if (s.orthoLbl) {
@@ -342,7 +354,7 @@
         });
       },
       onKey(e) {
-        if (e.key === 'Escape') { this.startPt = null; this.lastPt = null; this.lastGeoId = null; ctx.vp.clearPreview(); ctx.vp.render(); }
+        if (e.key === 'Escape') { this.reset(); ctx.vp.clearPreview(); ctx.vp.render(); }
       },
     };
 
@@ -536,6 +548,38 @@
         });
       },
       onKey(e) { if (e.key === 'Escape') { this.c1 = null; this.c2 = null; ctx.vp.clearPreview(); } },
+    };
+
+    // 9b. POINT: bấm lên đường → thêm điểm (tách đường làm 2 nửa thẳng hàng); bấm lên điểm nối 2 đường → xoá điểm (gộp lại)
+    tools.point = {
+      hint: 'Click a line to add a point · click a joint between 2 lines to remove it',
+      _hit(w) {
+        const tol = 10 / ctx.vp.scale, ops = global.SketchOps;
+        const pt = ops.findPointAt(ctx.model, w.x, w.y, tol);
+        if (pt) {
+          const n = ctx.model.geometries.filter((g) => g.type === 'line' && (Math.hypot(g.x1 - pt.x, g.y1 - pt.y) < 0.05 || Math.hypot(g.x2 - pt.x, g.y2 - pt.y) < 0.05)).length;
+          if (n === 2) return { kind: 'remove', pt };
+        }
+        const id = ops.findGeoAt(ctx.model, w.x, w.y, tol), g = id && ctx.model.geometries.find((q) => q.id === id);
+        if (g && g.type === 'line') {
+          const dx = g.x2 - g.x1, dy = g.y2 - g.y1, l2 = dx * dx + dy * dy, t = l2 > 1e-9 ? Math.max(0, Math.min(1, ((w.x - g.x1) * dx + (w.y - g.y1) * dy) / l2)) : 0;
+          return { kind: 'add', id, x: g.x1 + t * dx, y: g.y1 + t * dy };
+        }
+        return null;
+      },
+      onDown(e, w) {
+        const h = this._hit(w); if (!h) return;
+        ctx.model.pushHistory();
+        const r = h.kind === 'remove' ? global.SketchOps.removeJointPoint(ctx.model, h.pt.geoId, h.pt.pos) : global.SketchOps.splitLineAt(ctx.model, h.id, w.x, w.y);
+        if (!r.ok) { notify(r.msg, 'warn'); return; }
+        if (r.dropped) notify('Đã bỏ ' + r.dropped + ' ràng buộc kích thước / equal của đường gốc – đặt lại cho 2 nửa nếu cần.', 'warn');
+        ctx.vp.clearPreview(); ctx.vp.clearSelection(); ctx.solve(); ctx.vp.render(); ctx.updateUI();
+      },
+      onMove(e, w) {
+        const h = this._hit(w);
+        ctx.vp.drawPreview((g, el) => { if (!h) return; const x = h.kind === 'remove' ? h.pt.x : h.x, y = h.kind === 'remove' ? h.pt.y : h.y; el('circle', { cx: x, cy: y, r: 6 / ctx.vp.scale, class: 'trim-preview' }, g); });
+      },
+      onKey(e) { if (e.key === 'Escape') ctx.vp.clearPreview(); },
     };
 
     // 9. TRIM (findGeoAt + PCB Trace Intersections + Hover Segment Preview)
@@ -1201,6 +1245,25 @@
           if (idx >= 0) this.picks.splice(idx, 1);
           else if (this.picks.length < 2) this.picks.push({ kind: 'geo', geoId: hitGeoId });
           this._syncHighlight();
+          return;
+        }
+
+        // Chân linh kiện / đỉnh đường đồng / mép bo: tạo điểm hoặc đường phụ bị khoá làm mốc đo (không xuất ra đồng)
+        const pcb = this.picks.length < 2 && ctx.getPcbDimSnap ? ctx.getPcbDimSnap(w.x, w.y, 10 / Math.max(0.5, ctx.vp.scale)) : null;
+        if (pcb) {
+          ctx.model.pushHistory();
+          if (pcb.kind === 'edge') {
+            const l = ctx.model.addLine(pcb.x1, pcb.y1, pcb.x2, pcb.y2, true);
+            ctx.model.addConstraint('lock', [{ geoId: l.id, pos: 'start' }], { x: pcb.x1, y: pcb.y1 });
+            ctx.model.addConstraint('lock', [{ geoId: l.id, pos: 'end' }], { x: pcb.x2, y: pcb.y2 });
+            this.picks.push({ kind: 'geo', geoId: l.id });
+          } else {
+            const p = ctx.model.addPoint(pcb.x, pcb.y, true);
+            ctx.model.addConstraint('lock', [{ geoId: p.id, pos: 'start' }], { x: pcb.x, y: pcb.y });
+            this.picks.push({ kind: 'point', geoId: p.id, pos: 'start' });
+          }
+          ctx.vp.render(); this._syncHighlight();
+          if (this.modeOverride === 'lock' && this.picks.length === 1) this._commitAt(e, w);
           return;
         }
 

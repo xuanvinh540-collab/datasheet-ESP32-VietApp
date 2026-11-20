@@ -506,12 +506,36 @@
     if (t === "pins" && state.b) syncHash();
     document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
     document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== t);
+    syncModes();
   }
+  // 3 bước Nối dây / Breadboard / PCB Maker ở giữa header: chỉ hiện ở trang board (Sơ đồ chân, Wiring, PCB Maker)
+  (() => {   // các trang board (/esp32-…/, /en/…) là bản HTML riêng: chèn thanh nếu chưa có
+    if (document.getElementById("modeBar")) return; const nav = document.querySelector(".appbar .tabbar"); if (!nav) return;
+    const en = document.documentElement.lang === "en", d = document.createElement("div");
+    d.className = "modebar"; d.id = "modeBar"; d.hidden = true; d.setAttribute("role", "group"); d.setAttribute("aria-label", en ? "Build steps" : "Các bước làm mạch");
+    d.innerHTML = `<button type="button" data-m="wire"><i>1</i>${en ? "Wiring" : "Nối dây"}</button><button type="button" data-m="bb"><i>2</i>Breadboard</button><button type="button" data-m="pcb"><i>3</i>PCB Maker</button><button type="button" data-m="studio"><i>4</i>Module PCB</button>`;
+    nav.before(d);
+  })();
+  function syncModes() {
+    const mb = document.getElementById("modeBar"); if (!mb) return;
+    const t = state.tab, show = ["pins", "build", "pcblab"].includes(t) && state.b && !state.b.mod;
+    mb.hidden = !show; if (!show) return;
+    let bbOn = false; const tg = document.getElementById("bbtog");
+    if (tg) bbOn = tg.getAttribute("aria-pressed") === "true";
+    else try { const o = JSON.parse(localStorage.getItem("build:" + state.b.id) || "null"); bbOn = !!(o && o.bb && o.bb.on); } catch (e) { }
+    const cur = t === "pcblab" ? (state.studio ? "studio" : "pcb") : t === "build" ? (bbOn ? "bb" : "wire") : "";
+    mb.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === cur));
+  }
+  document.getElementById("modeBar")?.addEventListener("click", e => {
+    const b = e.target.closest("[data-m]"); if (!b) return;
+    if (b.dataset.m === "studio") openPcbStudio(); else if (b.dataset.m === "pcb") openPcbLab(false); else toWiring(b.dataset.m).then(() => { setTimeout(syncModes, 80); setTimeout(syncModes, 500); });
+  });
+  document.addEventListener("click", e => { if (e.target.closest("#bbtog, #bmwire, .pl-modes")) { setTimeout(syncModes, 120); setTimeout(syncModes, 600); } });
   // Pinworld: kho linh kiện Fritzing (bản thử), tải js/pinworld.js khi mở lần đầu
   let pwLoad = null;
   async function openPinworld() {
     setTab("pinworld");
-    pwLoad = pwLoad || loadJs("js/pinworld.js?v=1794559997");
+    pwLoad = pwLoad || loadJs("js/pinworld.js?v=1794568401");
     await pwLoad; PINWORLD.open();
   }
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => {
@@ -576,9 +600,9 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=1794559997");
+    if (!window.MODULES) await loadJs("js/modules.js?v=1794568401");
     regMine();
-    if (!window.BUILD) await loadJs("js/build.js?v=1794559997");
+    if (!window.BUILD) await loadJs("js/build.js?v=1794568401");
     setTab("build"); BUILD.open(h);
   }
   // PCB Lab: vẽ bo 1 lớp tại nhà (chỉ ESP32-S3-DevKitC-1), tải js/pcblab.js khi mở lần đầu. fromWiring: lấy mạch của tab Wiring
@@ -634,12 +658,18 @@
     });
   }
   async function ensurePcb() {   // nhớ promise: mở 2 lần liền không tải / chạy pcblab.js hai lần
-    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=1794559997"); regMine(); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=1794559997"); })();
+    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=1794568401"); regMine(); if (!window.affUrl) await loadJs("js/aff.js?v=1794568401"); if (!window.PCBSolver) await loadJs("js/pcb-solver.js?v=1794568401"); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=1794568401"); })();
     await pcbLoad;
   }
   async function openPcbLab(fromWiring) {
     await ensurePcb();
-    setTab("pcblab"); PCBLAB.open({ fromWiring, board: state.b && !state.b.mod ? state.b.id : null });   // PCB Maker đi theo board đang chọn
+    state.studio = false;
+    setTab("pcblab"); PCBLAB.open({ fromWiring, studio: false, board: state.b && !state.b.mod ? state.b.id : null });
+  }
+  async function openPcbStudio() {
+    await ensurePcb();
+    state.studio = true;
+    setTab("pcblab"); PCBLAB.open({ fromWiring: false, studio: true });
   }
   // từ Mạch in PCB quay về Wiring: mode "wire" = nối dây tự do, "bb" = breadboard
   async function toWiring(mode) {
@@ -649,11 +679,12 @@
     if (mode === "bb" && !bbOn) $("#bbtog").click(); else if (mode === "wire" && bbOn) $("#bmwire").click();
   }
   $("#viewPcbLab").onclick = () => openPcbLab(false);
+  if ($("#viewPcbStudio")) $("#viewPcbStudio").onclick = () => openPcbStudio();
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=1794559997").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
-    if (!window.POSTS) await loadJs("js/posts.js?v=1794559997");
-    if (!window.HOME) await loadJs("js/home.js?v=1794559997");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=1794568401").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=1794568401");
+    if (!window.HOME) await loadJs("js/home.js?v=1794568401");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());
@@ -666,19 +697,40 @@
   // Thanh địa chỉ nơi lưu file khi Export (hỗ trợ nhập đường dẫn trực tiếp, chọn thư mục qua server local hoặc File System Access API)
   const SAVE_DIR_KEY = "pindexio:savedir";
   let dirHandle = null;
-  const idbDir = (mode, val) => new Promise(ok => {
+  const idbH = (key, mode, val) => new Promise(ok => {
     try {
       const rq = indexedDB.open("pindexio-fs", 1);
       rq.onupgradeneeded = () => rq.result.createObjectStore("handles");
       rq.onsuccess = () => {
         const db = rq.result, tx = db.transaction("handles", mode), st = tx.objectStore("handles");
-        const op = mode === "readwrite" ? (val ? st.put(val, "savedir") : st.delete("savedir")) : st.get("savedir");
+        const op = mode === "readwrite" ? (val ? st.put(val, key) : st.delete(key)) : st.get(key);
         op.onsuccess = () => ok(op.result || null); op.onerror = () => ok(null);
       };
       rq.onerror = () => ok(null);
     } catch (e) { ok(null); }
   });
+  const idbDir = (mode, val) => idbH("savedir", mode, val);
   idbDir("readonly").then(h => { if (h && !dirHandle) dirHandle = h; });
+  // thư viện "Linh kiện của tôi" (Pinworld + PCB): tự ghi ra pindexio-library.json trong thư mục người dùng chọn
+  const LIBFILE = "pindexio-library.json", MYK = "pindexio-myparts"; let libHandle = null;
+  idbH("libdir", "readonly").then(h => { if (h) libHandle = h; });
+  const fsPerm = async (h, ask) => { try { let p = await h.queryPermission({ mode: "readwrite" }); if (p !== "granted" && ask) p = await h.requestPermission({ mode: "readwrite" }); return p === "granted"; } catch (e) { return false; } };
+  async function pickLibDir() { if (!window.showDirectoryPicker) return null; try { const h = await window.showDirectoryPicker({ mode: "readwrite", id: "pindexio-lib" }); libHandle = h; idbH("libdir", "readwrite", h); return h.name; } catch (e) { return null; } }
+  function clearLibDir() { libHandle = null; idbH("libdir", "readwrite", null); }
+  const getLibDir = () => libHandle ? libHandle.name : "";
+  async function writeLib(ask) {
+    if (!libHandle || !(await fsPerm(libHandle, ask))) return false;
+    try { const fh = await libHandle.getFileHandle(LIBFILE, { create: true }), w = await fh.createWritable(); await w.write(localStorage.getItem(MYK) || '{"version":1,"parts":{}}'); await w.close(); return true; } catch (e) { return false; }
+  }
+  async function readLib() {   // gộp thư viện trong thư mục vào thư viện của trình duyệt → số linh kiện đã nạp, null nếu không đọc được
+    if (!libHandle || !(await fsPerm(libHandle, true))) return null;
+    try {
+      const o = JSON.parse(await (await (await libHandle.getFileHandle(LIBFILE)).getFile()).text()); if (!o || !o.parts) return null;
+      let cur; try { cur = JSON.parse(localStorage.getItem(MYK) || "null"); } catch (e) { } if (!cur || !cur.parts) cur = { version: 1, parts: {} };
+      Object.assign(cur.parts, o.parts); localStorage.setItem(MYK, JSON.stringify(cur)); try { regMine(); } catch (e) { } return Object.keys(o.parts).length;
+    } catch (e) { return null; }
+  }
+  const libChanged = () => { writeLib(false); };   // gọi sau mỗi lần thư viện đổi; chưa có quyền thì bỏ qua (không hỏi)
   function getSaveDir() {
     try { const s = localStorage.getItem(SAVE_DIR_KEY); if (s != null) return s; } catch (e) { }
     return dirHandle ? dirHandle.name : "";
@@ -753,7 +805,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     return { ok: true, dir: "", name };
   }
-  window.APP = { confirmBox, regMine, loadPcb: ensurePcb, state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl, getSaveDir, setSaveDir, clearSaveDir, pickSaveDir, saveFile };
+  window.APP = { getDirHandle: () => dirHandle, pickLibDir, clearLibDir, getLibDir, writeLib, readLib, libChanged, confirmBox, regMine, loadPcb: ensurePcb, state, get pins() { return pins; }, redrawBuy: renderBuy, openHome, openBuild, openPcbLab, toWiring, setTab, appRoot, drawPCB, selectBoard: id => selectBoard(id), esc, el, toast: t => toast(t), svgDataUrl, getSaveDir, setSaveDir, clearSaveDir, pickSaveDir, saveFile };
   $("#zin").onclick = () => { state.zoom = Math.min(4, state.zoom + .5); draw(); };
   $("#zout").onclick = () => { state.zoom = Math.max(1, state.zoom - .5); draw(); };
   let rw = innerWidth; addEventListener("resize", () => { if ((rw >= 600) !== (innerWidth >= 600)) draw(); rw = innerWidth; });
@@ -784,6 +836,7 @@
     const h = decodeURIComponent(location.hash.slice(1)), [a, b] = h.split("/");
     if (a === "home") { if (!state.b) selectBoard(window.PAGE_BOARD || BOARDS[0].id); openHome(b); return "home"; }
     if (a === "pcblab") { if (!state.b) selectBoard(window.PAGE_BOARD || BOARDS[0].id); openPcbLab(false); return "home"; }
+    if (a === "pcbstudio") { if (!state.b) selectBoard(window.PAGE_BOARD || BOARDS[0].id); openPcbStudio(); return "home"; }
     if (findB(a)) return selectBoard(a, b);
     selectBoard(window.PAGE_BOARD || (state.b && state.b.id) || BOARDS[0].id, h || undefined);
   };

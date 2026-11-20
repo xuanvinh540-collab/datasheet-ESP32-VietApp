@@ -150,7 +150,8 @@
     return '/* Bài viết cho trang chủ (tab Tin tức / Hướng dẫn). Sửa bằng trang admin, tab "Bài viết" – admin ghi đè nguyên file này.\n   type: "news" (tin tức) hoặc "guide" (hướng dẫn). body viết kiểu markdown đơn giản: # tiêu đề, **đậm**, _nghiêng_, `mã`,\n   - danh sách, 1. danh sách số, [chữ](link), ![mô tả](ảnh), và khối mã giữa hai dòng ```. */\nwindow.POSTS = ' + JSON.stringify(POSTS.filter(x => x.id && x.title), null, 2) + ";\n";
   }
   function siteText() {
-    return "/* Cài đặt trang, sửa bằng admin (tab Cài đặt). showBuyCards: hiện khung thẻ \"Mua board\" (mặc định ẩn, chỉ còn nút Mua board màu cyan). */\nwindow.SITE = " + JSON.stringify(SITE, null, 2) + ";\n";
+    const apply = `\n(function(){var T=window.SITE&&window.SITE.texts;if(!T)return;function go(){for(var k in T){var e=document.querySelector(k);if(!e)continue;var ns=[].slice.call(e.childNodes).filter(function(n){return n.nodeType===3&&n.nodeValue.trim()});if(ns.length)ns[ns.length-1].nodeValue=T[k];else if(!e.children.length)e.textContent=T[k]}}if(document.readyState==="loading")addEventListener("DOMContentLoaded",go);else go();setTimeout(go,600);setTimeout(go,1800)})();\n`;
+    return "/* Cài đặt trang, sửa bằng admin (tab Cài đặt & Sửa trực tiếp). */\nwindow.SITE = " + JSON.stringify(SITE, null, 2) + ";" + (SITE.texts && Object.keys(SITE.texts).length ? apply : "\n");
   }
   // Toàn bộ file cần ghi (đường dẫn → chuỗi hoặc Blob), dùng chung cho Lưu vào thư mục và Lưu lên GitHub
   function collectFiles() {
@@ -332,12 +333,17 @@
     if (tab === "link") paintLinks(box); else if (tab === "posts") paintPosts(box); else if (tab === "set") paintSettings(box); else paintTheme(box);
   }
   function paintLinks(box) {
+    if (!window.AFF_GROUPS) { box.innerHTML = '<p class="adm-note">Đang tải…</p>'; loadScript('js/aff.js?v=1794568300').then(() => paintLinks(box)); return; }
+    const kv = (r, kind, id, label) => { const v = ((AFF[r] || {})[kind] || {})[id] || ""; return `<label class="adm-row"><span>${esc(label)}</span><input type="text" data-r="${r}" data-k="${kind}" data-id="${id}" value="${esc(v)}" placeholder="https://..."><a href="${esc(v || "#")}" target="_blank" rel="noopener nofollow" title="Mở thử">↗</a></label>`; };
     box.innerHTML = Object.keys(AFF).map(r => `<section><h3>${esc(AFF[r].label || r)} <input type="text" class="adm-shop" data-r="${r}" value="${esc(AFF[r].shop || "")}" placeholder="Tên sàn" style="width:150px"></h3>
-      ${BOARDS.map(b => `<label class="adm-row"><span>${esc(b.name)}</span><input type="text" data-r="${r}" data-b="${b.id}" value="${esc((AFF[r].links || {})[b.id] || "")}" placeholder="https://..."><a href="${esc((AFF[r].links || {})[b.id] || "#")}" target="_blank" rel="noopener nofollow" title="Mở thử">↗</a></label>`).join("")}</section>`).join("")
+      <h4>Board</h4>${BOARDS.map(b => `<label class="adm-row"><span>${esc(b.name)}</span><input type="text" data-r="${r}" data-b="${b.id}" value="${esc((AFF[r].links || {})[b.id] || "")}" placeholder="https://..."><a href="${esc((AFF[r].links || {})[b.id] || "#")}" target="_blank" rel="noopener nofollow" title="Mở thử">↗</a></label>`).join("")}
+      <h4>Linh kiện cơ bản</h4>${window.AFF_PARTS.map(p => kv(r, "parts", p.id, p.vi)).join("")}
+      <h4>Nhóm (món chưa có link riêng tự dùng link nhóm cùng loại)</h4>${window.AFF_GROUPS.map(g => kv(r, "groups", g.id, g.vi)).join("")}</section>`).join("")
       + '<p class="adm-note">Dán link rút gọn của chương trình tiếp thị (ví dụ s.shopee.vn/…). Lưu xong vẫn phải commit và push thì trang thật mới đổi.</p>';
     box.oninput = e => {
       const t = e.target;
       if (t.dataset.b) (AFF[t.dataset.r].links = AFF[t.dataset.r].links || {})[t.dataset.b] = t.value.trim();
+      else if (t.dataset.k) { const o = (AFF[t.dataset.r][t.dataset.k] = AFF[t.dataset.r][t.dataset.k] || {}); if (t.value.trim()) o[t.dataset.id] = t.value.trim(); else delete o[t.dataset.id]; }
       else if (t.classList.contains("adm-shop")) AFF[t.dataset.r].shop = t.value.trim(); else return;
       const a = t.parentElement.querySelector("a"); if (a) a.href = t.value.trim() || "#";
       dirty.aff = true; setStatus("chưa lưu");
@@ -506,12 +512,13 @@
     menu = document.createElement("div"); menu.className = "adm-menu adm-ui";
     const head = `<div class="adm-mh"><code>${esc(sel)}</code><span>Áp dụng cho ${n} phần tử cùng loại${svg ? " · hình vẽ" : ""}</span></div>`;
     const items = [];
-    if (!svg) items.push(["🎨 Màu chữ", () => colorForm("color", "Màu chữ", el)], ["🖌 Màu nền / mảng màu", () => colorForm("background-color", "Màu nền", el)],
+    if (!svg) items.push(["✎ Sửa nội dung chữ", () => editTextForm(el)], ["🎨 Màu chữ", () => colorForm("color", "Màu chữ", el)], ["🖌 Màu nền / mảng màu", () => colorForm("background-color", "Màu nền", el)],
       ["🔤 Font chữ", () => fontForm(el)], ["🔠 Cỡ chữ & độ đậm", () => textForm(el)]);
     // ảnh nằm trong khung cố định (thumbnail Mua board) thì chỉnh cỡ cái khung, không thì ảnh bị cắt
     const frame = isImg && el.parentElement && el.parentElement.classList.contains("buy-pic") ? el.parentElement : null;
     items.push(["📐 Kích thước" + (frame ? " khung ảnh" : ""), () => frame ? sizeIn(frame) : sizeForm(el, isImg)]);
     if (buyPic) items.push(["🖼 Thay ảnh thumbnail…", () => replaceImg(el)]);
+    items.push(["</> Xem code phần này", () => codeForm(el)]);
     items.push(["↺ Bỏ chỉnh sửa phần tử này", () => { clearRules(sel); closeMenu(); }]);
     const draw = () => { menu.innerHTML = head; items.forEach(([t, f]) => { const b = document.createElement("button"); b.textContent = t; b.onclick = () => { f(); }; menu.appendChild(b); }); };
     draw(); document.body.appendChild(menu);
@@ -520,6 +527,49 @@
     const sub = (title, html, bind) => { menu.innerHTML = head + `<div class="adm-sub"><b>${title}</b>${html}<div class="adm-btns"><button data-back>← Quay lại</button><button data-done class="adm-primary">Xong</button></div></div>`;
       menu.querySelector("[data-back]").onclick = () => { draw(); }; menu.querySelector("[data-done]").onclick = closeMenu; bind(menu.querySelector(".adm-sub")); };
 
+    function exactSel(node) {
+      if (node.id) return "#" + CSS.escape(node.id);
+      for (const attr of ["data-m", "data-tab", "data-tool", "data-b", "data-r"]) {
+        const v = node.getAttribute(attr);
+        if (v) {
+          const p = node.parentElement && node.parentElement.id ? "#" + CSS.escape(node.parentElement.id) + " " : "";
+          const s = `${p}${node.tagName.toLowerCase()}[${attr}="${CSS.escape(v)}"]`;
+          if (document.querySelectorAll(s).length === 1) return s;
+        }
+      }
+      return sel;
+    }
+    function editTextForm(node) {
+      const key = exactSel(node);
+      const tNodes = [...node.childNodes].filter(n => n.nodeType === 3 && n.nodeValue.trim());
+      const cur = tNodes.length ? tNodes[tNodes.length - 1].nodeValue.trim() : node.textContent.trim();
+      sub("✎ Sửa nội dung chữ", `<label style="display:block"><input type="text" id="admTxtIn" value="${esc(cur)}" style="width:100%;margin-top:4px"></label><p style="font-size:11px;opacity:.7;margin:6px 0 0">Selector: <code>${esc(key)}</code> · Lưu vào <code>js/settings.js</code></p>`, box => {
+        const inp = box.querySelector("#admTxtIn");
+        inp.focus(); inp.select();
+        inp.oninput = () => {
+          const v = inp.value;
+          if (tNodes.length) tNodes[tNodes.length - 1].nodeValue = v;
+          else if (!node.children.length) node.textContent = v;
+          SITE.texts = SITE.texts || {};
+          SITE.texts[key] = v;
+          dirty.site = true; setStatus("chưa lưu chữ mới");
+        };
+      });
+    }
+    function codeForm(node) {
+      const key = exactSel(node);
+      const hint = node.closest("#swb-toolbar") ? "sketchwb/sketchwb-pcb.js · sketchwb/sketchwb-pcb.css"
+        : node.closest("#pcblab") ? "js/pcblab.js · css/pcb-ui2.css · css/pcblab.css"
+        : node.closest("#bwrap") ? "js/build.js · css/app.css"
+        : "index.html · js/app.js · css/app.css";
+      const html = (node.outerHTML || "").slice(0, 700);
+      sub("</> Xem code phần này", `<div style="font-size:11px;opacity:.8;margin-bottom:6px"><b>File gợi ý:</b> ${esc(hint)}<br><b>Selector:</b> <code>${esc(key)}</code></div>
+        <textarea readonly style="width:100%;height:110px;font:11px/1.4 monospace;background:var(--bg,#111);color:var(--fg,#eee);border:1px solid var(--line,#444);border-radius:6px;padding:6px;box-sizing:border-box">${esc(html)}</textarea>
+        <div style="display:flex;gap:6px;margin-top:6px"><button type="button" id="admCpSel">Copy Selector</button><button type="button" id="admCpHtml">Copy HTML</button></div>`, box => {
+        box.querySelector("#admCpSel").onclick = e => navigator.clipboard.writeText(key).then(() => e.target.textContent = "✓ Đã copy");
+        box.querySelector("#admCpHtml").onclick = e => navigator.clipboard.writeText(html).then(() => e.target.textContent = "✓ Đã copy");
+      });
+    }
     function colorForm(prop, title, node) {
       const cs = getComputedStyle(node), cur = getRule(sel, prop) || hexOr(cs[prop === "color" ? "color" : "backgroundColor"], prop === "color" ? "#000000" : "#ffffff");
       sub(title + (prop === "color" ? "" : " <span style='color:var(--muted);font-weight:400'>(" + (scopeNow() === "night" ? "ban đêm" : "ban ngày") + ")</span>"),

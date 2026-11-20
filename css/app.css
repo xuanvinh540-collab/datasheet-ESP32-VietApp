@@ -763,3 +763,13 @@ main:has(> section[data-panel="build"]:not([hidden])) { max-width: none; }
 .cfm .xsync-b { justify-content: center } .cfm .xs-go.danger { background: #d94b4b } .cfm p { margin: 4px 0 6px; line-height: 1.45 }
 
 .bwarn .wok { margin-left: 6px; padding: 1px 8px; font-size: 11px; border: 1px solid var(--accent, #2f7d5b); border-radius: 6px; background: transparent; color: var(--accent, #2f7d5b); cursor: pointer } .bwarn .wok:hover { background: var(--accent, #2f7d5b); color: #fff }
+
+/* 3 bước làm mạch ở giữa header (Nối dây / Breadboard / PCB Maker) – khác kiểu với menu trang bên phải */
+.modebar { margin-left: auto; display: flex; gap: 3px; padding: 3px; border: 1px solid rgba(255,159,28,.45); border-radius: 12px; background: rgba(255,159,28,.06); }
+.modebar[hidden] { display: none; }
+.modebar button { display: inline-flex; align-items: center; gap: 7px; border: 0; background: none; padding: 6px 14px 6px 8px; border-radius: 9px; color: var(--muted); font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.modebar button i { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font: 700 11px/1 var(--mono, monospace); font-style: normal; }
+.modebar button:hover { color: var(--fg); background: rgba(255,159,28,.1); }
+.modebar button[aria-pressed="true"] { background: #ff9f1c; color: #1a1100; }
+.modebar button[aria-pressed="true"] i { background: #1a1100; color: #ff9f1c; border-color: #1a1100; }
+@media (max-width: 1099px) { .modebar { display: none !important; } }
