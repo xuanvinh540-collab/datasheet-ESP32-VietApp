@@ -443,7 +443,17 @@
   async function xSync() {
     try { await A.loadPcb(); } catch (e) { return A.toast("Không đọc được PCB Maker."); }
     const pl = window.PCBLAB.plan(board().id);
-    if (pl.other) return A.toast("PCB Maker đang làm board khác: mở PCB Maker của board này rồi đồng bộ lại.");
+    if (pl.other) {
+      const target = pl.board && (window.BOARDS || []).find(b => b.id === pl.board);
+      if (!target || !A.selectBoard) return A.toast("PCB Maker đang làm board khác: mở PCB Maker của board này rồi đồng bộ lại.");
+      const d = document.createElement("div"); d.className = "xsync"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+      d.innerHTML = `<div class="xsync-box"><h3>Đổi board để đồng bộ từ PCB Maker?</h3><p>PCB Maker đang làm mạch cho <b>${esc(target.name)}</b>, còn Wiring đang mở <b>${esc(board().name)}</b>.</p><div class="xsync-b"><button type="button" class="xs-go">Chuyển sang ${esc(target.name)} & Đồng bộ</button><button type="button" class="xs-no">Huỷ</button></div></div>`;
+      document.body.appendChild(d);
+      const close = () => d.remove(); d.querySelector(".xs-no").onclick = close;
+      d.onclick = e => { if (e.target === d) close(); };
+      d.querySelector(".xs-go").onclick = () => { close(); A.selectBoard(target.id); setTimeout(() => xSync(), 80); };
+      return;
+    }
     const oldMods = B.mods.filter(m => !hostOf(m)), key = (m, list) => m.type + "#" + list.filter(x => x.type === m.type).indexOf(m);
     const oldMap = new Map(oldMods.map(m => [key(m, oldMods), m])), newMap = new Map(pl.mods.map(m => [key(m, pl.mods), m]));
     const add = [], del = [], chg = [], sname = t => (M[t] && M[t].short) || t;
@@ -458,7 +468,7 @@
     go.onclick = () => {
       close(); const bak = JSON.stringify(dump()); try { localStorage.setItem("build:" + board().id + ":bak", bak); } catch (e) { }
       const extras = B.mods.filter(m => hostOf(m)), next = pl.mods.map(m => { const o = oldMap.get(key(m, pl.mods)); return o ? { ...o, pins: { ...m.pins } } : { type: m.type, pins: { ...m.pins } }; });
-      B.mods = [...next, ...extras]; B.buses = [{ ...(B.buses[0] || {}), ...pl.buses }, ...B.buses.slice(1)]; save(); draw(); if (B.xr) xrToggle().then(() => xrToggle());
+      B.mods = [...next, ...extras]; B.buses = [{ ...(B.buses[0] || {}), ...pl.buses }, ...B.buses.slice(1)]; if (next.some(m => m.x == null)) B.needPlace = true; save(); draw(); if (B.xr) xrToggle().then(() => xrToggle());
       const u = document.createElement("div"); u.className = "xrpanel xundo"; u.innerHTML = `<div class="xrh"><b>Đã cập nhật Wiring theo PCB</b><button type="button" class="xs-undo">Hoàn tác</button><button type="button" class="xrx" aria-label="Đóng">✕</button></div>`;
       const host = (document.querySelector("#bsvg") || document.body).parentNode; if (getComputedStyle(host).position === "static") host.style.position = "relative"; host.appendChild(u);
       u.querySelector(".xrx").onclick = () => u.remove(); u.querySelector(".xs-undo").onclick = () => { u.remove(); try { load(JSON.parse(bak)); save(); draw(); A.toast("Đã hoàn tác: Wiring về như trước khi đồng bộ."); } catch (e) { A.toast("Không hoàn tác được."); } };
@@ -919,12 +929,12 @@
         // chế độ: Nối dây (mặc định) | Breadboard – bấm Breadboard lần nữa để đổi 1 → 2 → 3 tấm
         tools.innerHTML = `<span class="bmode" role="group" aria-label="Chế độ">` + tb("bmwire", "svg:wire", "Nối dây", "Chế độ nối dây mặc định") + tb("bbtog", "▦", "Breadboard", "Cắm lên breadboard; bấm lần nữa để đổi số tấm 1 → 2 → 3") + tb("bmpcb", "🖨", "PCB Maker", "Làm bo mạch in 1 lớp từ mạch này (in ủi nhiệt, ăn mòn tại nhà)") + `</span>`
           + tb("bauto", "svg:spark", "Auto Wire", "Auto Wire: tự nối các chân linh kiện chưa nối vào chân hợp lý của board (nguồn, GND, bus I2C / SPI, GPIO). Không đụng chân bạn đã nối tay.").replace('class="bbtn"', 'class="bbtn key"')
-          + `<span class="bwtools">` + tb("barr", "svg:arr", "Arrange", "Đổi cách sắp xếp linh kiện").replace('class="bbtn"', 'class="bbtn key"') + tb("bstyle", "svg:scheme", "Wire style", "Đổi kiểu đi dây").replace('class="bbtn"', 'class="bbtn key"') + tb("brot", "svg:rot", "Xoay board", "Xoay board 90°")
+          + `<span class="bwtools">` + tb("barr", "svg:arr", "Arrange", "Đổi cách sắp xếp linh kiện").replace('class="bbtn"', 'class="bbtn key"') + tb("bstyle", "svg:scheme", "Style","Đổi kiểu đi dây").replace('class="bbtn"', 'class="bbtn key"') + tb("brot", "svg:rot", "Xoay", "Xoay board 90°")
           + `<span class="bsep"></span><label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bspreadv">×${B.spread}</output></label></span>`
           + `<span class="bbtools" hidden>` + tb("bbstyle", "🔀", "Đi dây", "Đổi kiểu dây: vuông góc / tách / cong / vát 45°") + `<label class="bslider" title="Dãn dây"><i aria-hidden="true">↔</i><input id="bbspread" type="range" min="0.6" max="2.8" step="0.1" value="${B.spread}" aria-label="Dãn dây"><output id="bbspreadv">×${B.spread}</output></label>`
           + tb("bbghost", "👁", "Viền", "Ẩn nhanh linh kiện, chỉ để viền mỏng định vị (bấm lần nữa để hiện lại)")
           + `<label class="bslider bop" title="Độ rõ linh kiện"><i aria-hidden="true">◐</i><input id="bbop" type="range" min="0.1" max="1" step="0.05" value="${B.bb.op ?? .5}" aria-label="Độ rõ linh kiện"><output id="bbopv">${Math.round((B.bb.op ?? .5) * 100)}%</output></label></span>`
-          + `<span class="bsep"></span>` + tb("bsync", "svg:sync", "Đồng bộ PCB", "Cập nhật tab Wiring theo PCB Maker: thêm / bỏ module và đổi chân nối. Có hộp xác nhận và hoàn tác") + tb("bxchk", "svg:check", "Kiểm PCB", "So PCB Maker với mạch này và datasheet: nét đứt đỏ = chắc chắn sai, cam = nghi ngờ (chỉ báo, không sửa gì)") + `<span class="bsep"></span>` + tb("breset", "svg:reset", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "svg:dl", "Export", "Xuất ảnh PNG theo cài đặt")
+          + `<span class="bsep"></span>` + tb("bsync", "svg:sync", "Đồng bộ","Cập nhật tab Wiring theo PCB Maker: thêm / bỏ module và đổi chân nối. Có hộp xác nhận và hoàn tác") + tb("bxchk", "svg:check", "Kiểm PCB", "So PCB Maker với mạch này và datasheet: nét đứt đỏ = chắc chắn sai, cam = nghi ngờ (chỉ báo, không sửa gì)") + `<span class="bsep"></span>` + tb("breset", "svg:reset", "Reset", "Xoá hết linh kiện và dây, còn 1 breadboard") + tb("bpng", "svg:dl", "Export", "Xuất ảnh PNG theo cài đặt")
 ;
         // hàng 1: 3 nút chế độ; hàng 2: công cụ còn lại + zoom
         bar.insertBefore(tools, zoomBox); if (zoomBox) tools.appendChild(zoomBox); zoomBox && zoomBox.appendChild(tools.querySelector("#bpng"));   // Export cuối cùng bên phải, đi cùng cụm zoom
@@ -1012,7 +1022,7 @@
     B.cam = null; B.selM = B.selW = null; save(); refresh(); A.toast("Đã reset");
   }
   async function toggleBB() {
-    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=1794568418"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    if (!window.BBOARD) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "js/breadboard.js?v=1795275101"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
     if (!BBOARD.ok()) { A.toast("Board này không cắm breadboard được."); return; }
     if (B.bb.on) B.bb.n = B.bb.n % 3 + 1; else { B.bb.on = true; B.bb.n = 1; }   // vào tab breadboard luôn bắt đầu 1 tấm     // đang bật: bấm lần nữa xoay vòng 1 → 2 → 3 tấm
     B.cam = null; B.selM = B.selW = null; save(); refresh();
@@ -1022,7 +1032,7 @@
 
   /* ---------- Thanh bên ---------- */
   // icon board tí hon: thân PCB + 2 hàng chân, màu theo dòng chip
-  const BD_COL = { ESP32: "#24272b", RP2: "#2e7d4f", AVR: "#1c6fa8" };
+  const BD_COL = { ESP32: "#24272b", RP2: "#2e7d4f", AVR: "#1c6fa8", STM32: "#2c3f9e" };
   const bdIcon = x => `<svg class="bdico" viewBox="0 0 30 26" aria-hidden="true"><rect x="3" y="4" width="24" height="18" rx="2" fill="${BD_COL[x.family] || "#3a3d36"}" stroke="#0006"/>${[0, 1, 2, 3, 4, 5].map(i => `<circle cx="${6 + i * 3.6}" cy="7" r="1" fill="#d9b64a"/><circle cx="${6 + i * 3.6}" cy="19" r="1" fill="#d9b64a"/>`).join("")}<rect x="11" y="10" width="8" height="6" rx="1" fill="#111" stroke="#666" stroke-width=".5"/></svg>`;
   function boardItems(b, q) {
     const extra = (B.bb.extra || []).map(x => x.id);
@@ -1158,11 +1168,17 @@
   }
   function save() { try { localStorage.setItem("build:" + board().id, JSON.stringify(dump())); } catch (e) { } }
   function restore() { CUR = 0; B.boardId = board().id; B.buses = [{}]; B.mods = []; B.arm = null; B.cam = null; B.brot = 0; B.bb = { on: false, n: 1, board: null, extra: [], cur: 0 }; try { const o = JSON.parse(localStorage.getItem("build:" + B.boardId) || "null"); if (o) load(o); } catch (e) { } }
+  const popBom = () => {
+    if (!window.showBomPopup) return;
+    const items = (B.mods || []).map(m => { const d = M[m.type] || {}; return { name: d.name || m.type, query: (d.name || m.type).replace(/\(.*?\)/g, "").trim() }; });
+    window.showBomPopup({ mode: B.bb && B.bb.on ? "breadboard" : "wiring", boardId: B.boardId || board().id, items });
+  };
   const dl = (name, data) => {
     const blob = data instanceof Blob, url = blob ? URL.createObjectURL(data) : data;
     const a = document.createElement("a"); a.href = url; a.download = name; a.style.display = "none";
     document.body.appendChild(a); a.click(); a.remove();
     if (blob || /^blob:/.test(url)) setTimeout(() => URL.revokeObjectURL(url), 4000);
+    popBom();
   };
   const loadImg = u => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = u; });
   // ảnh ngoài (ảnh board thật, SVG con) nhúng thành data URL base64 trước khi chụp để trình duyệt giải mã SVG lồng nhau không lỗi
@@ -1196,6 +1212,7 @@
       try {
         const bl = new Blob([JSON.stringify(dump(), null, 1)], { type: "application/json" });
         const r = A.saveFile ? await A.saveFile(`${fname}.json`, bl, opt.forceBrowser) : (dl(`${fname}.json`, bl), { ok: true });
+        if (!r || !r.aborted) popBom();
         const finalName = (r && r.name) || `${fname}.json`; if (!r || !r.aborted) A.toast(r && r.dir ? `Đã lưu ${finalName} vào thư mục: ${r.dir}` : `Đã tải ${finalName} về trình duyệt`);
       } catch (err) {
         console.error("Lỗi xuất JSON:", err);
@@ -1292,6 +1309,7 @@
         try {
           const data = bl || c.toDataURL("image/png");
           const r = A.saveFile ? await A.saveFile(`${fname}.png`, data, opt.forceBrowser) : (dl(`${fname}.png`, data), { ok: true });
+          if (!r || !r.aborted) popBom();
           const finalName = (r && r.name) || `${fname}.png`; if (!r || !r.aborted) A.toast(r && r.dir ? `Đã lưu ${finalName} vào thư mục: ${r.dir}` : `Đã tải ${finalName} về trình duyệt`);
         } catch (err) {
           console.error("Lỗi lưu ảnh PNG:", err);

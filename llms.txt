@@ -14,12 +14,12 @@
 
 1. `get_state` (và `get_rules` nếu cần khe hở, pad, dây nhảy, quy ước xoay).
 2. `list_parts {q}`: tra mã footprint và tên chân.
-3. `build_from_netlist {parts:[{fp, ref, val, nets:{chân:mạng}}], tries:3, net_widths:{...}}`: app tự xếp nhiều kiểu, đi dây, đổ đồng GND, kiểm DRC và giữ bản tốt nhất.
+3. `build_from_netlist {parts:[{fp, ref, val, nets:{chân:mạng}}], tries:3, currents:{VIN:5, GND:5}}`: app tự xếp nhiều kiểu, đặt độ rộng đồng theo dòng (IPC-2221), cấm dây nhảy cho mạng dòng lớn, đi dây, đổ đồng GND, kiểm DRC và giữ bản tốt nhất (cần unroutedCount, drcCount, gndIslands, hotJumpers đều = 0).
 4. Đọc báo cáo (`failed`, `jumpersNeeded`, `drcCount`, `score`, `hints`), sửa có chủ đích: `move_part`, `rotate_part`, `set_nets`, `set_net_width`, `arrange {tries, autoroute:true}`, `autoroute {nets, max_jumpers}`; gộp nhiều bước bằng `batch`.
-5. `get_drc`, `check_current {currents:{VM:5}}` cho dây công suất.
+5. `get_drc`, `check_current {currents:{VM:5}}` cho dây công suất, và luôn gọi `get_image` 1 lần để kiểm tra trực quan mặt đồng và bố cục trước khi bàn giao.
 
 Không tự vẽ dây hàng loạt hay tự viết router: gán mạng cho chân rồi dùng autoroute; chỉ `add_trace` / `add_jumper` cho vài chỗ kẹt. Mỗi lệnh thay đổi bo là 1 bước Hoàn tác (Ctrl+Z); lỗi trả kèm `hint`.
 
 ## Lệnh
 
-get_state, get_rules, get_geometry, get_image, check_current, list_parts, build_from_netlist, add_part, add_parts_batch, move_part, rotate_part, remove_part, set_nets, clear_board, arrange, autoroute, set_net_width, add_trace, add_jumper, delete_trace, pour_gnd, batch, get_drc, export_pdi, load_pdi, create_board, resize_board, fit_board, auto_board, set_route_config, get_bom, pinworld_search, pinworld_import, edit_mypart.
+get_state, get_rules, get_geometry, get_image, check_current, list_parts, build_from_netlist, add_part, add_parts_batch, move_part, rotate_part, remove_part, set_nets, clear_board, arrange, autoroute, set_net_width, add_trace, add_jumper, delete_trace, pour_gnd, batch, get_drc, export_pdi, load_pdi, create_board, resize_board, fit_board, auto_board, set_route_config, get_bom, pinworld_search, pinworld_import, edit_mypart, save_board_as_mypart, open_mypart_source.

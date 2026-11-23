@@ -614,7 +614,119 @@
     ]
   };
 
-  window.BOARDS = [ESP32_C3, ESP32_C3_SM, ESP32_S3, TDISPLAY, PICO2W, PICO2, RPI, UNO];
+  /* ---------------- STM32F103C8T6 Blue Pill (MakerEdu MKE-K06, USB-C) ----------------
+     Chân & chức năng theo datasheet STM32F103x8/xB (DS5319) bảng 5; mạch board theo schematic KiCad MakerEdu Rev 1.0.1
+     (github.com/makereduvn/MKE-K06-STM32F103C8T6-BLUE-PILL-DEV-KIT). Board xoay dọc: SWD ở trên, USB-C ở dưới. */
+  const FT = new Set(["PA8", "PA9", "PA10", "PA11", "PA12", "PA13", "PA14", "PA15", "PB2", "PB3", "PB4", "PB6", "PB7", "PB8", "PB9", "PB10", "PB11", "PB12", "PB13", "PB14", "PB15"]);
+  const STF = {   // [chức năng mặc định, chức năng remap]; remap ghi dạng X_Y (remap) để không lẫn với chân mặc định
+    PA0: [["ADC12_IN0", "TIM2_CH1_ETR", "USART2_CTS", "WKUP"], []], PA1: [["ADC12_IN1", "TIM2_CH2", "USART2_RTS"], []],
+    PA2: [["ADC12_IN2", "TIM2_CH3", "USART2 TX"], []], PA3: [["ADC12_IN3", "TIM2_CH4", "USART2 RX"], []],
+    PA4: [["ADC12_IN4", "SPI1 NSS", "USART2_CK"], []], PA5: [["ADC12_IN5", "SPI1 SCK"], []],
+    PA6: [["ADC12_IN6", "SPI1 MISO", "TIM3_CH1"], ["TIM1_BKIN (remap)"]], PA7: [["ADC12_IN7", "SPI1 MOSI", "TIM3_CH2"], ["TIM1_CH1N (remap)"]],
+    PB0: [["ADC12_IN8", "TIM3_CH3"], ["TIM1_CH2N (remap)"]], PB1: [["ADC12_IN9", "TIM3_CH4"], ["TIM1_CH3N (remap)"]],
+    PB10: [["I2C2 SCL", "USART3 TX"], ["TIM2_CH3 (remap)"]], PB11: [["I2C2 SDA", "USART3 RX"], ["TIM2_CH4 (remap)"]],
+    PB12: [["SPI2 NSS", "I2C2_SMBA", "USART3_CK", "TIM1_BKIN"], []], PB13: [["SPI2 SCK", "USART3_CTS", "TIM1_CH1N"], []],
+    PB14: [["SPI2 MISO", "USART3_RTS", "TIM1_CH2N"], []], PB15: [["SPI2 MOSI", "TIM1_CH3N"], []],
+    PA8: [["TIM1_CH1", "USART1_CK", "MCO"], []], PA9: [["USART1 TX", "TIM1_CH2"], []], PA10: [["USART1 RX", "TIM1_CH3"], []],
+    PA11: [["USB_DM", "CAN_RX", "TIM1_CH4", "USART1_CTS"], []], PA12: [["USB_DP", "CAN_TX", "TIM1_ETR", "USART1_RTS"], []],
+    PA15: [["JTDI"], ["SPI1_NSS (remap)", "TIM2_CH1_ETR (remap)"]], PB3: [["JTDO", "TRACESWO"], ["SPI1_SCK (remap)", "TIM2_CH2 (remap)"]],
+    PB4: [["NJTRST"], ["SPI1_MISO (remap)", "TIM3_CH1 (remap)"]], PB5: [["I2C1_SMBA"], ["SPI1_MOSI (remap)", "TIM3_CH2 (remap)"]],
+    PB6: [["I2C1 SCL", "TIM4_CH1"], ["USART1_TX (remap)"]], PB7: [["I2C1 SDA", "TIM4_CH2"], ["USART1_RX (remap)"]],
+    PB8: [["TIM4_CH3"], ["I2C1_SCL (remap)", "CAN_RX (remap)"]], PB9: [["TIM4_CH4"], ["I2C1_SDA (remap)", "CAN_TX (remap)"]],
+    PC13: [["TAMPER-RTC", "LED onboard (HIGH = sáng)"], []], PC14: [["OSC32_IN"], []], PC15: [["OSC32_OUT"], []]
+  };
+  function stm(nm) {
+    const port = nm.charCodeAt(1) - 65, n = +nm.slice(2), [def, rm] = STF[nm];
+    const p = pin(nm, { gpio: port * 16 + n, fn: [...def, ...rm] });
+    const f = def.join(" ");
+    if (/ADC12/.test(f)) p.flags.push("adc");
+    if (/TIM\d_CH\d/.test(def.concat(rm).join(" "))) p.flags.push("pwm");
+    if (/I2C\d (SDA|SCL)/.test(f)) p.flags.push("i2c");
+    if (/SPI\d (SCK|MOSI|MISO|NSS)/.test(f)) p.flags.push("spi");
+    if (/USART\d (TX|RX)/.test(f)) p.flags.push("uart");
+    if (nm === "PA11" || nm === "PA12") p.flags.push("usb");
+    if (["PA15", "PB3", "PB4"].includes(nm)) p.flags.push("jtag");
+    if (nm === "PC13") p.flags.push("led");
+    p.notes.push(FT.has(nm) ? "Chân chịu 5 V (FT) khi ở chế độ digital. Ngõ ra vẫn chỉ 3.3 V." : "Chân KHÔNG chịu 5 V (chỉ 3.3 V).");
+    p.notes.push(/^PC1[345]$/.test(nm) ? "Dòng rất nhỏ: chỉ hút tối đa 3 mA, tốc độ ≤ 2 MHz, tải ≤ 30 pF; không dùng để cấp dòng (DS5319)." : "Dòng ra khuyến nghị ≤ 8 mA (VOL ≤ 0.4 V), tối đa 25 mA mỗi chân; tổng mọi chân ≤ 150 mA.");
+    const w = {
+      PA11: "USB D− của cổng USB-C onboard (có diode ESD). Dùng làm GPIO thì không dùng được USB.",
+      PA12: "USB D+ có điện trở kéo lên 1.5 kΩ lên 3V3 trên board (R12). Dùng làm GPIO sẽ bị kéo lên HIGH và mất USB.",
+      PA15: "Mặc định là JTDI (JTAG). Phải tắt JTAG (giữ SWD) mới dùng làm GPIO.",
+      PB3: "Mặc định là JTDO (JTAG). Phải tắt JTAG (giữ SWD) mới dùng làm GPIO.",
+      PB4: "Mặc định là NJTRST (JTAG). Phải tắt JTAG (giữ SWD) mới dùng làm GPIO.",
+      PC13: "LED vàng onboard (D13) qua 1 kΩ xuống GND: HIGH = sáng. Chân miền backup: dòng rất nhỏ, chỉ dùng tín hiệu chậm.",
+      PC14: "Nối thạch anh 32.768 kHz (X2) cho RTC. Dùng làm GPIO thì mất RTC và tín hiệu bị tụ 9 pF ảnh hưởng.",
+      PC15: "Nối thạch anh 32.768 kHz (X2) cho RTC. Dùng làm GPIO thì mất RTC và tín hiệu bị tụ 9 pF ảnh hưởng."
+    };
+    if (w[nm]) p.warn = w[nm];
+    p.cat = p.flags.includes("usb") ? "usb" : ["PC14", "PC15"].includes(nm) ? "ban" : p.flags.includes("jtag") ? "strap" : p.flags.includes("uart") || p.flags.includes("i2c") ? "comm" : p.flags.includes("adc") ? "adc" : "gpio";
+    if (p.flags.includes("adc")) { p.notes.push("ADC 12-bit, dải 0–3.3 V (VREF+ = VDDA). Không đưa > 3.6 V vào chân analog."); p.parts.push(["Lọc ADC", "Tụ 0.1 µF xuống GND; trở kháng nguồn ≤ 10 kΩ", "ds"]); }
+    if (p.flags.includes("i2c")) p.parts.push(["Pull-up", "4.7 kΩ lên 3V3 (100 kHz) hoặc 2.2 kΩ (400 kHz)", "std"]);
+    else if (p.cat === "gpio" || p.cat === "adc") p.parts.push(["Bảo vệ", "Điện trở nối tiếp 220–470 Ω khi nối ra ngoài", "std"]);
+    return p;
+  }
+  const BPL = [
+    pw("VB", "VBAT (backup RTC)", "Nguồn backup cho RTC. Board cấp từ 3V3 qua diode kép KL3 (BAT54C); có thể nối pin 1.8–3.6 V vào đây."),
+    ...["PC13", "PC14", "PC15", "PA0", "PA1", "PA2", "PA3", "PA4", "PA5", "PA6", "PA7", "PB0", "PB1", "PB10", "PB11"].map(stm),
+    ctl("RST", "NRST", "Kéo LOW để reset. Board có nút RST và điện trở kéo lên 5.1 kΩ.", { parts: [["Tụ", "0.1 µF xuống GND (khuyến nghị của ST)", "ds"]] }),
+    pw("3V3", "Ngõ ra LDO 3.3 V", "Ngõ ra LDO RT9013-33 (tối đa 500 mA). Không cấp 5 V vào đây.", { parts: [["Tụ", "0.1 µF sát mỗi cặp VDD/VSS + 4.7–10 µF (ST AN2586)", "ds"]] }),
+    gnd(), gnd()
+  ];
+  const BPR = [
+    pw("3V3", "Ngõ ra LDO 3.3 V", "Ngõ ra LDO RT9013-33 (tối đa 500 mA)."),
+    gnd(),
+    pw("5V", "5V từ USB-C", "VBUS qua diode Schottky 1N5819 (D11; jumper hàn JP2 để nối tắt). Có thể cấp 5 V ngoài vào đây khi không cắm USB."),
+    ...["PB9", "PB8", "PB7", "PB6", "PB5", "PB4", "PB3", "PA15", "PA12", "PA11", "PA10", "PA9", "PA8", "PB15", "PB14", "PB13", "PB12"].map(stm)
+  ];
+  const BPS = [
+    gnd(),
+    ctl("SWCLK", "PA14 · SWCLK", "Cổng nạp/debug SWD (ST-Link). PA14 không ra header để giữ SWD."),
+    ctl("SWDIO", "PA13 · SWDIO", "Cổng nạp/debug SWD (ST-Link). PA13 không ra header để giữ SWD."),
+    pw("3V3", "3.3 V", "Chân 3V3 của cổng SWD (ST-Link đo mức logic).")
+  ];
+  const BLUEPILL = {
+    id: "stm32f103c8t6-blue-pill", tag: "F103", name: "STM32F103C8T6 Blue Pill (MKE-K06)", vendor: "MakerEdu", chip: "STM32F103C8T6", family: "STM32",
+    arch: { core: "STM32F103C8T6", coreSub: "Cortex-M3 72 MHz, 64 KB flash, 20 KB SRAM, LQFP48", blocks: [
+      { side: "L", n: "Cổng USB-C", s: "USB 2.0 Full-speed (device)", k: "usb", bus: "PA11 D− · PA12 D+" },
+      { side: "L", n: "LDO 3.3 V", s: "RT9013-33, 500 mA", k: "power", bus: "5V → 3V3" },
+      { side: "L", n: "Thạch anh 8 MHz", s: "HSE (PLL ×9 = 72 MHz)", k: "ctl", bus: "PD0 / PD1" },
+      { side: "L", n: "Thạch anh 32.768 kHz", s: "LSE cho RTC", k: "ctl", bus: "PC14 / PC15" },
+      { side: "R", n: "LED vàng", s: "HIGH = sáng", k: "io", bus: "PC13" },
+      { side: "R", n: "Công tắc BOOT0", s: "kéo xuống 5.1 kΩ", k: "ctl", bus: "BOOT0" },
+      { side: "R", n: "Nút RST", s: "kéo lên 5.1 kΩ", k: "ctl", bus: "NRST" },
+      { side: "R", n: "Cổng SWD", s: "GND · CLK · DIO · 3V3", k: "io", bus: "PA14 / PA13" }] },
+    elec: [["Mức logic", "3.3 V (chân FT chịu 5 V)"], ["VIH / VIL", "≥0.65·VDD / ≤0.35·VDD (chân thường)"], ["Dòng ra", "8 mA khuyến nghị · 25 mA tối đa / chân · tổng 150 mA"], ["Pull nội", "30–50 kΩ (lên hoặc xuống)"], ["Ngoại vi số", "Cố định theo chân, đổi qua AFIO remap"]],
+    summary: "ARM Cortex-M3 72 MHz, 64 KB flash, 20 KB SRAM, USB Full-speed, CAN, 2 ADC 12-bit; bản MakerEdu dùng USB-C.",
+    w: 22.86, h: 53.34, pcb: "blue", logic: "3.3 V",
+    facts: [["Logic", "3.3 V; chân chịu 5 V (FT): PA8–PA15, PB2–PB4, PB6–PB15"], ["Kích thước", "53.34 × 22.86 mm, 2 hàng × 20 chân cách nhau 15.24 mm, bước 2.54 mm"], ["ADC", "2 × 12-bit, 10 kênh trên header: PA0–PA7, PB0, PB1"], ["Nạp", "ST-Link qua SWD; hoặc UART bootloader (BOOT0 = 1, USART1 PA9/PA10); nạp qua USB cần bootloader riêng"], ["Boot", "BOOT0 = 0: chạy Flash · BOOT0 = 1 + BOOT1 (PB2, kéo xuống 10 kΩ) = 0: bootloader ST"], ["Thạch anh", "8 MHz (HSE) + 32.768 kHz (RTC)"]],
+    docs: [
+      ["datasheet", "STM32F103x8/xB Datasheet (DS5319)", "https://www.st.com/resource/en/datasheet/stm32f103c8.pdf"],
+      ["manual", "Reference Manual RM0008", "https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf"],
+      ["guide", "AN2586 – Getting started with STM32F10x hardware", "https://www.st.com/resource/en/application_note/an2586-getting-started-with-stm32f10xxx-hardware-development-stmicroelectronics.pdf"],
+      ["schematic", "MKE-K06 schematic + pinout (MakerEdu, GitHub)", "https://github.com/makereduvn/MKE-K06-STM32F103C8T6-BLUE-PILL-DEV-KIT"]
+    ],
+    note: "Dữ liệu theo bản MakerEdu MKE-K06 (USB-C, schematic Rev 1.0.1). Blue Pill Micro-USB đời cũ cùng thứ tự chân nhưng mạch nguồn và điện trở USB có thể khác. Board xoay dọc: cổng SWD ở trên, USB-C ở dưới.",
+    src: "STM32F103x8/xB Datasheet DS5319, schematic MKE-K06 Rev 1.0.1",
+    parts: [
+      // vị trí đo từ ảnh render 3D mặt trên của MakerEdu (≈6.5 px/mm), xoay dọc: SWD trên, USB-C dưới
+      { t: "chip", x: 7.8, y: 23.9, w: 7, h: 7, label: "STM32", sub: "F103C8T6" },
+      { t: "chip", x: 8.3, y: 16.5, w: 2.5, h: 3.2, label: "8M", small: true },
+      { t: "led", x: 6.2, y: 13.6, w: 1, h: 1.6, color: "#ffd34d", label: "PC13" },
+      { t: "led", x: 13.6, y: 13.6, w: 1, h: 1.6, color: "#ff4d4d", label: "PWR" },
+      { t: "btn", x: 5.3, y: 35.3, w: 4.2, h: 3.8, label: "RST" },
+      { t: "btn", x: 12, y: 35.3, w: 4.2, h: 3.8, label: "BOOT0" },
+      { t: "chip", x: 7, y: 40.3, w: 1.7, h: 3.5, label: "LDO", small: true },
+      { t: "usb", x: 6.7, y: 45.3, w: 8.3, h: 9, label: "USB-C" }
+    ],
+    headers: [
+      { id: "H2", side: "L", at: -1.6, pins: vcol(3.81, 2.54, BPL) },
+      { id: "H3", side: "R", at: 24.4, pins: vcol(19.05, 2.54, BPR) },
+      { id: "SWD", side: "T", at: -1.6, pins: BPS.map((p, i) => ({ ...p, x: 7 + i * 2.54, y: 6.1 })) }
+    ]
+  };
+
+  window.BOARDS = [ESP32_C3, ESP32_C3_SM, ESP32_S3, TDISPLAY, PICO2W, PICO2, RPI, UNO, BLUEPILL];
   /* Ảnh board thật cho thẻ "Mua board" (board không có thì vẽ icon từ dữ liệu PCB) */
   window.BOARD_PHOTOS = {
     "esp32-s3-devkitc-1": "sch/esp32-s3-devkitc-1-board.jpg",

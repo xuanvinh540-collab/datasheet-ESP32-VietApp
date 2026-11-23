@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-skin="pinout">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>if(location.hostname==="pindex.pages.dev")location.replace("https://pindexio.com"+location.pathname+location.search+location.hash)</script>
+<!--SEO--><title>STM32F103C8T6 Blue Pill (MKE-K06) Pinout – GPIO, ADC, I2C, SPI reference | Pindex</title>
+<meta name="description" content="STM32F103C8T6 Blue Pill (MKE-K06) pinout on Pindex – a platform to look up pins, pair modules and plan wiring: every pin's functions, boot/strapping warnings and safe pins from the MakerEdu datasheet, plus a breadboard wiring planner with ready #define code.">
+<base href="../../">
+<link rel="canonical" href="https://pindexio.com/en/stm32f103c8t6-blue-pill/">
+<link rel="alternate" hreflang="vi" href="https://pindexio.com/stm32f103c8t6-blue-pill/"><link rel="alternate" hreflang="en" href="https://pindexio.com/en/stm32f103c8t6-blue-pill/"><link rel="alternate" hreflang="x-default" href="https://pindexio.com/stm32f103c8t6-blue-pill/">
+<meta property="og:type" content="article"><meta property="og:site_name" content="Pindex">
+<meta property="og:title" content="STM32F103C8T6 Blue Pill (MKE-K06) Pinout – GPIO, ADC, I2C, SPI reference | Pindex"><meta property="og:description" content="STM32F103C8T6 Blue Pill (MKE-K06) pinout on Pindex – a platform to look up pins, pair modules and plan wiring: every pin's functions, boot/strapping warnings and safe pins from the MakerEdu datasheet, plus a breadboard wiring planner with ready #define code.">
+<meta property="og:url" content="https://pindexio.com/en/stm32f103c8t6-blue-pill/"><meta property="og:image" content="https://pindexio.com/og/stm32f103c8t6-blue-pill.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="STM32F103C8T6 Blue Pill (MKE-K06) Pinout – GPIO, ADC, I2C, SPI reference | Pindex">
+<meta property="og:locale" content="en_US"><meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="STM32F103C8T6 Blue Pill (MKE-K06) Pinout – GPIO, ADC, I2C, SPI reference | Pindex"><meta name="twitter:description" content="STM32F103C8T6 Blue Pill (MKE-K06) pinout on Pindex – a platform to look up pins, pair modules and plan wiring: every pin's functions, boot/strapping warnings and safe pins from the MakerEdu datasheet, plus a breadboard wiring planner with ready #define code."><meta name="twitter:image" content="https://pindexio.com/og/stm32f103c8t6-blue-pill.png">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"STM32F103C8T6 Blue Pill (MKE-K06) Pinout – GPIO, ADC, I2C, SPI reference | Pindex","name":"STM32F103C8T6 Blue Pill (MKE-K06) Pinout – GPIO, ADC, I2C, SPI reference | Pindex","description":"STM32F103C8T6 Blue Pill (MKE-K06) pinout on Pindex – a platform to look up pins, pair modules and plan wiring: every pin's functions, boot/strapping warnings and safe pins from the MakerEdu datasheet, plus a breadboard wiring planner with ready #define code.","url":"https://pindexio.com/en/stm32f103c8t6-blue-pill/","inLanguage":"en","image":"https://pindexio.com/og/stm32f103c8t6-blue-pill.png","publisher":{"@type":"Organization","name":"Pindex","url":"https://pindexio.com/","logo":{"@type":"ImageObject","url":"https://pindexio.com/icon-512.png","width":512,"height":512}},"dateModified":"2026-11-23","about":{"@type":"Thing","name":"STM32F103C8T6 Blue Pill (MKE-K06)","description":"ARM Cortex-M3 72 MHz, 64 KB flash, 20 KB SRAM, USB Full-speed, CAN, 2 ADC 12-bit; bản MakerEdu dùng USB-C."}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pindex","item":"https://pindexio.com/en/"},{"@type":"ListItem","position":2,"name":"STM32F103C8T6 Blue Pill (MKE-K06)","item":"https://pindexio.com/en/stm32f103c8t6-blue-pill/"}]}</script>
+
+<script>window.PAGE_BOARD="stm32f103c8t6-blue-pill";window.PAGE_LANG="en";</script><!--/SEO-->
+<meta name="theme-color" content="#041E42">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/icon.svg?v=1794559990" type="image/svg+xml"><link rel="icon" href="/icon-48.png" sizes="48x48" type="image/png"><link rel="icon" href="/icon-96.png" sizes="96x96" type="image/png"><link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/app.css?v=1795275101">
+<link rel="stylesheet" href="css/retro.css?v=1795275101" id="skin-8bit" disabled>
+<link rel="stylesheet" href="css/pinout.css?v=1795275101" id="skin-pinout">
+<link rel="stylesheet" href="css/amber.css?v=1795275101" id="skin-amber" disabled>
+<link rel="stylesheet" href="css/pcblab.css?v=1795275101">
+<link rel="stylesheet" href="css/custom.css?v=1795275101" id="custom-css">
+<link rel="stylesheet" href="css/pcb-ui2.css?v=1795275101"><link rel="stylesheet" href="css/pcb-studio.css?v=1795275101"><script>/* giao diện PCB: ?ui=ui2 (mặc định) | studio (thử, đang tạm cất) | old – nhớ lựa chọn; skin 8bit tự về ui2 */try{var m=/[?&]ui=(studio|ui2|old)/.exec(location.search),u;if(m){u=m[1];localStorage.setItem("pcb-ui",u)}else u=localStorage.getItem("pcb-ui")||"ui2";var c=document.documentElement.classList;if(u==="old")c.add("ui-old");else if(u==="studio"&&localStorage.getItem("skin")!=="8bit")c.add("ui-studio")}catch(e){}</script>
+
+<link rel="stylesheet" href="/sketchwb/sketchwb-pcb.css?v=1794567500">
+<script src="/sketchwb/core/model.js" defer></script>
+<script src="/sketchwb/core/solver.js" defer></script>
+<script src="/sketchwb/core/geometry-ops.js" defer></script>
+<script src="/sketchwb/tools/tools.js?v=1794567600" defer></script>
+<script src="/sketchwb/sketchwb-pcb.js?v=1794567600" defer></script>
+<script src="/js/pl-siderz.js?v=1795275101" defer></script><script src="/js/pl-shortlabels.js?v=1795275101" defer></script><script src="/js/pl-touch.js?v=1795275101" defer></script>
+</head>
+<body>
+<header class="appbar">
+  <div class="brand"><img src="icon.svg?v=1794559990" alt="" width="60" height="60"><div><b class="wm"><span class="wm-n">PIN</span><span class="wm-c">DEX</span><span class="wm-n">IO</span></b><span>Thông tin chân &amp; datasheet board</span></div></div>
+  <div class="modebar" id="modeBar" role="group" aria-label="Các bước làm mạch" hidden><button type="button" data-m="wire"><i>1</i>Nối dây</button><button type="button" data-m="bb"><i>2</i>Breadboard</button><button type="button" data-m="pcb"><i>3</i>PCB Maker</button><button type="button" data-m="studio"><i>4</i>Module PCB</button></div>
+  <nav class="tabbar" role="tablist">
+    <button data-tab="pins" role="tab">Sơ đồ chân</button>
+    <button data-tab="pinworld" role="tab">Pinworld</button>
+    <button data-tab="calc" role="tab">Tính toán</button>
+    <button data-tab="docs" role="tab">Tài liệu</button>
+  </nav>
+  <div class="daynight langsw" id="langSw" role="group" aria-label="Ngôn ngữ"><button data-l="vi" title="Tiếng Việt"><svg viewBox="0 0 30 20" width="22" height="15" aria-hidden="true"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.2,8.3 20.7,8.3 17.1,10.9 18.4,15.2 15,12.6 11.6,15.2 12.9,10.9 9.3,8.3 13.8,8.3" fill="#ff0"/></svg></button><button data-l="en" title="English"><svg viewBox="0 0 60 30" width="22" height="15" aria-hidden="true"><clipPath id="gbc"><rect width="60" height="30"/></clipPath><g clip-path="url(#gbc)"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" stroke="#c8102e" stroke-width="2.4"/><path d="M30,0V30M0,15H60" stroke="#fff" stroke-width="10"/><path d="M30,0V30M0,15H60" stroke="#c8102e" stroke-width="6"/></g></svg></button></div>
+  <div class="daynight" role="group" aria-label="Sáng / tối"><button id="tLight" aria-label="Giao diện sáng">☀</button><button id="tDark" aria-label="Giao diện tối">☾</button></div>
+  <select id="skin" class="skin" aria-label="Chọn giao diện"><option value="pinout">Pindex</option><option value="8bit">8-bit</option><option value="amber">Hổ phách</option><option value="clean">Simple</option></select>
+</header>
+
+<main>
+  <section data-panel="pins">
+    <div class="boards" id="boards" aria-label="Chọn board"></div>
+    <div class="layout">
+      <div class="stage card">
+        <div class="stage-head">
+          <div><h1 id="bTitle">STM32F103C8T6 Blue Pill (MKE-K06)</h1><p id="bSub" class="muted small"></p></div>
+          <div class="seg" role="group" aria-label="Kiểu hình">
+            <button id="viewWire" class="wire-btn" title="Ghép linh kiện và nối dây">⚡ Wiring</button><button id="viewPcbStudio" class="wire-btn pcblab-btn" title="Module PCB: không gian trống vẽ module SMD / THT">🎛 Module PCB</button><button id="viewPcbLab" class="wire-btn pcblab-btn" title="Làm bo mạch in 1 lớp tại nhà (in ủi nhiệt, ăn mòn)">🖨 PCB Maker</button><button id="viewPcb">PCB</button><button id="viewSch">Kiến trúc</button><button id="viewOem">Schematic hãng</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Tìm chân: 8, ADC, SDA, TX…" autocomplete="off"></label>
+          <div class="zoom"><button class="icon-btn" id="zout" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="zin" aria-label="Phóng to">+</button></div>
+        </div>
+        <div class="chips" id="filters"></div>
+        <div class="oem" id="oem" hidden></div>
+        <div class="canvas-wrap"><div class="canvas" id="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ chân board"></svg></div><a id="buyBtn" class="buy-btn" hidden target="_blank" rel="noopener sponsored nofollow"></a></div>
+        <div class="stage-foot"><div class="legend" id="legend"></div><span id="count" class="muted small"></span></div>
+        <p id="bNote" class="note small"></p>
+      </div>
+      <aside class="detail card" id="detail"><div class="grab" aria-hidden="true"></div><div id="detailBody"></div></aside>
+    </div>
+    <section class="card spec" id="spec" hidden>
+      <h2>Thông số chip</h2><p class="muted small" id="specNote"></p>
+      <div class="chips" id="specTabs" role="tablist"></div>
+      <div id="specBody"></div>
+    </section>
+    <section class="card buy" id="buyBox" hidden>
+      <div class="buy-h" data-nosnippet><h2>Mua board</h2><div class="buy-shop" id="buyShop" role="group" aria-label="Vùng mua hàng"></div><p class="muted small">Link tiếp thị liên kết tới Shopee. Bạn trả đúng giá niêm yết; Pindex có thể nhận hoa hồng từ người bán. Pindex không bán hàng và không bảo hành sản phẩm.</p></div>
+      <div class="buy-row" id="buyRow"></div>
+    </section>
+    <!--SEOBODY--><section class="card spec seo"><h2>STM32F103C8T6 Blue Pill (MKE-K06) pinout table</h2>
+<p class="muted">ARM Cortex-M3 72 MHz, 64 KB flash, 20 KB SRAM, USB Full-speed, CAN, 2 ADC 12-bit; bản MakerEdu dùng USB-C.</p><dl class="facts"><dt>Logic</dt><dd>3.3 V; chân chịu 5 V (FT): PA8–PA15, PB2–PB4, PB6–PB15</dd><dt>Size</dt><dd>53.34 × 22.86 mm, 2 hàng × 20 chân cách nhau 15.24 mm, bước 2.54 mm</dd><dt>ADC</dt><dd>2 × 12-bit, 10 kênh trên header: PA0–PA7, PB0, PB1</dd><dt>Flashing</dt><dd>ST-Link qua SWD; hoặc UART bootloader (BOOT0 = 1, USART1 PA9/PA10); nạp qua USB cần bootloader riêng</dd><dt>Boot</dt><dd>BOOT0 = 0: chạy Flash · BOOT0 = 1 + BOOT1 (PB2, kéo xuống 10 kΩ) = 0: bootloader ST</dd><dt>Thạch anh</dt><dd>8 MHz (HSE) + 32.768 kHz (RTC)</dd></dl>
+<div class="tw"><table><thead><tr><th>Pin</th><th>Header</th><th>GPIO</th><th>Type</th><th>Functions</th><th>Notes</th></tr></thead><tbody><tr><td><b>VB</b></td><td>H2-1</td><td>–</td><td>Power</td><td>VBAT (backup RTC)</td><td>Nguồn backup cho RTC. Board cấp từ 3V3 qua diode kép KL3 (BAT54C); có thể nối pin 1.8–3.6 V vào đây.</td></tr><tr><td><b>PC13</b></td><td>H2-2</td><td>45</td><td>GPIO</td><td>TAMPER-RTC, LED onboard (HIGH = sáng)</td><td>LED vàng onboard (D13) qua 1 kΩ xuống GND: HIGH = sáng. Chân miền backup: dòng rất nhỏ, chỉ dùng tín hiệu chậm.</td></tr><tr><td><b>PC14</b></td><td>H2-3</td><td>46</td><td>Reserved</td><td>OSC32_IN</td><td>Nối thạch anh 32.768 kHz (X2) cho RTC. Dùng làm GPIO thì mất RTC và tín hiệu bị tụ 9 pF ảnh hưởng.</td></tr><tr><td><b>PC15</b></td><td>H2-4</td><td>47</td><td>Reserved</td><td>OSC32_OUT</td><td>Nối thạch anh 32.768 kHz (X2) cho RTC. Dùng làm GPIO thì mất RTC và tín hiệu bị tụ 9 pF ảnh hưởng.</td></tr><tr><td><b>PA0</b></td><td>H2-5</td><td>0</td><td>Analog</td><td>ADC12_IN0, TIM2_CH1_ETR, USART2_CTS, WKUP</td><td></td></tr><tr><td><b>PA1</b></td><td>H2-6</td><td>1</td><td>Analog</td><td>ADC12_IN1, TIM2_CH2, USART2_RTS</td><td></td></tr><tr><td><b>PA2</b></td><td>H2-7</td><td>2</td><td>UART/I2C</td><td>ADC12_IN2, TIM2_CH3, USART2 TX</td><td></td></tr><tr><td><b>PA3</b></td><td>H2-8</td><td>3</td><td>UART/I2C</td><td>ADC12_IN3, TIM2_CH4, USART2 RX</td><td></td></tr><tr><td><b>PA4</b></td><td>H2-9</td><td>4</td><td>Analog</td><td>ADC12_IN4, SPI1 NSS, USART2_CK</td><td></td></tr><tr><td><b>PA5</b></td><td>H2-10</td><td>5</td><td>Analog</td><td>ADC12_IN5, SPI1 SCK</td><td></td></tr><tr><td><b>PA6</b></td><td>H2-11</td><td>6</td><td>Analog</td><td>ADC12_IN6, SPI1 MISO, TIM3_CH1, TIM1_BKIN (remap)</td><td></td></tr><tr><td><b>PA7</b></td><td>H2-12</td><td>7</td><td>Analog</td><td>ADC12_IN7, SPI1 MOSI, TIM3_CH2, TIM1_CH1N (remap)</td><td></td></tr><tr><td><b>PB0</b></td><td>H2-13</td><td>16</td><td>Analog</td><td>ADC12_IN8, TIM3_CH3, TIM1_CH2N (remap)</td><td></td></tr><tr><td><b>PB1</b></td><td>H2-14</td><td>17</td><td>Analog</td><td>ADC12_IN9, TIM3_CH4, TIM1_CH3N (remap)</td><td></td></tr><tr><td><b>PB10</b></td><td>H2-15</td><td>26</td><td>UART/I2C</td><td>I2C2 SCL, USART3 TX, TIM2_CH3 (remap)</td><td></td></tr><tr><td><b>PB11</b></td><td>H2-16</td><td>27</td><td>UART/I2C</td><td>I2C2 SDA, USART3 RX, TIM2_CH4 (remap)</td><td></td></tr><tr><td><b>RST</b></td><td>H2-17</td><td>–</td><td>Control</td><td>NRST</td><td>Kéo LOW để reset. Board có nút RST và điện trở kéo lên 5.1 kΩ.</td></tr><tr><td><b>3V3</b></td><td>H2-18</td><td>–</td><td>Power</td><td>3.3 V LDO output</td><td>Ngõ ra LDO RT9013-33 (tối đa 500 mA). Không cấp 5 V vào đây.</td></tr><tr><td><b>GND</b></td><td>H2-19</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>GND</b></td><td>H2-20</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>3V3</b></td><td>H3-1</td><td>–</td><td>Power</td><td>3.3 V LDO output</td><td>Ngõ ra LDO RT9013-33 (tối đa 500 mA).</td></tr><tr><td><b>GND</b></td><td>H3-2</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>5V</b></td><td>H3-3</td><td>–</td><td>Power</td><td>5V từ USB-C</td><td>VBUS qua diode Schottky 1N5819 (D11; jumper hàn JP2 để nối tắt). Có thể cấp 5 V ngoài vào đây khi không cắm USB.</td></tr><tr><td><b>PB9</b></td><td>H3-4</td><td>25</td><td>GPIO</td><td>TIM4_CH4, I2C1_SDA (remap), CAN_TX (remap)</td><td></td></tr><tr><td><b>PB8</b></td><td>H3-5</td><td>24</td><td>GPIO</td><td>TIM4_CH3, I2C1_SCL (remap), CAN_RX (remap)</td><td></td></tr><tr><td><b>PB7</b></td><td>H3-6</td><td>23</td><td>UART/I2C</td><td>I2C1 SDA, TIM4_CH2, USART1_RX (remap)</td><td></td></tr><tr><td><b>PB6</b></td><td>H3-7</td><td>22</td><td>UART/I2C</td><td>I2C1 SCL, TIM4_CH1, USART1_TX (remap)</td><td></td></tr><tr><td><b>PB5</b></td><td>H3-8</td><td>21</td><td>GPIO</td><td>I2C1_SMBA, SPI1_MOSI (remap), TIM3_CH2 (remap)</td><td></td></tr><tr><td><b>PB4</b></td><td>H3-9</td><td>20</td><td>Strapping ⚠</td><td>NJTRST, SPI1_MISO (remap), TIM3_CH1 (remap)</td><td>Mặc định là NJTRST (JTAG). Phải tắt JTAG (giữ SWD) mới dùng làm GPIO.</td></tr><tr><td><b>PB3</b></td><td>H3-10</td><td>19</td><td>Strapping ⚠</td><td>JTDO, TRACESWO, SPI1_SCK (remap), TIM2_CH2 (remap)</td><td>Mặc định là JTDO (JTAG). Phải tắt JTAG (giữ SWD) mới dùng làm GPIO.</td></tr><tr><td><b>PA15</b></td><td>H3-11</td><td>15</td><td>Strapping ⚠</td><td>JTDI, SPI1_NSS (remap), TIM2_CH1_ETR (remap)</td><td>Mặc định là JTDI (JTAG). Phải tắt JTAG (giữ SWD) mới dùng làm GPIO.</td></tr><tr><td><b>PA12</b></td><td>H3-12</td><td>12</td><td>USB</td><td>USB_DP, CAN_TX, TIM1_ETR, USART1_RTS</td><td>USB D+ có điện trở kéo lên 1.5 kΩ lên 3V3 trên board (R12). Dùng làm GPIO sẽ bị kéo lên HIGH và mất USB.</td></tr><tr><td><b>PA11</b></td><td>H3-13</td><td>11</td><td>USB</td><td>USB_DM, CAN_RX, TIM1_CH4, USART1_CTS</td><td>USB D− của cổng USB-C onboard (có diode ESD). Dùng làm GPIO thì không dùng được USB.</td></tr><tr><td><b>PA10</b></td><td>H3-14</td><td>10</td><td>UART/I2C</td><td>USART1 RX, TIM1_CH3</td><td></td></tr><tr><td><b>PA9</b></td><td>H3-15</td><td>9</td><td>UART/I2C</td><td>USART1 TX, TIM1_CH2</td><td></td></tr><tr><td><b>PA8</b></td><td>H3-16</td><td>8</td><td>GPIO</td><td>TIM1_CH1, USART1_CK, MCO</td><td></td></tr><tr><td><b>PB15</b></td><td>H3-17</td><td>31</td><td>GPIO</td><td>SPI2 MOSI, TIM1_CH3N</td><td></td></tr><tr><td><b>PB14</b></td><td>H3-18</td><td>30</td><td>GPIO</td><td>SPI2 MISO, USART3_RTS, TIM1_CH2N</td><td></td></tr><tr><td><b>PB13</b></td><td>H3-19</td><td>29</td><td>GPIO</td><td>SPI2 SCK, USART3_CTS, TIM1_CH1N</td><td></td></tr><tr><td><b>PB12</b></td><td>H3-20</td><td>28</td><td>GPIO</td><td>SPI2 NSS, I2C2_SMBA, USART3_CK, TIM1_BKIN</td><td></td></tr><tr><td><b>GND</b></td><td>SWD-1</td><td>–</td><td>GND</td><td>Ground</td><td></td></tr><tr><td><b>SWCLK</b></td><td>SWD-2</td><td>–</td><td>Control</td><td>PA14 · SWCLK</td><td>Cổng nạp/debug SWD (ST-Link). PA14 không ra header để giữ SWD.</td></tr><tr><td><b>SWDIO</b></td><td>SWD-3</td><td>–</td><td>Control</td><td>PA13 · SWDIO</td><td>Cổng nạp/debug SWD (ST-Link). PA13 không ra header để giữ SWD.</td></tr><tr><td><b>3V3</b></td><td>SWD-4</td><td>–</td><td>Power</td><td>3.3 V</td><td>Chân 3V3 của cổng SWD (ST-Link đo mức logic).</td></tr></tbody></table></div>
+<h3>Manufacturer documents</h3><ul class="seo-links"><li><a href="https://www.st.com/resource/en/datasheet/stm32f103c8.pdf" rel="noopener" target="_blank">STM32F103x8/xB Datasheet (DS5319)</a></li><li><a href="https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf" rel="noopener" target="_blank">Reference Manual RM0008</a></li><li><a href="https://www.st.com/resource/en/application_note/an2586-getting-started-with-stm32f10xxx-hardware-development-stmicroelectronics.pdf" rel="noopener" target="_blank">AN2586 – Getting started with STM32F10x hardware</a></li><li><a href="https://github.com/makereduvn/MKE-K06-STM32F103C8T6-BLUE-PILL-DEV-KIT" rel="noopener" target="_blank">MKE-K06 schematic + pinout (MakerEdu, GitHub)</a></li></ul><h3>All boards</h3><ul class="seo-links"><li><a href="../../en/esp32-c3-devkitm-1/">ESP32-C3-DevKitM-1</a> <span class="muted small">ESP32-C3 (MINI-1)</span></li><li><a href="../../en/esp32-c3-supermini/">ESP32-C3 Super Mini</a> <span class="muted small">ESP32-C3FH4</span></li><li><a href="../../en/esp32-s3-devkitc-1/">ESP32-S3-DevKitC-1</a> <span class="muted small">ESP32-S3 (WROOM-1)</span></li><li><a href="../../en/lilygo-t-display-s3/">LilyGO T-Display-S3</a> <span class="muted small">ESP32-S3R8 + LCD 1.9&quot;</span></li><li><a href="../../en/pico-2-w/">Raspberry Pi Pico 2 W</a> <span class="muted small">RP2350 + CYW43439</span></li><li><a href="../../en/pico-2/">Raspberry Pi Pico 2</a> <span class="muted small">RP2350A</span></li><li><a href="../../en/raspberry-pi-40pin/">Raspberry Pi 4 / 5 (40-pin GPIO)</a> <span class="muted small">BCM2711 / BCM2712 + RP1</span></li><li><a href="../../en/arduino-uno-r3/">Arduino Uno R3</a> <span class="muted small">ATmega328P</span></li><li><a href="../../en/stm32f103c8t6-blue-pill/" aria-current="page">STM32F103C8T6 Blue Pill (MKE-K06)</a> <span class="muted small">STM32F103C8T6</span></li></ul></section><!--/SEOBODY-->
+    <section class="card spec" id="ref" hidden>
+      <h2>Linh kiện đi kèm khi tự làm mạch</h2><div id="refBody"></div>
+    </section>
+  </section>
+
+  <section data-panel="home" id="home" hidden></section>
+
+  <section data-panel="calc" id="calc" hidden>
+    <div class="grid2">
+      <div class="card calc"><h3>Điện trở LED</h3>
+        <div class="f3"><label>V nguồn (V)<input id="ledV" inputmode="decimal" value="3.3"></label><label>Vf LED (V)<input id="ledVf" inputmode="decimal" value="2.0"></label><label>Dòng (mA)<input id="ledI" inputmode="decimal" value="10"></label></div>
+        <p class="hint">Vf tham khảo: đỏ 1.8–2.2 V · xanh lá 2.0–3.2 V · xanh dương/trắng 2.8–3.3 V.</p>
+        <div class="out" id="ledOut"></div></div>
+      <div class="card calc"><h3>Phân áp cho ADC</h3>
+        <div class="f3"><label>Vin max (V)<input id="dvIn" inputmode="decimal" value="12"></label><label>V ADC max (V)<input id="dvMax" inputmode="decimal" value="3.1"></label><label>R2 (kΩ)<input id="dvR2" inputmode="decimal" value="10"></label></div>
+        <p class="hint">ESP32 (atten 11–12 dB) đo tốt tới ~2.5–3.1 V · Pico 3.3 V · Uno 5 V.</p>
+        <div class="out" id="dvOut"></div></div>
+      <div class="card calc"><h3>Pull-up I2C</h3>
+        <div class="f3"><label>VDD (V)<input id="i2V" inputmode="decimal" value="3.3"></label><label>C bus (pF)<input id="i2C" inputmode="decimal" value="100"></label><label>Tốc độ<select id="i2M"><option value="100">100 kHz</option><option value="400" selected>400 kHz</option><option value="1000">1 MHz</option></select></label></div>
+        <p class="hint">Mỗi thiết bị ~10 pF, dây ~50–100 pF/m.</p>
+        <div class="out" id="i2Out"></div></div>
+      <div class="card calc"><h3>Mạch RC (reset trễ / lọc)</h3>
+        <div class="f3"><label>R (kΩ)<input id="rcR" inputmode="decimal" value="10"></label><label>C (µF)<input id="rcC" inputmode="decimal" value="1"></label><label></label></div>
+        <p class="hint">Espressif gợi ý R 10 kΩ + C 1 µF cho chân EN.</p>
+        <div class="out" id="rcOut"></div></div>
+    </div>
+  </section>
+
+  <section data-panel="build" hidden>
+    <div class="bwrap">
+      <aside class="card blist" id="blist" aria-label="Linh kiện"></aside>
+      <div class="card bstage">
+        <div class="bbar"><select id="bboard" aria-label="Board"></select>          <div class="zoom"><button class="icon-btn" id="bzout" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="bzin" aria-label="Phóng to">+</button><button class="icon-btn" id="bfit" aria-label="Vừa khung">⤢</button></div></div>
+        <svg id="bsvg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Khu ghép module"></svg>
+      </div>
+      <aside class="card bside" id="bside"></aside>
+    </div>
+  </section>
+
+  <section data-panel="pcblab" hidden><div id="pcblab"></div></section>
+  <section data-panel="pinworld" hidden><div id="pinworld"></div></section>
+
+  <section data-panel="docs" hidden>
+    <p class="muted">Link trỏ thẳng tới tài liệu gốc của hãng. Dữ liệu trong app tóm tắt từ các tài liệu này; khi thiết kế mạch thật, kiểm tra lại bản mới nhất.</p>
+    <div class="grid2" id="docsAll"></div>
+  </section>
+</main>
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-bar"><span id="lbCap"></span><button class="icon-btn" id="lbOut" aria-label="Thu nhỏ">−</button><button class="icon-btn" id="lbIn" aria-label="Phóng to">+</button><button class="icon-btn" id="lbClose" aria-label="Đóng">✕</button></div>
+  <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
+  <p class="lb-hint">Kéo để di chuyển · chụm 2 ngón / cuộn chuột để zoom · chạm đúp để phóng to</p>
+</div>
+<script src="js/i18n-data.js?v=1795275101"></script>
+<script src="js/i18n.js?v=1795275101"></script>
+<script src="js/boards.js?v=1795275101"></script>
+<script src="js/specs.js?v=1795275101"></script>
+<script src="js/learn.js?v=1795275101"></script>
+<script src="js/modules.js?v=1795275101"></script>
+<script src="js/settings.js?v=1795275101"></script>
+<script src="js/affiliates.js?v=1795275101"></script>
+<script src="js/aff.js?v=1795275101"></script>
+<script src="js/seo-body.js?v=1795275101"></script>
+<script>/* Trang admin chỉ tải khi cần: Ctrl+Shift+E, thêm ?edit vào URL, hoặc bấm logo 5 lần liền (dùng được trên điện thoại).
+   Đặt TRƯỚC app.js vì app sẽ xoá ?edit khỏi URL, nên phải đọc nó ngay. */(function(){var edit=/[?&]edit(&|$)/.test(location.search);var go=function(){if(window.adminOpen)return window.adminOpen();var s=document.createElement("script");s.src="js/admin.js?v=1795275101";s.onload=function(){window.adminOpen&&window.adminOpen()};document.body.appendChild(s)};addEventListener("keydown",function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==="E"||e.key==="e")){e.preventDefault();go()}});var n=0,t=0;addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".brand");if(!b)return;var k=Date.now();n=k-t<1500?n+1:1;t=k;if(n>=5){n=0;go()}});if(edit)addEventListener("load",go)})();</script>
+<script src="js/images.js?v=1795275101"></script>
+<script src="js/app.js?v=1795275101"></script>
+<script src="js/feedback.js?v=1795275101" defer></script>
+<script src="js/bom.js?v=1795275101" defer></script>
+
+</body>
+</html>

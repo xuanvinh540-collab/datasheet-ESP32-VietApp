@@ -803,7 +803,7 @@
 .pcblab #plSvg[data-tool="ms"], .pcblab #plSvg[data-tool="ms"] * { cursor: crosshair; }
 .pcblab .measln { stroke: #00e5ff; stroke-dasharray: .8 .4; pointer-events: none; }
 .pcblab .measpt { fill: none; stroke: #00e5ff; stroke-width: .2; pointer-events: none; }
-.pcblab .meastx { fill: #00e5ff; font-family: var(--mono, monospace); font-weight: 700; paint-order: stroke; stroke: #0b2a1a; stroke-width: .35; pointer-events: none; }
+.pcblab .meastx { fill: #00e5ff; font-family: var(--mono, monospace); font-weight: 700; stroke: none; pointer-events: none; }
 .pcblab .pourset { display: grid; gap: 4px; font: 12px var(--sans); color: var(--fg); } .pcblab .pourset select { margin-left: 6px; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); font: 600 12px var(--mono); }   /* chọn khe mass gọn */
 /* nút: icon to hơn, chữ ngắn 1–2 từ một dòng; tên đầy đủ + giải thích rê chuột (title) */
 .pcblab .pl-vbar .tb svg { width: 23px; height: 23px; } .pcblab .pl-vbar .tb > svg + span { font-size: 10.5px; line-height: 1.15; white-space: nowrap; }   /* thanh dọc rộng 80 px: chữ 1–2 từ luôn 1 dòng */
@@ -874,6 +874,19 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 .pcblab .art path { stroke: currentColor } .pcblab .art path.f { fill: currentColor }
 .pcblab #plSvg:not(.back) .art-cu { opacity: .18 } .pcblab #plSvg.back .art-top { opacity: .22 } .pcblab #plSvg:not(.back) .art-bot { opacity: .22 }
 .pcblab .jwl { stroke: var(--pl-jw, #fff) !important }
+/* thẻ board có hình = nút xổ danh sách board */
+.pcblab #plBoardCard { cursor: pointer; width: 100%; position: relative; }
+.pcblab #plBoardCard .bc-caret { margin-left: auto; padding-left: 6px; opacity: .7; font-size: 12px; }
+.pcblab #plBoardCard:hover .bc-caret { opacity: 1; }
+.pcblab #plBoardList { max-height: 60vh; overflow-y: auto; padding: 4px; }
+.pcblab #plBoardList .bl-list { display: grid; gap: 2px; }
+.pcblab #plBoardList .bl-row { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 5px 6px; border: 0; border-radius: 6px; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+.pcblab #plBoardList .bl-row .bc-icon { grid-row: 1 / 3; width: 40px; height: 40px; padding: 2px 2px 8px; }
+.pcblab #plBoardList .bl-row .bl-n { font-weight: 600; font-size: 12.5px; }
+.pcblab #plBoardList .bl-row small { opacity: .65; font-size: 11px; }
+.pcblab #plBoardList .bl-row:hover, .pcblab #plBoardList .bl-row:focus-visible { background: var(--surface2, rgba(255,255,255,.07)); outline: none; }
+.pcblab #plBoardList .bl-row.on { box-shadow: inset 0 0 0 1px var(--accent, #dc8e43); }
+.pcblab .jw.ins .jwl { stroke: #f5c518 !important; stroke-width: .4; filter: drop-shadow(0 0 .25px #f5c518); }   /* dây nhảy bắt chéo dây khác: màu vàng = dùng dây có vỏ */
 .pcblab .pl-bar:has(> .pl-modes) > #plLayers { order: 1; margin-left: 0 } .pcblab .pl-layers span { display: inline !important; max-width: 90px; overflow: hidden; text-overflow: ellipsis } .pcblab .ly-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255,255,255,.6); margin-right: 4px }
 .pcblab .ly { display: grid; grid-template-columns: 26px 26px 28px 1fr auto 26px 22px; gap: 4px; align-items: center; padding: 3px 2px; border-radius: 6px } .pcblab .ly.cur { background: rgba(255,255,255,.08) }
 .pcblab .ly button { background: none; border: 0; color: inherit; cursor: pointer; padding: 2px; font: inherit } .pcblab .ly button:hover { background: rgba(255,255,255,.12); border-radius: 4px } .pcblab .ly-v.off { opacity: .45 }
@@ -943,7 +956,7 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 
 /* hộp xác nhận tự vẽ */
 .pcblab .pl-cfm-box { text-align: center } .pl-cfm-ic { width: 46px; height: 46px; margin: 0 auto 8px; border-radius: 50%; display: grid; place-items: center; font: 800 24px var(--sans); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent) } .pl-cfm-ic.bad { background: rgba(255,90,90,.18); color: #ff6b6b }
-.pcblab .pl-cfm .pdi-b { justify-content: center } .pcblab .pl-try.danger { background: #d94b4b; border-color: #d94b4b } .pcblab .pl-cfm p { margin: 4px 0 8px; line-height: 1.45 }
+.pcblab .pl-cfm .pdi-b { justify-content: center } .pcblab .pl-cfm .pl-try { margin: 0; width: auto; padding: 7px 14px; font: 600 12.5px var(--sans) } .pcblab .pl-try.danger { background: #d94b4b; border-color: #d94b4b } .pcblab .pl-cfm p { margin: 4px 0 8px; line-height: 1.45 }
 /* đường gióng thông minh (Smart Alignment Guides) */
 .pcblab .sguide { stroke: #38e8ff; stroke-width: .18; stroke-dasharray: .7 .5; opacity: .9; pointer-events: none }
 .pcblab .sguide-pt { fill: none; stroke: #38e8ff; stroke-width: .22; opacity: .95; pointer-events: none }
@@ -1069,7 +1082,8 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 /* Dim ràng buộc kiểu SolidCraft */
 .pcblab .pdim-ln { stroke: #7dd3fc; stroke-width: 1.2px; vector-effect: non-scaling-stroke; pointer-events: none }
 .pcblab .pdim-ar { fill: #7dd3fc; pointer-events: none }
-.pcblab .pdim-tx { fill: #7dd3fc; font-weight: 600; cursor: pointer; user-select: none }
+.pcblab .pdim-tx { fill: #fca5a5; font-weight: 700; cursor: pointer; user-select: none }
+.pcblab .cstx { fill: #fca5a5; font-weight: 700; pointer-events: none }
 .pcblab .pdim-ln.drv, .pcblab .pdim-ar.drv, .pcblab .pdim-tx.drv { stroke: #a3a3a3; fill: #a3a3a3 }
 .pcblab .pdim-ln.drv { fill: none }
 .pcblab .pdim-ln.bad { stroke: #f87171 } .pcblab .pdim-ar.bad, .pcblab .pdim-tx.bad { fill: #f87171 }
@@ -1079,23 +1093,39 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 .pcblab .pdim-pk { fill: none; stroke: #38e8ff; stroke-width: 2px; vector-effect: non-scaling-stroke; pointer-events: none }
 .pl-dimed { position: absolute; z-index: 40; width: 80px; height: 26px; box-sizing: border-box; padding: 0 6px; border: 1px solid #38e8ff; border-radius: 6px; background: #0f172a; color: #e2e8f0; font-size: 13px; text-align: center; outline: none }
 
-/* Sơ đồ khối & Netlist viewer (Schematic / Netlist popup) */
-.pl-sch-bg { position: fixed; inset: 0; z-index: 950; background: rgba(4, 14, 28, .55); display: grid; place-items: center; padding: 14px; }
-.pl-sch-box { width: min(1080px, 96vw); height: min(760px, 90vh); background: var(--surface, #0f172a); color: var(--fg, #e2e8f0); border: 1px solid var(--line, rgba(148,163,184,.28)); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.45); display: flex; flex-direction: column; overflow: hidden; }
-.pl-sch-hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line, rgba(148,163,184,.2)); flex-wrap: wrap; }
+/* Sơ đồ khối & Netlist viewer (Schematic / Netlist / Code #define popup) */
+.pl-sch-bg { position: fixed; inset: 0; z-index: 950; background: rgba(4, 14, 28, .48); display: flex; align-items: center; justify-content: center; padding: 14px; }
+.pl-sch-bg.full { padding: 0; }
+.pl-sch-box { position: relative; width: min(1160px, 96vw); height: min(800px, 92vh); background: var(--surface, #0f172a); color: var(--fg, #e2e8f0); border: 1px solid var(--line, rgba(148,163,184,.28)); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.45); display: flex; flex-direction: column; overflow: hidden; resize: both; min-width: 420px; min-height: 320px; }
+.pl-sch-box.full { width: 100vw !important; height: 100vh !important; left: 0 !important; top: 0 !important; transform: none !important; border-radius: 0; resize: none; }
+.pl-sch-hd { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line, rgba(148,163,184,.2)); flex-wrap: wrap; cursor: move; user-select: none; }
+.pl-sch-box.full .pl-sch-hd { cursor: default; }
 .pl-sch-hd h3 { margin: 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .pl-sch-tabs { display: inline-flex; border: 1px solid var(--line, rgba(148,163,184,.28)); border-radius: 8px; overflow: hidden; margin-left: 8px; }
 .pl-sch-tabs button { border: 0; background: transparent; color: var(--muted, #94a3b8); padding: 5px 11px; font: 600 12.5px inherit; cursor: pointer; }
 .pl-sch-tabs button.on { background: var(--accent, #00aeef); color: #fff; }
 .pl-sch-act { margin-left: auto; display: flex; gap: 6px; align-items: center; }
 .pl-sch-act button { padding: 5px 10px; border: 1px solid var(--line, rgba(148,163,184,.28)); border-radius: 8px; background: var(--surface2, transparent); color: var(--fg, inherit); font: 600 12px inherit; cursor: pointer; }
-.pl-sch-act button:hover { border-color: var(--accent, #00aeef); }
-.pl-sch-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 310px; }
+.pl-sch-act button:hover, .pl-sch-act button.on { border-color: var(--accent, #00aeef); color: var(--accent, #00aeef); }
+.pl-sch-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 330px; }
 .pl-sch-body.net-only { grid-template-columns: 1fr; }
 .pl-sch-body.sch-only { grid-template-columns: 1fr; }
-.pl-sch-canvas { position: relative; overflow: auto; background: #f8fafc; display: grid; place-items: center; padding: 14px; }
-.pl-sch-canvas svg { max-width: 100%; height: auto; display: block; }
-.pl-sch-side { border-left: 1px solid var(--line, rgba(148,163,184,.2)); overflow: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.pl-sch-canvas { position: relative; overflow: auto; background: #f8fafc; display: flex; align-items: flex-start; justify-content: center; padding: 14px; }
+.pl-sch-canvas svg { flex: none; display: block; }
+.pl-sch-canvas.fit { align-items: center; overflow: hidden; }
+.pl-sch-canvas.fit svg { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+.pl-sch-side { border-left: 1px solid var(--line, rgba(148,163,184,.2)); display: flex; flex-direction: column; min-height: 0; }
+.pl-sch-stabs { display: flex; border-bottom: 1px solid var(--line, rgba(148,163,184,.2)); padding: 6px 10px; gap: 6px; flex: none; }
+.pl-sch-stabs button { flex: 1; padding: 5px 8px; border: 1px solid var(--line, rgba(148,163,184,.25)); border-radius: 7px; background: transparent; color: var(--muted, #94a3b8); font: 600 12px inherit; cursor: pointer; }
+.pl-sch-stabs button.on { background: var(--accent, #00aeef); border-color: var(--accent, #00aeef); color: #fff; }
+.pl-sch-cols { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.pl-sch-body.net-only .pl-sch-stabs { display: none; }
+.pl-sch-body.net-only .pl-sch-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.pl-sch-col { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.pl-sch-body.net-only .pl-sch-col + .pl-sch-col { border-left: 1px solid var(--line, rgba(148,163,184,.2)); }
+.pl-sch-col-hd { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 11px; border-bottom: 1px solid var(--line, rgba(148,163,184,.2)); font-size: 12.5px; font-weight: 700; flex: none; }
+.pl-sch-scontent { flex: 1; min-height: 0; overflow: auto; padding: 10px 11px; display: flex; flex-direction: column; gap: 8px; }
+.pl-sch-code { margin: 0; padding: 10px; border-radius: 9px; background: rgba(2, 6, 23, .65); border: 1px solid var(--line, rgba(148,163,184,.2)); color: #e2e8f0; font: 12px/1.55 Consolas, ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; user-select: text; flex: 1; }
 .pl-sch-erc { padding: 8px 10px; border-radius: 9px; font-size: 12px; line-height: 1.45; border: 1px solid rgba(245,158,11,.45); background: rgba(245,158,11,.12); }
 .pl-sch-erc.ok { border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.12); }
 .pl-sch-net { border: 1px solid var(--line, rgba(148,163,184,.22)); border-radius: 9px; padding: 7px 9px; cursor: pointer; transition: border-color .15s, background .15s; font-size: 12.5px; }
@@ -1119,3 +1149,10 @@ main:has(> section[data-panel="pcblab"]:not([hidden])) { max-width: none; }
 /* hộp Kết nối AI */
 #plAiBox .ai-cp { display: flex; gap: 6px }
 #plAiBox .ai-cp input { flex: 1; min-width: 0; font: 12px monospace; padding: 4px 6px }
+
+/* Tinh chỉnh vị trí nút Mua tại đây + dải phím tắt ngang hàng nút Góp ý */
+.pcblab #buyBtnP { bottom: 26px !important; }
+@media (min-width: 901px) {
+  .pcblab { grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "list bar bar side" "list stage vbar side"; }
+  .pcblab .pl-tips { position: fixed; left: 14px; right: 118px; bottom: 13px; z-index: 60; padding: 0; pointer-events: none; }
+}

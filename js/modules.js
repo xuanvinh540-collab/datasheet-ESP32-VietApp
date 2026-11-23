@@ -209,11 +209,70 @@ window.MODULES = {
     ],
     lib: "ESP32: ESP_I2S (core 3.x) · Pico: I2S (arduino-pico)", family: ["ESP32", "RP2"],
     note: "Chân L/R nối GND = kênh trái. Chỉ chạy 3.3 V."
+  },
+  nrf24pa: {
+    name: "Thu phát nRF24L01+PA+LNA 2.4 GHz", short: "nRF24 PA", color: "#3b7dd8", iface: "SPI", vcc: "3V3",
+    svg: "svg/NRF24L01_PA_LNA_breadboard.svg", w: 15, h: 44.58, vb: [0, 0, 42.52, 126.37], pinDir: "B",
+    pins: [
+      ["VCC", "pwr.3v3", 0, 5.117, 114.54, "B"],
+      ["CSN", "spi.cs", 0, 12.316, 114.54, "B"],
+      ["MOSI", "spi.mosi", 0, 19.515, 114.54, "B"],
+      ["IRQ", "in", 0, 26.717, 114.54, "B"],
+      ["GND", "gnd", 0, 5.117, 121.74, "B"],
+      ["CE", "out", 0, 12.316, 121.74, "B"],
+      ["SCK", "spi.sck", 0, 19.515, 121.74, "B"],
+      ["MISO", "spi.miso", 0, 26.717, 121.74, "B"]
+    ],
+    lib: "RF24 (TMRh20)",
+    note: "Chỉ cấp 3.3 V. Bản PA+LNA hút xung ~115–130 mA khi phát: hàn tụ 100 µF + 100 nF sát chân VCC–GND; nguồn 3V3 yếu hoặc chung nhiều tải thì dùng LDO 3.3 V riêng (vd AMS1117-3.3 từ 5V). Chân CSN nên kéo lên 10 kΩ."
+  },
+  ili9341: {
+    name: "Màn TFT 2.8 inch ILI9341 (cảm ứng)", short: "TFT 2.8 inch", color: "#d8483b", iface: "SPI", vcc: "3V3",
+    svg: "svg/MSP2807_TFT28_screenface.svg", w: 86, h: 50, vb: [0, 0, 86, 50], pinDir: "R",
+    pins: [
+      ["VCC", "pwr.3v3", 0, 82.2, 42, "R"],
+      ["GND", "gnd", 0, 82.2, 39.46, "R"],
+      ["CS", "spi.cs", 0, 82.2, 36.92, "R"],
+      ["RESET", "out", 0, 82.2, 34.38, "R"],
+      ["DC", "out", 0, 82.2, 31.84, "R"],
+      ["MOSI", "spi.mosi", 0, 82.2, 29.3, "R"],
+      ["SCK", "spi.sck", 0, 82.2, 26.76, "R"],
+      ["LED", "pwm", 0, 82.2, 24.22, "R"],
+      ["MISO", "spi.miso", 0, 82.2, 21.68, "R"],
+      ["T_CLK", "spi.sck", 0, 82.2, 19.14, "R"],
+      ["T_CS", "spi.cs", 0, 82.2, 16.6, "R"],
+      ["T_DIN", "spi.mosi", 0, 82.2, 14.06, "R"],
+      ["T_DO", "spi.miso", 0, 82.2, 11.52, "R"],
+      ["T_IRQ", "in", 0, 82.2, 8.98, "R"],
+      ["SD_SCK", "spi.sck", 0, 3.3, 21.9, "L"],
+      ["SD_MISO", "spi.miso", 0, 3.3, 24.44, "L"],
+      ["SD_MOSI", "spi.mosi", 0, 3.3, 26.98, "L"],
+      ["SD_CS", "spi.cs", 0, 3.3, 29.52, "L"]
+    ],
+    lib: "Adafruit ILI9341 + Adafruit GFX (cảm ứng: XPT2046_Touchscreen)",
+    note: "240×320, SPI. Logic 3.3 V. Chân T_* là cảm ứng XPT2046, SD_* là khe thẻ nhớ (tuỳ chọn). Ba chân CS, T_CS, SD_CS nên kéo lên 3V3 bằng 10 kΩ và đặt HIGH trước khi khởi tạo, nếu không thẻ SD / cảm ứng dễ chiếm bus SPI."
+  },
+  cc1101: {
+    name: "Thu phát CC1101 433 MHz (SMA)", short: "CC1101", color: "#2e70b0", iface: "SPI", vcc: "3V3",
+    svg: "svg/CC1101_433M_V2_blue_SMA.svg", w: 39.5, h: 16, vb: [0, 0, 39.5, 16], pinDir: "L",
+    pins: [
+      ["GND", "gnd", 0, 3, 4.19, "L"],
+      ["VCC", "pwr.3v3", 0, 5.54, 4.19, "L"],
+      ["GDO0", "in", 0, 3, 6.73, "L"],
+      ["CSN", "spi.cs", 0, 5.54, 6.73, "L"],
+      ["SCK", "spi.sck", 0, 3, 9.27, "L"],
+      ["MOSI", "spi.mosi", 0, 5.54, 9.27, "L"],
+      ["MISO", "spi.miso", 0, 3, 11.81, "L"],
+      ["GDO2", "in", 0, 5.54, 11.81, "L"]
+    ],
+    lib: "SmartRC-CC1101-Driver-Lib (ELECHOUSE_CC1101) hoặc RadioLib",
+    note: "Chỉ cấp 3.3 V, chân không chịu 5 V. GDO0/GDO2 là ngõ ra báo trạng thái (có gói tin, FIFO) nên nối GPIO có ngắt. Lắp anten 433 MHz vào cổng SMA trước khi phát. Hàn tụ 10 µF + 100 nF sát chân VCC–GND."
   }
 };
 /* Nhóm linh kiện dùng chung cho danh sách ở tab Sơ đồ chân và tab Connect: [tên, biểu tượng, các mã module] */
 window.MOD_CATS = [
-  ["Màn hình & Hiển thị", "🖥️", ["ssd1306", "st7789", "sevseg", "ws2812"]],
+  ["Màn hình & Hiển thị", "🖥️", ["ssd1306", "st7789", "ili9341", "sevseg", "ws2812"]],
+  ["Không dây", "📶", ["nrf24pa", "cc1101"]],
   ["Cảm biến", "📡", ["hcsr04", "vl53l0x", "mpu6050", "dht22", "ldr"]],
   ["Âm thanh & Còi", "🔊", ["buzzer", "max98357a", "inmp441"]],
   ["Động cơ", "⚙️", ["servo", "tb6612fng"]],
@@ -229,6 +288,15 @@ window.PIN_DOC = {
   SCL: ["Dây xung nhịp của bus I2C (Serial Clock). Board (master) phát xung để đồng bộ dữ liệu trên SDA.", "Nối chân SCL của board, dùng chung cho mọi thiết bị I2C. Cần điện trở kéo lên như SDA."],
   INT: ["Chân ngắt (Interrupt): module kéo mức để báo có dữ liệu mới hoặc có sự kiện.", "Nối một GPIO bất kỳ và dùng attachInterrupt(). Không bắt buộc, có thể để trống nếu chỉ đọc định kỳ."],
   XSHUT: ["Chân tắt cảm biến (Shutdown): mức LOW tắt cảm biến, HIGH bật lại.", "Nối GPIO nếu cần bật/tắt hoặc đổi địa chỉ khi gắn nhiều VL53L0X; dùng một cảm biến thì có thể để trống."],
+  "cc1101.GDO0": ["Ngõ ra số đa dụng 0 của CC1101 (cấu hình qua thanh ghi IOCFG0): thường báo đã nhận/phát xong gói tin.", "Nối GPIO có ngắt; thư viện ELECHOUSE gọi là gdo0."],
+  "cc1101.GDO2": ["Ngõ ra số đa dụng 2 (IOCFG2): thường báo FIFO đầy/rỗng hoặc tín hiệu sóng mang.", "Nối GPIO có ngắt hoặc để trống nếu thư viện không dùng."],
+  "cc1101.CSN": ["Chọn chip SPI (kéo LOW để giao tiếp).", "Nối GPIO bất kỳ làm CS. Nên kéo lên 3V3 bằng 10 kΩ và đặt HIGH trong code trước khi begin() bất kỳ thiết bị SPI nào (nhiều thiết bị chung bus)."],
+  "nrf24pa.CSN": ["Chọn chip SPI (kéo LOW để giao tiếp).", "Nối GPIO bất kỳ làm CS. Nên kéo lên 3V3 bằng 10 kΩ và đặt HIGH trong code trước khi begin() bất kỳ thiết bị SPI nào (nhiều thiết bị chung bus)."],
+  "nrf24pa.VCC": ["Nguồn 3.3 V cho module (không chịu 5 V). Bản PA+LNA hút xung ~115–130 mA khi phát.", "Nối 3V3; hàn tụ 100 µF + 100 nF sát chân VCC–GND, nguồn yếu thì dùng LDO 3.3 V riêng."],
+  "ili9341.CS": ["Chọn màn hình trên bus SPI.", "Nối GPIO làm CS. Nên kéo lên 3V3 bằng 10 kΩ và đặt HIGH trong code trước khi begin() bất kỳ thiết bị SPI nào (nhiều thiết bị chung bus)."],
+  "ili9341.T_CS": ["Chọn chip cảm ứng XPT2046 trên bus SPI.", "Nối GPIO làm CS. Nên kéo lên 3V3 bằng 10 kΩ và đặt HIGH trong code trước khi begin() bất kỳ thiết bị SPI nào (nhiều thiết bị chung bus)."],
+  "ili9341.SD_CS": ["Chọn thẻ nhớ SD trên bus SPI.", "Nối GPIO làm CS. Nên kéo lên 3V3 bằng 10 kΩ và đặt HIGH trong code trước khi begin() bất kỳ thiết bị SPI nào (nhiều thiết bị chung bus). Thẻ SD hay chiếm bus nếu CS thả nổi."],
+  "cc1101.MISO": ["Dữ liệu SPI từ CC1101 về board; khi CSN = LOW mà chip chưa sẵn sàng thì chân này giữ HIGH (CHIP_RDYn).", "Nối SPI MISO của board."],
   "st7789.SCL": ["Xung nhịp SPI (SCK). Trên màn này chữ SCL in trên module nhưng thực chất là SPI, không phải I2C.", "Nối chân SPI SCK của board (ESP32-S3 mặc định IO12)."],
   "st7789.SDA": ["Dữ liệu SPI từ board vào màn (MOSI). Tên in SDA nhưng là SPI, không phải I2C.", "Nối chân SPI MOSI của board (ESP32-S3 mặc định IO11)."],
   "st7789.RES": ["Chân reset màn hình: kéo LOW một lúc để khởi động lại bộ điều khiển ST7789.", "Nối một GPIO; thư viện tự điều khiển khi gọi tft.init()."],

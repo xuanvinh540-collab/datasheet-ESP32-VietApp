@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1.5551in" height="0.6299in" viewBox="0 0 39.5 16">
+<g id="breadboard">
+<path id="pcb" fill="#2E70B0" fill-rule="evenodd" stroke="#1d4f82" stroke-width="0.2" d="M0.8,0H31.5 V16 H0.8 a0.8,0.8 0 0 1 -0.8,-0.8 V0.8 a0.8,0.8 0 0 1 0.8,-0.8z M18.4,3.4 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0z M21.4,12.8 a1.6,1.6 0 1 0 3.2,0 a1.6,1.6 0 1 0 -3.2,0z"/>
+<circle cx="20" cy="3.4" r="2.2" fill="none" stroke="#E7C56B" stroke-width="0.5"/>
+<circle cx="23" cy="12.8" r="2.2" fill="none" stroke="#E7C56B" stroke-width="0.5"/>
+<circle cx="19.6" cy="13.4" r="1.2" fill="#E7C56B"/>
+<rect x="31.7" y="5.3" width="7.8" height="5.4" fill="#DDB94E" stroke="#A98A2B" stroke-width="0.2"/>
+<line x1="32.8143" y1="5.3" x2="32.8143" y2="10.7" stroke="#B3922E" stroke-width="0.2"/>
+<line x1="33.9286" y1="5.3" x2="33.9286" y2="10.7" stroke="#B3922E" stroke-width="0.2"/>
+<line x1="35.0429" y1="5.3" x2="35.0429" y2="10.7" stroke="#B3922E" stroke-width="0.2"/>
+<line x1="36.1571" y1="5.3" x2="36.1571" y2="10.7" stroke="#B3922E" stroke-width="0.2"/>
+<line x1="37.2714" y1="5.3" x2="37.2714" y2="10.7" stroke="#B3922E" stroke-width="0.2"/>
+<line x1="38.3857" y1="5.3" x2="38.3857" y2="10.7" stroke="#B3922E" stroke-width="0.2"/>
+<rect x="29.5" y="3.5" width="2.2" height="9.0" fill="#C9A24A" stroke="#9C7C2A" stroke-width="0.25"/>
+<circle cx="30.6" cy="8" r="1.1" fill="#F2F2F2" stroke="#9C7C2A" stroke-width="0.2"/>
+<rect x="26.3" y="3.95" width="3.4" height="1.5" fill="#E0BF55" stroke="#9C7C2A" stroke-width="0.2"/>
+<rect x="26.3" y="10.55" width="3.4" height="1.5" fill="#E0BF55" stroke="#9C7C2A" stroke-width="0.2"/>
+<rect x="26.3" y="7.5" width="3.6" height="1.0" fill="#E0BF55" stroke="#9C7C2A" stroke-width="0.2"/>
+<rect x="10.4" y="5.9" width="4.2" height="4.2" fill="#15161a" stroke="#000" stroke-width="0.15"/>
+<rect x="10.70" y="5.65" width="0.4" height="0.5" fill="#bbb"/><rect x="10.70" y="9.85" width="0.4" height="0.5" fill="#bbb"/>
+<rect x="10.15" y="6.20" width="0.5" height="0.4" fill="#bbb"/><rect x="14.35" y="6.20" width="0.5" height="0.4" fill="#bbb"/>
+<rect x="11.50" y="5.65" width="0.4" height="0.5" fill="#bbb"/><rect x="11.50" y="9.85" width="0.4" height="0.5" fill="#bbb"/>
+<rect x="10.15" y="7.00" width="0.5" height="0.4" fill="#bbb"/><rect x="14.35" y="7.00" width="0.5" height="0.4" fill="#bbb"/>
+<rect x="12.30" y="5.65" width="0.4" height="0.5" fill="#bbb"/><rect x="12.30" y="9.85" width="0.4" height="0.5" fill="#bbb"/>
+<rect x="10.15" y="7.80" width="0.5" height="0.4" fill="#bbb"/><rect x="14.35" y="7.80" width="0.5" height="0.4" fill="#bbb"/>
+<rect x="13.10" y="5.65" width="0.4" height="0.5" fill="#bbb"/><rect x="13.10" y="9.85" width="0.4" height="0.5" fill="#bbb"/>
+<rect x="10.15" y="8.60" width="0.5" height="0.4" fill="#bbb"/><rect x="14.35" y="8.60" width="0.5" height="0.4" fill="#bbb"/>
+<rect x="13.90" y="5.65" width="0.4" height="0.5" fill="#bbb"/><rect x="13.90" y="9.85" width="0.4" height="0.5" fill="#bbb"/>
+<rect x="10.15" y="9.40" width="0.5" height="0.4" fill="#bbb"/><rect x="14.35" y="9.40" width="0.5" height="0.4" fill="#bbb"/>
+<circle cx="11.1" cy="6.6" r="0.3" fill="#777"/>
+<text x="12.50" y="8.45" font-family="Arial, Helvetica, sans-serif" font-size="1.15" fill="#d7d9dc" text-anchor="middle" font-weight="normal">CC1101</text>
+<rect x="9.4" y="11.1" width="6.6" height="3.4" fill="none" stroke="#fff" stroke-width="0.2"/>
+<rect x="10.9" y="11.7" width="3.6" height="2.4" rx="0.3" fill="#CFD3D8" stroke="#8d9297" stroke-width="0.15"/>
+<text x="12.70" y="13.15" font-family="Arial, Helvetica, sans-serif" font-size="0.9" fill="#444" text-anchor="middle" font-weight="normal">3225</text>
+<rect x="7.9" y="3" width="1.6" height="0.8" fill="#8a7545"/>
+<rect x="7.9" y="3" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="9.1" y="3" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="7.9" y="5.2" width="0.8" height="1.6" fill="#262626"/>
+<rect x="7.9" y="5.2" width="0.8" height="0.4" fill="#C9C9C9"/><rect x="7.9" y="6.4" width="0.8" height="0.4" fill="#C9C9C9"/>
+<rect x="9.9" y="2.3" width="1.6" height="0.8" fill="#e8e8e8"/>
+<rect x="9.9" y="2.3" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="11.1" y="2.3" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="14.7" y="3" width="0.8" height="1.6" fill="#262626"/>
+<rect x="14.7" y="3" width="0.8" height="0.4" fill="#C9C9C9"/><rect x="14.7" y="4.2" width="0.8" height="0.4" fill="#C9C9C9"/>
+<rect x="16.3" y="4.6" width="1.6" height="0.8" fill="#8a7545"/>
+<rect x="16.3" y="4.6" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="17.5" y="4.6" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="18.1" y="6" width="1.6" height="0.8" fill="#e8e8e8"/>
+<rect x="18.1" y="6" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="19.3" y="6" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="16.1" y="8" width="0.8" height="1.6" fill="#8a7545"/>
+<rect x="16.1" y="8" width="0.8" height="0.4" fill="#C9C9C9"/><rect x="16.1" y="9.2" width="0.8" height="0.4" fill="#C9C9C9"/>
+<rect x="15.1" y="10.6" width="1.6" height="0.8" fill="#262626"/>
+<rect x="15.1" y="10.6" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="16.3" y="10.6" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="18.1" y="9.4" width="0.8" height="1.6" fill="#e8e8e8"/>
+<rect x="18.1" y="9.4" width="0.8" height="0.4" fill="#C9C9C9"/><rect x="18.1" y="10.6" width="0.8" height="0.4" fill="#C9C9C9"/>
+<rect x="17.3" y="11.6" width="1.6" height="0.8" fill="#8a7545"/>
+<rect x="17.3" y="11.6" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="18.5" y="11.6" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="7.9" y="8.4" width="0.8" height="1.6" fill="#8a7545"/>
+<rect x="7.9" y="8.4" width="0.8" height="0.4" fill="#C9C9C9"/><rect x="7.9" y="9.6" width="0.8" height="0.4" fill="#C9C9C9"/>
+<rect x="7.9" y="11.4" width="1.6" height="0.8" fill="#262626"/>
+<rect x="7.9" y="11.4" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="9.1" y="11.4" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="19.9" y="7.4" width="1.6" height="0.8" fill="#8a7545"/>
+<rect x="19.9" y="7.4" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="21.1" y="7.4" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="21.9" y="5.4" width="0.8" height="1.6" fill="#262626"/>
+<rect x="21.9" y="5.4" width="0.8" height="0.4" fill="#C9C9C9"/><rect x="21.9" y="6.6" width="0.8" height="0.4" fill="#C9C9C9"/>
+<rect x="22.5" y="8.6" width="1.6" height="0.8" fill="#e8e8e8"/>
+<rect x="22.5" y="8.6" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="23.7" y="8.6" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="19.3" y="10.4" width="1.6" height="0.8" fill="#262626"/>
+<rect x="19.3" y="10.4" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="20.5" y="10.4" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="13.3" y="3.1" width="0.8" height="1.6" fill="#e8e8e8"/>
+<rect x="13.3" y="3.1" width="0.8" height="0.4" fill="#C9C9C9"/><rect x="13.3" y="4.3" width="0.8" height="0.4" fill="#C9C9C9"/>
+<rect x="10.5" y="4.4" width="1.6" height="0.8" fill="#262626"/>
+<rect x="10.5" y="4.4" width="0.4" height="0.8" fill="#C9C9C9"/><rect x="11.7" y="4.4" width="0.4" height="0.8" fill="#C9C9C9"/>
+<rect x="1.1" y="2.69" width="6.34" height="10.62" fill="none" stroke="#fff" stroke-width="0.25"/>
+<rect id="connector0pin" x="2.05" y="3.24" width="1.9" height="1.9" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="3.00" cy="4.19" r="0.42" fill="#0e2a47"/>
+<circle id="connector1pin" cx="5.54" cy="4.19" r="0.95" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="5.54" cy="4.19" r="0.42" fill="#0e2a47"/>
+<circle id="connector2pin" cx="3.00" cy="6.73" r="0.95" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="3.00" cy="6.73" r="0.42" fill="#0e2a47"/>
+<circle id="connector3pin" cx="5.54" cy="6.73" r="0.95" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="5.54" cy="6.73" r="0.42" fill="#0e2a47"/>
+<circle id="connector4pin" cx="3.00" cy="9.27" r="0.95" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="3.00" cy="9.27" r="0.42" fill="#0e2a47"/>
+<circle id="connector5pin" cx="5.54" cy="9.27" r="0.95" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="5.54" cy="9.27" r="0.42" fill="#0e2a47"/>
+<circle id="connector6pin" cx="3.00" cy="11.81" r="0.95" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="3.00" cy="11.81" r="0.42" fill="#0e2a47"/>
+<circle id="connector7pin" cx="5.54" cy="11.81" r="0.95" fill="#E2B93B" stroke="#8A6B12" stroke-width="0.2"/>
+<circle cx="5.54" cy="11.81" r="0.42" fill="#0e2a47"/>
+<text x="3.00" y="2.29" font-family="Arial, Helvetica, sans-serif" font-size="1.6" fill="#fff" text-anchor="middle" font-weight="normal">1</text>
+<text x="5.54" y="2.29" font-family="Arial, Helvetica, sans-serif" font-size="1.6" fill="#fff" text-anchor="middle" font-weight="normal">2</text>
+<text x="3.00" y="15.01" font-family="Arial, Helvetica, sans-serif" font-size="1.6" fill="#fff" text-anchor="middle" font-weight="normal">7</text>
+<text x="5.54" y="15.01" font-family="Arial, Helvetica, sans-serif" font-size="1.6" fill="#fff" text-anchor="middle" font-weight="normal">8</text>
+<text x="24.00" y="2.30" font-family="Arial, Helvetica, sans-serif" font-size="1.7" fill="#fff" text-anchor="start" font-weight="bold">433M</text>
+<text x="25.60" y="15.20" font-family="Arial, Helvetica, sans-serif" font-size="1.7" fill="#fff" text-anchor="start" font-weight="bold">V2.0</text>
+</g></svg>

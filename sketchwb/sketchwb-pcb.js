@@ -147,6 +147,7 @@
       <button class="swb-btn" data-tool="array" title="Array"><img src="${iconPath('icons-kicad/array.svg')}"/></button>
       <button class="swb-btn" data-tool="move" title="Move / Clone"><img src="${iconPath('icons-kicad/move.svg')}"/></button>
       <button class="swb-finish" id="swb-finish" title="Finish Sketch &amp; Set Trace Width">✓ Finish</button>
+      <button class="swb-exit" id="swb-exit" title="Bỏ hết nét vẽ, thoát, bo giữ nguyên">✕ Exit</button>
     `;
     stageEl.appendChild(tb);
 
@@ -165,10 +166,11 @@
       </div>
       <div class="swb-dlg-row"><label><input type="checkbox" id="swb-dlg-chk"/> <span>Option</span></label></div>
       <div class="swb-dlg-row" id="swb-dlg-out" style="display:none;flex-wrap:wrap;gap:8px">
-        <span>Xuất ra:</span>
-        <label><input type="radio" name="swb-out" value="cu" checked/> Dây đồng</label>
-        <label><input type="radio" name="swb-out" value="paint"/> Lớp paint</label>
-        <label title="Tô kín các hình khép kín (chỉ khi xuất ra lớp paint)"><input type="checkbox" id="swb-dlg-solid" disabled/> Solid</label>
+        <span>Output:</span>
+        <label title="Đường đồng"><input type="radio" name="swb-out" value="cu" checked/> Copper</label>
+        <label title="Lớp paint mặt trên"><input type="radio" name="swb-out" value="paint"/> Paint</label>
+        <label title="Cưa bo theo nét vẽ: nét phải đi từ mép bo tới mép bo, hoặc là vòng kín trong bo"><input type="radio" name="swb-out" value="saw"/> Saw</label>
+        <label title="Tô kín hình khép kín (chỉ với Paint)"><input type="checkbox" id="swb-dlg-solid" disabled/> Solid</label>
       </div>
       <div class="swb-dlg-btns"><button id="swb-dlg-ok" class="primary">OK</button><button id="swb-dlg-cancel">Cancel</button></div>
     `;
@@ -199,7 +201,7 @@
     const lSug = el('g', {}, overlayG), lConst = el('g', {}, overlayG), lGeo = el('g', {}, overlayG), lCstr = el('g', {}, overlayG), lPts = el('g', {}, overlayG), lPrev = el('g', {}, overlayG);
     const ensureOverlay = () => {
       const rootNode = (bridge.getRoot && bridge.getRoot()) || bridge.getSvg();
-      if (rootNode && !rootNode.contains(overlayG)) rootNode.appendChild(overlayG);
+      if (rootNode && rootNode.lastChild !== overlayG) rootNode.appendChild(overlayG);
       bridge.clearTmp?.();
     };
     bridge._ensureOverlay = ensureOverlay;
@@ -434,13 +436,15 @@
         this.syncScale();
         lSug.innerHTML = ''; lConst.innerHTML = ''; lGeo.innerHTML = ''; lCstr.innerHTML = ''; lPts.innerHTML = '';
         if (active && bridge.getSuggestedPads && (activeToolName === 'polyline' || activeToolName === 'line')) {
-          const startPt = (activeToolName === 'polyline' && (tools?.polyline?.startPt || tools?.polyline?.lastPt))
-            || (activeToolName === 'line' && tools?.line?.p1)
-            || null;
-          const sugs = bridge.getSuggestedPads(startPt) || [];
-          for (const s of sugs) {
-            el('circle', { cx: s.x, cy: s.y, r: 1.55, class: 'swb-sug-ring ' + (s.kind || 'pref') }, lSug);
-          }
+          try {
+            const startPt = (activeToolName === 'polyline' && (tools?.polyline?.startPt || tools?.polyline?.lastPt))
+              || (activeToolName === 'line' && tools?.line?.p1)
+              || null;
+            const sugs = bridge.getSuggestedPads(startPt) || [];
+            for (const s of sugs) {
+              el('circle', { cx: s.x, cy: s.y, r: 1.55, class: 'swb-sug-ring ' + (s.kind || 'pref') }, lSug);
+            }
+          } catch (e) {}
         }
         const ptR = 1.8 / Math.max(0.5, this.scale);
         for (const g of model.geometries) {
@@ -487,6 +491,7 @@
     const openValuePopup = ({ title, label, unit, value, checkLabel, checked, clientX, clientY, onApply, onCancel }) => {
       customPop = { onApply, onCancel };
       bindDimOk();
+      document.getElementById('swb-dlg-cancel').onclick = () => closeDlg(true);   // hộp Finish có thể đã đổi nút này
       document.getElementById('swb-dlg-hd').textContent = title || 'Value';
       document.getElementById('swb-dlg-lbl').textContent = label || 'Value:';
       document.getElementById('swb-dlg-unit').textContent = unit || '';
@@ -725,6 +730,7 @@
       }
       if (e.target.closest('#swb-btn-const')) { constructionMode = !constructionMode; document.getElementById('swb-btn-const').classList.toggle('const-on', constructionMode); }
       if (e.target.closest('#swb-finish')) finishToPcb(e);
+      if (e.target.closest('#swb-exit')) exitSketch();
     });
 
     const grip = tb.querySelector('.swb-grip');
@@ -896,6 +902,15 @@
     }, true);
   }
 
+  function exitSketch() {   // bỏ hết nét vẽ, thoát, bo giữ nguyên
+    const dlg = document.getElementById('swb-dlg'); if (dlg) dlg.style.display = 'none';
+    const out = document.getElementById('swb-dlg-out'); if (out) out.style.display = 'none';
+    model.clear();
+    vp.clearSelection(); vp.clearPreview(); vp.render();
+    closePlugin();
+    bridge.setTool('sel');
+  }
+
   function finishToPcb(e) {
     const rect = e.target.getBoundingClientRect();
     openValuePopupImpl(rect.left - 180, rect.top - 10);
@@ -903,8 +918,8 @@
 
   function openValuePopupImpl(cx, cy) {
     const dlg = document.getElementById('swb-dlg');
-    document.getElementById('swb-dlg-hd').textContent = 'Độ rộng đường vẽ (Trace Width)';
-    document.getElementById('swb-dlg-lbl').textContent = 'Rộng:';
+    document.getElementById('swb-dlg-hd').textContent = 'Trace width';
+    document.getElementById('swb-dlg-lbl').textContent = 'Width:';
     document.getElementById('swb-dlg-unit').textContent = 'mm';
     document.getElementById('swb-dlg-slider-row').style.display = 'flex';
     document.getElementById('swb-dlg-rng').value = '0.8';
@@ -913,8 +928,17 @@
     outRow.style.display = 'flex';
     outRow.querySelector('input[name="swb-out"][value="cu"]').checked = true; solidChk.checked = false;   // mỗi lần mở: mặc định Dây đồng
     const outMode = () => (outRow.querySelector('input[name="swb-out"]:checked') || {}).value || 'cu';
-    outRow.querySelectorAll('input[name="swb-out"]').forEach((r) => { r.onchange = () => { solidChk.disabled = outMode() !== 'paint'; if (solidChk.disabled) solidChk.checked = false; }; });
-    solidChk.disabled = outMode() !== 'paint';
+    const cancelBtn = document.getElementById('swb-dlg-cancel');
+    const wRows = [document.getElementById('swb-dlg-slider-row'), document.getElementById('swb-dlg-lbl').parentElement];
+    const syncOut = () => {
+      const m = outMode(); solidChk.disabled = m !== 'paint'; if (solidChk.disabled) solidChk.checked = false;
+      wRows.forEach((r) => { r.style.display = m === 'saw' ? 'none' : 'flex'; });   // Saw: không có độ rộng
+      document.getElementById('swb-dlg-hd').textContent = m === 'saw' ? 'Saw board' : 'Trace width';
+    };
+    outRow.querySelectorAll('input[name="swb-out"]').forEach((r) => { r.onchange = syncOut; });
+    syncOut();
+    cancelBtn.textContent = 'Back'; cancelBtn.title = 'Quay lại vẽ tiếp';
+    const closeFinish = () => { dlg.style.display = 'none'; outRow.style.display = 'none'; cancelBtn.textContent = 'Cancel'; cancelBtn.title = ''; wRows.forEach((r) => { r.style.display = 'flex'; }); };
     const inp = document.getElementById('swb-dlg-inp');
     inp.value = '0.80';
     dlg.style.left = `${Math.max(8, Math.min(window.innerWidth - 240, cx - 60))}px`;
@@ -923,9 +947,11 @@
 
     const commit = () => {
       const w = Math.max(0.2, Number(inp.value) || 0.8);
+      const toSaw = outMode() === 'saw' && !!bridge.saw, sawQ = [];
       const toPaint = outMode() === 'paint' && !!bridge.addArt, solid = toPaint && solidChk.checked;
-      dlg.style.display = 'none'; outRow.style.display = 'none';
+      closeFinish();
       const emit = (pts, net) => {
+        if (toSaw) return sawQ.push(pts);
         if (!toPaint) return bridge.addTrace(pts, w, net);
         const closed = pts.length > 2 && nearPt(pts[0], pts[pts.length - 1]);
         bridge.addArt(closed ? pts.slice(0, -1) : pts, w, closed, solid && closed);
@@ -1012,9 +1038,10 @@
       vp.clearSelection(); vp.clearPreview(); vp.render();
       closePlugin();
       bridge.setTool('sel');
+      (async () => { for (const pts of sawQ) await bridge.saw(pts); })();   // cưa lần lượt từng nét
     };
     document.getElementById('swb-dlg-ok').onclick = commit;
-    document.getElementById('swb-dlg-cancel').onclick = () => { dlg.style.display = 'none'; outRow.style.display = 'none'; };
+    cancelBtn.onclick = closeFinish;
   }
 
   function openPlugin() {
@@ -1038,7 +1065,16 @@
   }
 
   global.SketchWBPlugin = {
-    registerBridge(b) { bridge = b; buildUI(); },
+    registerBridge(b) {
+      const prev = bridge;
+      bridge = b;
+      if (prev && initialized) {
+        for (const k of ['_ensureOverlay', '_ensureLeftTabs', '_setSwbTool', '_refreshSwbPreview', '_finishSwbActive', '_cancelSwbActive']) {
+          if (prev[k]) bridge[k] = prev[k];
+        }
+        bridge._ensureOverlay?.();
+      } else buildUI();
+    },
     onPcbToolChange(t) {
       if (t === 'sk') openPlugin();
       else if (active) closePlugin();

@@ -311,7 +311,7 @@
     panel = document.createElement("div"); panel.className = "adm adm-ui";
     panel.innerHTML = `<div class="adm-bar"><b>Admin · Pindexio</b><span class="adm-st">chưa sửa</span>
         <button data-a="live" class="adm-primary">✎ Sửa trực tiếp trên trang</button><button data-a="pw">Đổi mật khẩu</button><button data-a="save" class="adm-primary" title="Ghi vào thư mục dự án trên máy này (Chrome/Edge), sau đó commit & push">Lưu vào file</button><button data-a="gh" class="adm-primary" title="Commit thẳng lên GitHub, dùng được từ máy bất kỳ">☁ Lưu lên GitHub</button><button data-a="x">Thoát</button></div>
-      <div class="adm-tabs" role="tablist"><button data-tab="link" role="tab">Link mua hàng</button><button data-tab="posts" role="tab">Bài viết</button><button data-tab="set" role="tab">Cài đặt</button><button data-tab="theme" role="tab">Giao diện</button></div>
+      <div class="adm-tabs" role="tablist"><button data-tab="dash" role="tab">📊 Dashboard</button><button data-tab="link" role="tab">Link mua hàng</button><button data-tab="posts" role="tab">Bài viết</button><button data-tab="set" role="tab">Cài đặt</button><button data-tab="theme" role="tab">Giao diện</button></div>
       <div class="adm-body"><div class="adm-in" id="admTab"></div></div>`;
     document.body.appendChild(panel);
     statusEls = [panel.querySelector(".adm-st")];
@@ -330,7 +330,49 @@
     panel.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
     const box = $("#admTab");
     box.oninput = box.onchange = box.onclick = null;
-    if (tab === "link") paintLinks(box); else if (tab === "posts") paintPosts(box); else if (tab === "set") paintSettings(box); else paintTheme(box);
+    if (tab === "dash") paintDashboard(box); else if (tab === "link") paintLinks(box); else if (tab === "posts") paintPosts(box); else if (tab === "set") paintSettings(box); else paintTheme(box);
+  }
+  async function paintDashboard(box) {
+    const lsKey = "pindex-gsheet";
+    const localUrl = (() => { try { return localStorage.getItem(lsKey) || ""; } catch (e) { return ""; } })();
+    box.innerHTML = `<section><h3>📊 Tổng quan truy cập & Affiliate <button type="button" id="admDashReload" style="float:right">↻ Tải lại</button></h3>
+      <div id="admDashBody"><p class="adm-note">Đang tải số liệu từ Google Sheet…</p></div></section>
+      <section><h3>Cấu hình test local (tuỳ chọn)</h3>
+      <label class="adm-row"><span>URL Apps Script</span><input type="text" id="admDashUrl" value="${esc(localUrl)}" placeholder="https://script.google.com/macros/s/.../exec"><button type="button" id="admDashSaveUrl">Lưu & Tải</button></label>
+      <p class="adm-note">Trên web thật (Cloudflare), hệ thống tự đọc qua <code>/api/telemetry</code>. Khi test ở máy local, dán link Web App <code>.../exec</code> vào đây.</p></section>`;
+    const load = async () => {
+      const out = box.querySelector("#admDashBody");
+      out.innerHTML = '<p class="adm-note">Đang tải số liệu…</p>';
+      try {
+        const u = (() => { try { return localStorage.getItem(lsKey) || ""; } catch (e) { return ""; } })();
+        const r = await fetch(u || "/api/telemetry");
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const d = await r.json();
+        if (!d || d.ok === false) throw new Error(d && d.error || "no_data");
+        const rate = d.visits ? ((d.buyClicks / d.visits) * 100).toFixed(1) + "%" : "0%";
+        const list = (arr, empty) => (arr && arr.length)
+          ? arr.map(([k, v]) => `<div class="adm-row" style="grid-template-columns:1fr 70px"><span>${esc(k)}</span><b>${v}</b></div>`).join("")
+          : `<p class="adm-note">${empty}</p>`;
+        out.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px">
+          <div style="padding:10px;border:1px solid var(--line);border-radius:8px"><div class="adm-note">Lượt truy cập</div><b style="font-size:20px">${d.visits || 0}</b></div>
+          <div style="padding:10px;border:1px solid var(--line);border-radius:8px"><div class="adm-note">Click mua (Affiliate)</div><b style="font-size:20px">${d.buyClicks || 0}</b></div>
+          <div style="padding:10px;border:1px solid var(--line);border-radius:8px"><div class="adm-note">Tỷ lệ click mua</div><b style="font-size:20px">${rate}</b></div>
+          <div style="padding:10px;border:1px solid var(--line);border-radius:8px"><div class="adm-note">Feedback (Mới / Tổng)</div><b style="font-size:20px">${d.newFeedback || 0} / ${d.feedbackTotal || 0}</b></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><b>Top Quốc gia</b>${list(d.topCountries, "Chưa có dữ liệu.")}</div>
+          <div><b>Board xem nhiều</b>${list(d.topBoards, "Chưa có dữ liệu.")}</div>
+        </div>`;
+      } catch (err) {
+        out.innerHTML = `<p class="adm-note" style="color:#f59e0b">Chưa lấy được số liệu (${esc(err.message)}). Nếu đang chạy local, hãy dán URL Apps Script <code>.../exec</code> ở ô bên dưới.</p>`;
+      }
+    };
+    box.querySelector("#admDashReload").onclick = load;
+    box.querySelector("#admDashSaveUrl").onclick = () => {
+      try { localStorage.setItem(lsKey, box.querySelector("#admDashUrl").value.trim()); } catch (e) { }
+      load();
+    };
+    load();
   }
   function paintLinks(box) {
     if (!window.AFF_GROUPS) { box.innerHTML = '<p class="adm-note">Đang tải…</p>'; loadScript('js/aff.js?v=1794568300').then(() => paintLinks(box)); return; }

@@ -72,7 +72,7 @@
   function renderBoardList() {
     const box = $("#boards"); box.innerHTML = "";
     BOARDS.forEach(b => {
-      const fam = { ESP32: "esp", RP2: "rp", "Raspberry Pi": "rp", AVR: "avr" }[b.family] || "esp";
+      const fam = { ESP32: "esp", RP2: "rp", "Raspberry Pi": "rp", AVR: "avr", STM32: "stm" }[b.family] || "esp";
       const btn = h("button", "board-card", `<span class="bc-icon ${fam}">${boardIcon(b)}<b>${esc(b.tag)}</b></span><span class="bc-txt"><span class="bc-name">${esc(b.name)}</span><span class="bc-chip">${esc(b.chip)} · ${esc(b.logic)}</span></span>`);
       btn.title = b.name;
       btn.setAttribute("aria-pressed", b === state.b);
@@ -424,18 +424,20 @@
 
   /* ---------- Thẻ mua board (tiếp thị liên kết) ---------- */
   // Vùng mua hàng: nhớ lựa chọn của người dùng, nếu chưa chọn thì đoán theo múi giờ / ngôn ngữ
-  function region() {
-    try { const o = localStorage.getItem("region"); if (o && (window.AFFILIATE || {})[o]) return o; } catch (e) { }
+  let shopTab = null;
+  function detectRegion() {
+    try { localStorage.removeItem("region"); } catch (e) { }
     try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; if (/Ho_Chi_Minh|Saigon|Bangkok/.test(tz)) return "vn"; } catch (e) { }
     return /^vi/i.test(navigator.language || "") ? "vn" : "intl";
   }
+  function region() { return (shopTab && (window.AFFILIATE || {})[shopTab]) ? shopTab : detectRegion(); }
   function renderBuy() {
     const box = $("#buyBox"), row = $("#buyRow"); if (!box) return;
     const A = window.AFFILIATE || {}, ph = window.BOARD_PHOTOS || {};
-    const en = document.documentElement.lang === "en", r = region(), cur = A[r] || Object.values(A)[0] || {};
+    const en = document.documentElement.lang === "en", rReal = detectRegion(), curReal = A[rReal] || Object.values(A)[0] || {}, r = region(), cur = A[r] || curReal;
     // nút "Mua board này" màu cyan cạnh tên board: dẫn tới link tiếp thị của đúng board đang xem
-    const url0 = !state.b.mod && (cur.links || {})[state.b.id];
-    for (const btn of document.querySelectorAll(".buy-btn")) { btn.hidden = !url0; if (url0) { btn.href = url0; btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#ff8a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.4a2 2 0 0 0 2 1.6h8.3a2 2 0 0 0 2-1.5L22 7H6"/></svg>${en ? "Buy here" : "Mua tại đây"}`; btn.title = `${en ? "Buy" : "Mua"} ${en && window.trEN ? trEN(state.b.name) : state.b.name} ${en ? "on" : "trên"} ${cur.shop || ""}`; } }
+    const url0 = !state.b.mod && (curReal.links || {})[state.b.id];
+    for (const btn of document.querySelectorAll(".buy-btn")) { btn.hidden = !url0; if (url0) { btn.href = url0; btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#ff8a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.4a2 2 0 0 0 2 1.6h8.3a2 2 0 0 0 2-1.5L22 7H6"/></svg>${en ? "Buy here" : "Mua tại đây"}`; btn.title = `${en ? "Buy" : "Mua"} ${en && window.trEN ? trEN(state.b.name) : state.b.name} ${en ? "on" : "trên"} ${curReal.shop || ""}`; } }
     // thẻ "Mua board" (cả dãy board) chỉ hiện khi admin bật trong tab Cài đặt
     box.hidden = !!state.b.mod || !Object.keys(A).length || !(window.SITE || {}).showBuyCards;
     if (box.hidden) return;
@@ -510,6 +512,14 @@
     if (t === "pins" || t === "build" || t === "pcblab") { work = t; try { localStorage.setItem("workTab", t); } catch (e) { } }
     state.tab = t;
     if (t === "pins" && state.b) syncHash();
+    else if (location.protocol !== "file:") {
+      const en = document.documentElement.lang === "en";
+      const hMap = { pcblab: state.studio ? "#studio" : "#pcblab", home: "#home", pinworld: "#pinworld", calc: "#calc", build: "#build" };
+      const wantH = hMap[t] || ("#" + t);
+      const curH = location.hash && location.hash.startsWith(wantH + "/") ? location.hash : wantH;
+      const cleanUrl = appRoot + (en ? "en/" : "") + curH;
+      if (location.href !== cleanUrl) history.replaceState(null, "", cleanUrl);
+    }
     document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
     document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== t);
     syncModes(); tabTitle(t); if (window.PX_TRACK) window.PX_TRACK("tab", t);
@@ -541,7 +551,7 @@
   let pwLoad = null;
   async function openPinworld() {
     setTab("pinworld");
-    pwLoad = pwLoad || loadJs("js/pinworld.js?v=1794568418");
+    pwLoad = pwLoad || loadJs("js/pinworld.js?v=1795275101");
     await pwLoad; PINWORLD.open();
   }
   document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => {
@@ -606,9 +616,9 @@
   // Tab Build: khu vẽ node riêng; tải module + build.js khi mở lần đầu
   async function openBuild(h) {
     if (state.b.mod) selectBoard(state.lastBoard || BOARDS[0].id);   // Connect cần board thật
-    if (!window.MODULES) await loadJs("js/modules.js?v=1794568418");
+    if (!window.MODULES) await loadJs("js/modules.js?v=1795275101");
     regMine();
-    if (!window.BUILD) await loadJs("js/build.js?v=1794568418");
+    if (!window.BUILD) await loadJs("js/build.js?v=1795275101");
     setTab("build"); BUILD.open(h);
   }
   // PCB Lab: vẽ bo 1 lớp tại nhà (chỉ ESP32-S3-DevKitC-1), tải js/pcblab.js khi mở lần đầu. fromWiring: lấy mạch của tab Wiring
@@ -664,7 +674,7 @@
     });
   }
   async function ensurePcb() {   // nhớ promise: mở 2 lần liền không tải / chạy pcblab.js hai lần
-    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=1794568418"); regMine(); if (!window.affUrl) await loadJs("js/aff.js?v=1794568418"); if (!window.PCBSolver) await loadJs("js/pcb-solver.js?v=1794568418"); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=1794568418"); })();
+    pcbLoad = pcbLoad || (async () => { if (!window.MODULES) await loadJs("js/modules.js?v=1795275101"); regMine(); if (!window.affUrl) await loadJs("js/aff.js?v=1795275101"); if (!window.PCBSolver) await loadJs("js/pcb-solver.js?v=1795275101"); if (!window.PCBLAB) await loadJs("js/pcblab.js?v=1795275101"); })();
     await pcbLoad;
   }
   async function openPcbLab(fromWiring) {
@@ -688,16 +698,17 @@
   if ($("#viewPcbStudio")) $("#viewPcbStudio").onclick = () => openPcbStudio();
   // Trang chủ giới thiệu + tin tức + hướng dẫn: mở khi bấm logo (chưa phải trang mặc định)
   async function openHome(postId) {
-    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=1794568418").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
-    if (!window.POSTS) await loadJs("js/posts.js?v=1794568418");
-    if (!window.HOME) await loadJs("js/home.js?v=1794568418");
+    if (!window.POSTS_EN) await loadJs("js/posts-en.js?v=1795275101").catch(() => { });   // bản dịch bài viết (tuỳ chọn)
+    if (!window.POSTS) await loadJs("js/posts.js?v=1795275101");
+    if (!window.HOME) await loadJs("js/home.js?v=1795275101");
     setTab("home"); HOME.render(postId);
   }
   document.querySelector(".brand").addEventListener("click", () => openHome());
   document.querySelector(".brand").style.cursor = "pointer";
   document.addEventListener("click", e => {
     const r = e.target.closest("#buyShop [data-r]"); if (!r) return;
-    try { localStorage.setItem("region", r.dataset.r); } catch (err) { }
+    shopTab = r.dataset.r;
+    try { localStorage.removeItem("region"); sessionStorage.removeItem("region"); } catch (err) { }
     renderBuy();
   });
   // Thanh địa chỉ nơi lưu file khi Export (hỗ trợ nhập đường dẫn trực tiếp, chọn thư mục qua server local hoặc File System Access API)
